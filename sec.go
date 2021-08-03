@@ -31,7 +31,6 @@ func (t SecTicker) String() string {
 func NewSEC(baseUrl string) *SEC {
 	return &SEC{
 		BaseURL: baseUrl,
-		Tickers: []SecTicker{},
 	}
 }
 
@@ -64,7 +63,10 @@ func (s *SEC) TickerUpdateAll(db *sqlx.DB, body []byte) error {
 	allCompanyTickers := make(map[int]SecTicker)
 
 	// Converting JSON to Structs
-	json.Unmarshal(body, &allCompanyTickers)
+	err := json.Unmarshal(body, &allCompanyTickers)
+	if err != nil {
+		return err
+	}
 
 	for _, v := range allCompanyTickers {
 		sec := SecTicker{
