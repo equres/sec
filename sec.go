@@ -83,7 +83,7 @@ func (s *SEC) TickerUpdateAll(db *sqlx.DB, body []byte) error {
 	return nil
 }
 
-func (s *SEC) GetAllTickers(db *sqlx.DB) ([]SecTicker, error) {
+func (s *SEC) TickersGetAll(db *sqlx.DB) ([]SecTicker, error) {
 	// Retrieve from DB
 	tickers := []SecTicker{}
 	err := db.Select(&tickers, "SELECT cik, ticker, title, exchange FROM tickers")
