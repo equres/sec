@@ -1,7 +1,6 @@
 package main
 
 import (
-	"encoding/json"
 	"fmt"
 
 	_ "github.com/lib/pq"
@@ -13,28 +12,22 @@ func main() {
 		panic(err)
 	}
 
-	body, err := FetchFile("https://www.sec.gov/files/company_tickers.json")
+	sec := NewSEC("https://www.sec.gov/")
+
+	// Retrieving JSON data from URL
+	body, err := sec.FetchFile("files/company_tickers.json")
 	if err != nil {
 		panic(err)
 	}
 
-	// Creating Map to hold company  ticker structs
-	allCompanyTickers := make(map[int]SecTicker)
-
-	// Converting JSON to Structs
-	json.Unmarshal(body, &allCompanyTickers)
-
-	// Insert into DB
-	for _, v := range allCompanyTickers {
-		sec := NewSEC(v.Cik, v.Ticker, v.Title, v.Exchange)
-		err := sec.SaveSecTicker(db)
-		if err != nil {
-			panic(err)
-		}
+	// Update/Insert data into DB
+	err = sec.TickerUpdateAll(db, body)
+	if err != nil {
+		panic(err)
 	}
 
 	// Retrieving all SecTickers
-	tickers, err := GetAllTickers(db)
+	tickers, err := sec.GetAllTickers(db)
 	if err != nil {
 		panic(err)
 	}
