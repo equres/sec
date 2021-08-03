@@ -1,3 +1,5 @@
+// Copyright (c) 2021 Equres LLC. All rights reserved.
+
 module github.com/equares/sec
 
 go 1.16
