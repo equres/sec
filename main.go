@@ -3,35 +3,44 @@ package main
 
 import (
 	"fmt"
+	"os"
 
 	_ "github.com/lib/pq"
 )
 
 func main() {
+	sec := NewSEC("https://www.sec.gov/")
+
 	db, err := ConnectDB()
 	if err != nil {
 		panic(err)
 	}
 
-	sec := NewSEC("https://www.sec.gov/")
+	if len(os.Args) > 1 {
+		for _, v := range os.Args[1:] {
+			switch v {
+			case "update":
+				// Retrieving JSON data from URL
+				body, err := sec.FetchFile("files/company_tickers.json")
+				if err != nil {
+					panic(err)
+				}
 
-	// Retrieving JSON data from URL
-	body, err := sec.FetchFile("files/company_tickers.json")
-	if err != nil {
-		panic(err)
+				// Update/Insert data into DB
+				err = sec.TickerUpdateAll(db, body)
+				if err != nil {
+					panic(err)
+				}
+			case "retrieve":
+				// Retrieving all SecTickers
+				tickers, err := sec.TickersGetAll(db)
+				if err != nil {
+					panic(err)
+				}
+				fmt.Println(tickers)
+			default:
+				fmt.Println("Add an expression to run using CLI. \n'update' to update the list from the website\n'retrieve' to display the list in the command-line")
+			}
+		}
 	}
-
-	// Update/Insert data into DB
-	err = sec.TickerUpdateAll(db, body)
-	if err != nil {
-		panic(err)
-	}
-
-	// Retrieving all SecTickers
-	tickers, err := sec.TickersGetAll(db)
-	if err != nil {
-		panic(err)
-	}
-
-	fmt.Println(tickers)
 }
