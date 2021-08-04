@@ -28,7 +28,7 @@ func main() {
 	}
 
 	// Retrieving all SecTickers
-	tickers, err := sec.GetAllTickers(db)
+	tickers, err := sec.TickersGetAll(db)
 	if err != nil {
 		panic(err)
 	}
