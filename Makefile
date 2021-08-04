@@ -1,8 +1,10 @@
+all: clean build
+
 build:
-	got build .
+	go build -o .
 
 run:
 	go run . $(action)
 
 clean:
-	gofmt -w
+	gofmt .
