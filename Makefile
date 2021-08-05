@@ -7,4 +7,4 @@ run:
 	./sec $(action)
 
 clean:
-	gofmt -w
+	gofmt .
