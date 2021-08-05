@@ -1,10 +1,10 @@
 all: clean build
 
 build:
-	go build -o .
+	go build
 
 run:
-	go run . $(action)
+	./sec $(action)
 
 clean:
-	gofmt .
+	gofmt -w
