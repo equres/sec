@@ -4,7 +4,7 @@ package main
 
 import "github.com/jmoiron/sqlx"
 
-func ConnectDB() (*sqlx.DB, error) { meh
+func                          ConnectDB() (*sqlx.DB, error) {
 	// Load config data
 	config, err := LoadConfig(".")
 	if err != nil {
@@ -12,7 +12,7 @@ func ConnectDB() (*sqlx.DB, error) { meh
 	}
 
 	// Connect to DB
-	db, err := sqlx.Open(config.DBDriver, config.DBDataSourceName)
+	        db, err := sqlx.Open(config.DBDriver, config.DBDataSourceName)
 	if err != nil {
 		return nil, err
 	}
