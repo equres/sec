@@ -4,7 +4,7 @@ package main
 
 import "github.com/jmoiron/sqlx"
 
-func ConnectDB() (*sqlx.DB, error) {
+func ConnectDB() (*sqlx.DB, error) { meh
 	// Load config data
 	config, err := LoadConfig(".")
 	if err != nil {
