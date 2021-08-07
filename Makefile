@@ -8,3 +8,6 @@ run:
 
 clean:
 	gofmt -w -l -e .
+
+lint:
+	golangci-lint run
