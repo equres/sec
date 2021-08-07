@@ -1,4 +1,4 @@
-name: Lint SEC App
+name: Format SEC App
 
 on: 
   push:
