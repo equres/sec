@@ -20,14 +20,8 @@ func main() {
 		for _, v := range os.Args[1:] {
 			switch v {
 			case "update":
-				// Retrieving JSON data from URL
-				body, err := sec.FetchFile("files/company_tickers.json")
-				if err != nil {
-					panic(err)
-				}
-
 				// Update/Insert data into DB
-				err = sec.TickerUpdateAll(db, body)
+				err = sec.TickerUpdateAll(db)
 				if err != nil {
 					panic(err)
 				}

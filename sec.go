@@ -11,6 +11,11 @@ import (
 	"github.com/jmoiron/sqlx"
 )
 
+type ExchangesFile struct {
+	Fields []string        `json:"fields"`
+	Data   [][]interface{} `json:"data"`
+}
+
 // Ticker Struct Based on JSON
 type SecTicker struct {
 	Cik      int    `json:"cik_str"`
@@ -35,7 +40,12 @@ func NewSEC(baseUrl string) *SEC {
 }
 
 func (t SecTicker) Save(db *sqlx.DB) error {
-	_, err := db.Exec(`INSERT INTO tickers (cik, ticker, title, exchange, created_at, updated_at) VALUES ($1, $2, $3, $4, NOW(), NOW()) ON CONFLICT (cik, ticker, title, exchange) DO UPDATE SET cik=EXCLUDED.cik, ticker=EXCLUDED.ticker, title=EXCLUDED.title, exchange=EXCLUDED.exchange, updated_at=NOW() WHERE tickers.cik = EXCLUDED.cik;`, t.Cik, t.Ticker, t.Title, t.Exchange)
+	_, err := db.Exec(`
+	INSERT INTO tickers (cik, ticker, title, exchange, created_at, updated_at) 
+	VALUES ($1, $2, $3, $4, NOW(), NOW()) 
+	ON CONFLICT (cik, ticker, title) 
+	DO UPDATE SET cik=EXCLUDED.cik, ticker=EXCLUDED.ticker, title=EXCLUDED.title, exchange=EXCLUDED.exchange, updated_at=NOW() 
+	WHERE tickers.cik=EXCLUDED.cik AND tickers.ticker=EXCLUDED.ticker AND tickers.title=EXCLUDED.title AND tickers.exchange = '';`, t.Cik, t.Ticker, t.Title, t.Exchange)
 	if err != nil {
 		return err
 	}
@@ -58,12 +68,41 @@ func (s *SEC) FetchFile(url string) ([]byte, error) {
 	return body, nil
 }
 
-func (s *SEC) TickerUpdateAll(db *sqlx.DB, body []byte) error {
-	// Creating Map to hold company  ticker structs
+func (s *SEC) TickerUpdateAll(db *sqlx.DB) error {
+	err := s.NoExchangeTickersGet(db)
+	if err != nil {
+		return err
+	}
+
+	err = s.ExchangeTickersGet(db)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+func (s *SEC) TickersGetAll(db *sqlx.DB) ([]SecTicker, error) {
+	// Retrieve from DB
+	tickers := []SecTicker{}
+	err := db.Select(&tickers, "SELECT cik, ticker, title, exchange FROM tickers")
+	if err != nil {
+		return nil, err
+	}
+	return tickers, nil
+}
+
+func (s *SEC) NoExchangeTickersGet(db *sqlx.DB) error {
+	// Retrieving JSON data from URL
+	body, err := s.FetchFile("files/company_tickers.json")
+	if err != nil {
+		return err
+	}
+
+	// Creating Map to hold company ticker structs
 	allCompanyTickers := make(map[int]SecTicker)
 
 	// Converting JSON to Structs
-	err := json.Unmarshal(body, &allCompanyTickers)
+	err = json.Unmarshal(body, &allCompanyTickers)
 	if err != nil {
 		return err
 	}
@@ -83,12 +122,39 @@ func (s *SEC) TickerUpdateAll(db *sqlx.DB, body []byte) error {
 	return nil
 }
 
-func (s *SEC) TickersGetAll(db *sqlx.DB) ([]SecTicker, error) {
-	// Retrieve from DB
-	tickers := []SecTicker{}
-	err := db.Select(&tickers, "SELECT cik, ticker, title, exchange FROM tickers")
+func (s *SEC) ExchangeTickersGet(db *sqlx.DB) error {
+	// Retrieving JSON data from URL
+	body, err := s.FetchFile("files/company_tickers_exchange.json")
 	if err != nil {
-		return nil, err
+		return err
 	}
-	return tickers, nil
+
+	fileExchange := ExchangesFile{}
+
+	err = json.Unmarshal(body, &fileExchange)
+	if err != nil {
+		return err
+	}
+
+	for _, v := range fileExchange.Data {
+		// Below is because sometimes the exchange is empty (nil). Added lines to ensure no error when saving
+		exchange := ""
+		if v[3] == nil {
+			exchange = ""
+		} else {
+			exchange = v[3].(string)
+		}
+
+		sec := SecTicker{
+			Cik:      int(v[0].(float64)),
+			Title:    v[1].(string),
+			Ticker:   v[2].(string),
+			Exchange: exchange,
+		}
+		err := sec.Save(db)
+		if err != nil {
+			return err
+		}
+	}
+	return nil
 }
