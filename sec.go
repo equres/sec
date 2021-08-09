@@ -263,7 +263,7 @@ func (s *SEC) ParseRSSGoXML(url string) error {
 	if err != nil {
 		return err
 	}
-	req.Header.Set("User-Agent", "wojciech@koszek.com")
+	req.Header.Set("User-Agent", "Equres LLC wojciech@koszek.com")
 
 	resp, err := client.Do(req)
 	if err != nil {
