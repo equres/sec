@@ -1,4 +1,4 @@
-# SECARCH - SEC financial statement archive
+# SEC - SEC financial statement archive
 
 `vim:set tw=1000:`
 
@@ -111,10 +111,19 @@ Hierarchy:
         - `edgar:xbrlfile`
         - ...
 
+The idea for a first version of the program would be to read the XML, parse the `edgar:xbrlfile` entries,
+and download those files to the directory.
+
+Example of those entries:
+
+          <edgar:xbrlFile edgar:sequence="1" edgar:file="f10q0321a1_augmedixinc.htm" edgar:type="10-Q/A" edgar:size="461822" edgar:description="AMENDMENT NO. 1 TO FORM 10-Q" edgar:inlineXBRL="true" edgar:url="https://www.sec.gov/Archives/edgar/data/1769804/000121390021035115/f10q0321a1_augmedixinc.htm" />
+          <edgar:xbrlFile edgar:sequence="2" edgar:file="f10q0321a1ex31-1_augmedix.htm" edgar:type="EX-31.1" edgar:size="9138" edgar:description="CERTIFICATION" edgar:url="https://www.sec.gov/Archives/edgar/data/1769804/000121390021035115/f10q0321a1ex31-1_augmedix.htm" />
+
+We should grab those entries, and inject them to the DB. In other words, it'd be great if  `edgar:url` and download the files into `~/.sec/Archives/edgar.......`.
 
 ## Software architecture
 
-The heart of secarch will be a monolithic single-binary CLI called 'sec'.
+The heart of `sec` will be a monolithic single-binary CLI called 'sec'.
 The `sec` program will come with a couple of command line options which will
 decide what the user is requesting.
 We use Go and PostgreSQL as a heart of this program for managing its internal "index" of data.
@@ -156,10 +165,15 @@ size VPS server.
 
 ## Semantics
 
+We should use Go libraries  `spf/cobra` and `spf/viper`:
+- cobra will give us command line parsing required for the interface mentioned below
+- viper will enable us a use of a config files
+
+
 Proposed commands:
 
 	sec init         # would create ~/.sec or ~/.config/sec/ and the config.yml there, with some default settings
-	sec update       # get critical RSS feeds and download them to memory, parse them and inject whatever we need to the the index
+	sec update       # get critical RSS feeds and download them ~/.sec/data directory, parse them and update the DB
 	sec status       # show what we've got in the index with yyyy/mm 
 	sec de yyyy/mm   # toggle "download enable" flag for statements from yyyy/mm month 
 	sec dd yyyy/mm   # toggle "download disable" flag for statements from yyyy/mm month 
@@ -168,9 +182,10 @@ Proposed commands:
 The example of something practical -- when we are going to be testing it on a VPS, we will do:
 
 	sec init
-	sec update 
+	sec update
 	sec dd all       # untoggle all years/months from downloading
 	sec de 2020      # toggle for downloading all statements from 2020
+	sec dest
 	sec dow          # download everything
 	
 After 1-2 days, I'd like to be able to run:
@@ -185,8 +200,8 @@ And it'd obtain this data locally.
 
 ## sec init
 
-We should initialize a fresh system for using our system. We will do this with `sec init`.
-We should probably explore Go libraries like spf/cobra and spf/viper.
+We should initialize a fresh system for using our program.
+We will do this with `sec init`.
 They should have management of "config" directories for the shell commands, and we should
 ensure that `~/.sec/` or `~/.config/sec` can be created according to the OS system standards.
 We could add config file there. Also `viper` I think has a way to dump config file with defaults
