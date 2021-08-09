@@ -37,4 +37,6 @@ func main() {
 			}
 		}
 	}
+
+	_ = sec.ParseRSS("Archives/edgar/monthly/xbrlrss-2021-06.xml")
 }

@@ -7,8 +7,12 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"os"
+	"path/filepath"
+	"strings"
 
 	"github.com/jmoiron/sqlx"
+	"github.com/mmcdole/gofeed"
 )
 
 type ExchangesFile struct {
@@ -156,5 +160,53 @@ func (s *SEC) ExchangeTickersGet(db *sqlx.DB) error {
 			return err
 		}
 	}
+	return nil
+}
+
+func (s *SEC) ParseRSS(url string) error {
+	fp := gofeed.NewParser()
+	feed, err := fp.ParseURL(s.BaseURL + url)
+	if err != nil {
+		return err
+	}
+
+	for _, v := range feed.Items {
+		for _, v1 := range v.Extensions {
+			for _, v2 := range v1["xbrlFiling"] {
+				for _, v3 := range v2.Children["xbrlFiles"][0].Children["xbrlFile"] {
+					go s.DownloadFile(v3.Attrs["url"])
+				}
+			}
+		}
+	}
+	return nil
+}
+
+func (s *SEC) DownloadFile(fullurl string) error {
+	resp, err := http.Get(fullurl)
+	if err != nil {
+		return err
+	}
+	defer resp.Body.Close()
+
+	_, err = os.Stat("files/")
+	if err != nil {
+		err = os.Mkdir("files", 0755)
+		if err != nil {
+			return err
+		}
+	}
+
+	out, err := os.Create(strings.Join([]string{"files", filepath.Base(fullurl)}, "/"))
+	if err != nil {
+		return err
+	}
+	defer out.Close()
+
+	_, err = io.Copy(out, resp.Body)
+	if err != nil {
+		return err
+	}
+
 	return nil
 }
