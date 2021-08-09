@@ -78,12 +78,9 @@ The format of the filings are:
 All the assets are included as well, so if there's a JPG included in the HTML website
 (when for example the company wants to present a graph), this JPG will be there too.
 
-The most important part of the project is that there are ZIPs of all those files on sec.gov,
-and there is a RSS feed of those ZIP files.
-For example, there's an RSS feed showing where all the financial statements are.
-
 The idea of the milestone 1 would be to understand what this RSS feed has,
-and create a program to allow us to stay in sync with SEC by downloading the ZIPs.
+and create a program to allow us to stay in sync with SEC by downloading the files mentioned
+in the RSS feed.
 It should be accomplished by parsing the feed of data and know what we need to download, and
 then downloading it for a backup, and later for further ingesting.
 
@@ -94,6 +91,28 @@ In the case we could get a big server with lots of disk, and we could try it out
 
 
 # Technical specs
+
+## Data structure
+
+The most important for this project is to understand the structure of the data.
+
+Example of the RSS file is:
+
+https://www.sec.gov/Archives/edgar/monthly/xbrlrss-2021-06.xml
+
+Hierarchy:
+
+- channel
+  - item
+    - `edgar:xbrlfiling`
+      - `edgar:xbrlFiles`
+        - `edgar:xbrlfile`
+        - `edgar:xbrlfile`
+        - `edgar:xbrlfile`
+        - ...
+
+
+## Software architecture
 
 The heart of secarch will be a monolithic single-binary CLI called 'sec'.
 The `sec` program will come with a couple of command line options which will
