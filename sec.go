@@ -3,17 +3,85 @@
 package main
 
 import (
+	"bytes"
 	"encoding/json"
+	"encoding/xml"
 	"fmt"
 	"io"
+	"io/ioutil"
 	"net/http"
 	"os"
 	"path/filepath"
 	"strings"
+	"time"
 
 	"github.com/jmoiron/sqlx"
 	"github.com/mmcdole/gofeed"
+	"golang.org/x/net/html/charset"
 )
+
+type RSSFile struct {
+	XMLName xml.Name `xml:"rss"`
+	Text    string   `xml:",chardata"`
+	Version string   `xml:"version,attr"`
+	Channel struct {
+		Text  string `xml:",chardata"`
+		Title string `xml:"title"`
+		Link  struct {
+			Text string `xml:",chardata"`
+			Href string `xml:"href,attr"`
+			Rel  string `xml:"rel,attr"`
+			Type string `xml:"type,attr"`
+			Atom string `xml:"atom,attr"`
+		} `xml:"link"`
+		Description   string `xml:"description"`
+		Language      string `xml:"language"`
+		PubDate       string `xml:"pubDate"`
+		LastBuildDate string `xml:"lastBuildDate"`
+		Item          []struct {
+			Text      string `xml:",chardata"`
+			Title     string `xml:"title"`
+			Link      string `xml:"link"`
+			Guid      string `xml:"guid"`
+			Enclosure struct {
+				Text   string `xml:",chardata"`
+				URL    string `xml:"url,attr"`
+				Length string `xml:"length,attr"`
+				Type   string `xml:"type,attr"`
+			} `xml:"enclosure"`
+			Description string `xml:"description"`
+			PubDate     string `xml:"pubDate"`
+			XbrlFiling  struct {
+				Text               string `xml:",chardata"`
+				Edgar              string `xml:"edgar,attr"`
+				CompanyName        string `xml:"companyName"`
+				FormType           string `xml:"formType"`
+				FilingDate         string `xml:"filingDate"`
+				CikNumber          string `xml:"cikNumber"`
+				AccessionNumber    string `xml:"accessionNumber"`
+				FileNumber         string `xml:"fileNumber"`
+				AcceptanceDatetime string `xml:"acceptanceDatetime"`
+				Period             string `xml:"period"`
+				AssistantDirector  string `xml:"assistantDirector"`
+				AssignedSic        string `xml:"assignedSic"`
+				FiscalYearEnd      string `xml:"fiscalYearEnd"`
+				XbrlFiles          struct {
+					Text     string `xml:",chardata"`
+					XbrlFile []struct {
+						Text        string `xml:",chardata"`
+						Sequence    string `xml:"sequence,attr"`
+						File        string `xml:"file,attr"`
+						Type        string `xml:"type,attr"`
+						Size        string `xml:"size,attr"`
+						Description string `xml:"description,attr"`
+						InlineXBRL  string `xml:"inlineXBRL,attr"`
+						URL         string `xml:"url,attr"`
+					} `xml:"xbrlFile"`
+				} `xml:"xbrlFiles"`
+			} `xml:"xbrlFiling"`
+		} `xml:"item"`
+	} `xml:"channel"`
+}
 
 type ExchangesFile struct {
 	Fields []string        `json:"fields"`
@@ -163,7 +231,8 @@ func (s *SEC) ExchangeTickersGet(db *sqlx.DB) error {
 	return nil
 }
 
-func (s *SEC) ParseRSS(url string) error {
+// Parsing RSS/XML using GoFeed
+func (s *SEC) ParseRSSGoFeed(url string) error {
 	fp := gofeed.NewParser()
 	feed, err := fp.ParseURL(s.BaseURL + url)
 	if err != nil {
@@ -174,10 +243,11 @@ func (s *SEC) ParseRSS(url string) error {
 		for _, v1 := range v.Extensions {
 			for _, v2 := range v1["xbrlFiling"] {
 				for _, v3 := range v2.Children["xbrlFiles"][0].Children["xbrlFile"] {
-					err = s.DownloadFile(v3.Attrs["url"])
+					err = s.DownloadFile(url, v3.Attrs["url"])
 					if err != nil {
 						return nil
 					}
+					time.Sleep(1 * time.Second)
 				}
 			}
 		}
@@ -185,22 +255,67 @@ func (s *SEC) ParseRSS(url string) error {
 	return nil
 }
 
-func (s *SEC) DownloadFile(fullurl string) error {
+// Parsing RSS/XML using Go XML Library
+func (s *SEC) ParseRSSGoXML(url string) error {
+	client := &http.Client{}
+
+	req, err := http.NewRequest("GET", s.BaseURL+url, nil)
+	if err != nil {
+		return err
+	}
+	req.Header.Set("User-Agent", "wojciech@koszek.com")
+
+	resp, err := client.Do(req)
+	if err != nil {
+		return err
+	}
+
+	defer resp.Body.Close()
+
+	data, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
+		return err
+	}
+
+	var rssFile RSSFile
+
+	reader := bytes.NewReader(data)
+	decoder := xml.NewDecoder(reader)
+	decoder.CharsetReader = charset.NewReaderLabel
+	err = decoder.Decode(&rssFile)
+	if err != nil {
+		return err
+	}
+
+	for _, v := range rssFile.Channel.Item[:1] {
+		for _, v1 := range v.XbrlFiling.XbrlFiles.XbrlFile {
+			err = s.DownloadFile(url, v1.URL)
+			if err != nil {
+				return err
+			}
+			time.Sleep(1 * time.Second)
+		}
+	}
+
+	return err
+}
+
+func (s *SEC) DownloadFile(basepath, fullurl string) error {
 	resp, err := http.Get(fullurl)
 	if err != nil {
 		return err
 	}
 	defer resp.Body.Close()
 
-	_, err = os.Stat("files/")
+	_, err = os.Stat(basepath)
 	if err != nil {
-		err = os.Mkdir("files", 0755)
+		err = os.MkdirAll(basepath, 0755)
 		if err != nil {
 			return err
 		}
 	}
 
-	out, err := os.Create(strings.Join([]string{"files", filepath.Base(fullurl)}, "/"))
+	out, err := os.Create(strings.Join([]string{basepath, filepath.Base(fullurl)}, "/"))
 	if err != nil {
 		return err
 	}

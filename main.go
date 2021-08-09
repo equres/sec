@@ -38,5 +38,8 @@ func main() {
 		}
 	}
 
-	_ = sec.ParseRSS("Archives/edgar/monthly/xbrlrss-2021-06.xml")
+	err = sec.ParseRSSGoXML("Archives/edgar/monthly/xbrlrss-2021-06.xml")
+	if err != nil {
+		panic(err)
+	}
 }
