@@ -174,7 +174,10 @@ func (s *SEC) ParseRSS(url string) error {
 		for _, v1 := range v.Extensions {
 			for _, v2 := range v1["xbrlFiling"] {
 				for _, v3 := range v2.Children["xbrlFiles"][0].Children["xbrlFile"] {
-					go s.DownloadFile(v3.Attrs["url"])
+					err = s.DownloadFile(v3.Attrs["url"])
+					if err != nil {
+						return nil
+					}
 				}
 			}
 		}
