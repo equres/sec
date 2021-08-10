@@ -7,7 +7,6 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/equres/sec/sec"
 	"github.com/equres/sec/util"
 	"github.com/spf13/cobra"
 )
@@ -54,13 +53,13 @@ var deCmd = &cobra.Command{
 		// If month = 0 then enable download for all months of that year ELSE then save only that specific month (e.g. 2021/05 so save only 05)
 		if month == 0 {
 			for i := 1; i <= 12; i++ {
-				err = sec.SaveWorklist(year, i, true, db)
+				err = util.SaveWorklist(year, i, true, db)
 				if err != nil {
 					panic(err)
 				}
 			}
 		} else {
-			err = sec.SaveWorklist(year, month, true, db)
+			err = util.SaveWorklist(year, month, true, db)
 			if err != nil {
 				panic(err)
 			}

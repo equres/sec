@@ -1,6 +1,6 @@
 // Copyright (c) 2021 Equres LLC. All rights reserved.
 
-package sec
+package util
 
 import (
 	"bytes"

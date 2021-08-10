@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/equres/sec/sec"
 	"github.com/equres/sec/util"
 	"github.com/spf13/cobra"
 )
@@ -21,14 +20,14 @@ This application is a tool to generate the needed files
 to quickly create a Cobra application.`,
 	Run: func(cmd *cobra.Command, args []string) {
 		// Retrieving all SecTickers
-		sec1 := sec.NewSEC("https://www.sec.gov/")
+		sec := util.NewSEC("https://www.sec.gov/")
 
 		db, err := util.ConnectDB()
 		if err != nil {
 			panic(err)
 		}
 
-		tickers, err := sec1.TickersGetAll(db)
+		tickers, err := sec.TickersGetAll(db)
 		if err != nil {
 			panic(err)
 		}

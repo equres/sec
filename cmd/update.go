@@ -4,7 +4,6 @@ package cmd
 import (
 	"os"
 
-	"github.com/equres/sec/sec"
 	"github.com/equres/sec/util"
 	"github.com/spf13/cobra"
 )
@@ -16,14 +15,14 @@ var updateCmd = &cobra.Command{
 	Short: "get critical RSS feeds and download them ~/.sec/data directory, parse them and update the DB",
 	Long:  `get critical RSS feeds and download them ~/.sec/data directory, parse them and update the DB`,
 	Run: func(cmd *cobra.Command, args []string) {
-		sec1 := sec.NewSEC("https://www.sec.gov/")
+		sec := util.NewSEC("https://www.sec.gov/")
 
 		db, err := util.ConnectDB()
 		if err != nil {
 			panic(err)
 		}
 
-		err = sec1.TickerUpdateAll(db)
+		err = sec.TickerUpdateAll(db)
 		if err != nil {
 			panic(err)
 		}
