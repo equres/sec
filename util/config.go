@@ -1,6 +1,6 @@
 // Copyright (c) 2021 Equres LLC. All rights reserved.
 
-package main
+package util
 
 import "github.com/spf13/viper"
 

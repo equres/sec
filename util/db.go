@@ -1,8 +1,10 @@
 // Copyright (c) 2021 Equres LLC. All rights reserved.
 
-package main
+package util
 
-import "github.com/jmoiron/sqlx"
+import (
+	"github.com/jmoiron/sqlx"
+)
 
 func ConnectDB() (*sqlx.DB, error) {
 	// Load config data

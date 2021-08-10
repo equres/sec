@@ -1,6 +1,6 @@
 // Copyright (c) 2021 Equres LLC. All rights reserved.
 
-package main
+package sec
 
 import (
 	"bytes"
@@ -326,5 +326,18 @@ func (s *SEC) DownloadFile(basepath, fullurl string) error {
 		return err
 	}
 
+	return nil
+}
+
+func SaveWorklist(year int, month int, will_download bool, db *sqlx.DB) error {
+	_, err := db.Exec(`
+	INSERT INTO worklist (year, month, will_download, created_at, updated_at) 
+	VALUES ($1, $2, $3, NOW(), NOW()) 
+	ON CONFLICT (month, year) 
+	DO UPDATE SET will_download=EXCLUDED.will_download, updated_at=NOW() 
+	WHERE worklist.year=EXCLUDED.year AND worklist.month=EXCLUDED.month ;`, year, month, will_download)
+	if err != nil {
+		return err
+	}
 	return nil
 }
