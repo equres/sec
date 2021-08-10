@@ -4,7 +4,6 @@ package cmd
 import (
 	"errors"
 	"os"
-	"strconv"
 	"time"
 
 	"github.com/equres/sec/util"
@@ -23,25 +22,34 @@ var ddCmd = &cobra.Command{
 		}
 
 		year_month := args[0]
-		current_year, _, _ := time.Now().Date()
-		year, err := strconv.Atoi(year_month[0:4])
-		if err != nil {
-			panic(err)
-		}
-
-		if year > current_year {
-			err = errors.New("please enter a year equal to or below current year")
-			panic(err)
-		}
 
 		var month int
-		if len(year_month) > 4 {
-			if string(year_month[4]) == "/" {
-				month, err = strconv.Atoi(year_month[5:])
-				if err != nil {
-					panic(err)
-				}
+		var year int
+
+		switch len(year_month) {
+		case 4:
+			date, err := time.Parse("2006", year_month)
+			if err != nil {
+				panic(err)
 			}
+			year = date.Year()
+		case 6:
+			date, err := time.Parse("2006/1", year_month)
+			if err != nil {
+				panic(err)
+			}
+			year = date.Year()
+			month = int(date.Month())
+		case 7:
+			date, err := time.Parse("2006/01", year_month)
+			if err != nil {
+				panic(err)
+			}
+			year = date.Year()
+			month = int(date.Month())
+		default:
+			err := errors.New("please enter a valid date ('2021' or '2021/05')")
+			panic(err)
 		}
 
 		db, err := util.ConnectDB()
@@ -49,16 +57,16 @@ var ddCmd = &cobra.Command{
 			panic(err)
 		}
 
-		// If month = 0 then disable download for all months of that year ELSE then save only that specific month (e.g. 2021/05 so save only 05)
-		if month == 0 {
-			for i := 1; i <= 12; i++ {
-				err = util.SaveWorklist(year, i, false, db)
-				if err != nil {
-					panic(err)
-				}
-			}
-		} else {
+		if month != 0 {
 			err = util.SaveWorklist(year, month, false, db)
+			if err != nil {
+				panic(err)
+			}
+			return
+		}
+
+		for i := 1; i <= 12; i++ {
+			err = util.SaveWorklist(year, i, false, db)
 			if err != nil {
 				panic(err)
 			}

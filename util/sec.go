@@ -16,7 +16,6 @@ import (
 	"time"
 
 	"github.com/jmoiron/sqlx"
-	"github.com/mmcdole/gofeed"
 	"golang.org/x/net/html/charset"
 )
 
@@ -226,30 +225,6 @@ func (s *SEC) ExchangeTickersGet(db *sqlx.DB) error {
 		err := sec.Save(db)
 		if err != nil {
 			return err
-		}
-	}
-	return nil
-}
-
-// Parsing RSS/XML using GoFeed
-func (s *SEC) ParseRSSGoFeed(url string) error {
-	fp := gofeed.NewParser()
-	feed, err := fp.ParseURL(s.BaseURL + url)
-	if err != nil {
-		return err
-	}
-
-	for _, v := range feed.Items {
-		for _, v1 := range v.Extensions {
-			for _, v2 := range v1["xbrlFiling"] {
-				for _, v3 := range v2.Children["xbrlFiles"][0].Children["xbrlFile"] {
-					err = s.DownloadFile(url, v3.Attrs["url"])
-					if err != nil {
-						return nil
-					}
-					time.Sleep(1 * time.Second)
-				}
-			}
 		}
 	}
 	return nil
