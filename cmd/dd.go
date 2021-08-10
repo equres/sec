@@ -3,8 +3,8 @@ package cmd
 
 import (
 	"errors"
+	"fmt"
 	"os"
-	"time"
 
 	"github.com/equres/sec/util"
 	"github.com/spf13/cobra"
@@ -17,61 +17,18 @@ var ddCmd = &cobra.Command{
 	Long:  `toggle 'download disable' flag for statements from yyyy/mm month `,
 	Run: func(cmd *cobra.Command, args []string) {
 		if len(args) == 0 {
-			err := errors.New("please enter a year and month (for example: 2021 or 2021/06)")
+			err := errors.New("please enter a year or year/month (for example: 2021 or 2021/06)")
 			panic(err)
 		}
 
 		year_month := args[0]
 
-		var month int
-		var year int
-
-		switch len(year_month) {
-		case 4:
-			date, err := time.Parse("2006", year_month)
-			if err != nil {
-				panic(err)
-			}
-			year = date.Year()
-		case 6:
-			date, err := time.Parse("2006/1", year_month)
-			if err != nil {
-				panic(err)
-			}
-			year = date.Year()
-			month = int(date.Month())
-		case 7:
-			date, err := time.Parse("2006/01", year_month)
-			if err != nil {
-				panic(err)
-			}
-			year = date.Year()
-			month = int(date.Month())
-		default:
-			err := errors.New("please enter a valid date ('2021' or '2021/05')")
-			panic(err)
-		}
-
-		db, err := util.ConnectDB()
+		err := util.Downloadability(year_month, false)
 		if err != nil {
 			panic(err)
 		}
 
-		if month != 0 {
-			err = util.SaveWorklist(year, month, false, db)
-			if err != nil {
-				panic(err)
-			}
-			return
-		}
-
-		for i := 1; i <= 12; i++ {
-			err = util.SaveWorklist(year, i, false, db)
-			if err != nil {
-				panic(err)
-			}
-		}
-
+		fmt.Println("Successfully set download disabled for:", year_month)
 		os.Exit(0)
 	},
 }

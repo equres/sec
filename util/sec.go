@@ -6,6 +6,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"encoding/xml"
+	"errors"
 	"fmt"
 	"io"
 	"io/ioutil"
@@ -313,6 +314,58 @@ func SaveWorklist(year int, month int, will_download bool, db *sqlx.DB) error {
 	WHERE worklist.year=EXCLUDED.year AND worklist.month=EXCLUDED.month ;`, year, month, will_download)
 	if err != nil {
 		return err
+	}
+	return nil
+}
+
+func Downloadability(year_month string, will_download bool) error {
+	var month int
+	var year int
+
+	switch len(year_month) {
+	case 4:
+		date, err := time.Parse("2006", year_month)
+		if err != nil {
+			return err
+		}
+		year = date.Year()
+	case 6:
+		date, err := time.Parse("2006/1", year_month)
+		if err != nil {
+			return err
+		}
+		year = date.Year()
+		month = int(date.Month())
+	case 7:
+		date, err := time.Parse("2006/01", year_month)
+		if err != nil {
+			return err
+		}
+		year = date.Year()
+		month = int(date.Month())
+	default:
+		err := errors.New("please enter a valid date ('2021' or '2021/05')")
+		return err
+	}
+
+	db, err := ConnectDB()
+	if err != nil {
+		panic(err)
+	}
+
+	if month != 0 {
+		err = SaveWorklist(year, month, will_download, db)
+		if err != nil {
+			panic(err)
+		}
+		return nil
+	}
+
+	for i := 1; i <= 12; i++ {
+		err = SaveWorklist(year, i, will_download, db)
+		if err != nil {
+			return err
+		}
 	}
 	return nil
 }

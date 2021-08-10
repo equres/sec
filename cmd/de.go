@@ -3,8 +3,8 @@ package cmd
 
 import (
 	"errors"
+	"fmt"
 	"os"
-	"time"
 
 	"github.com/equres/sec/util"
 	"github.com/spf13/cobra"
@@ -23,55 +23,12 @@ var deCmd = &cobra.Command{
 
 		year_month := args[0]
 
-		var month int
-		var year int
-
-		switch len(year_month) {
-		case 4:
-			date, err := time.Parse("2006", year_month)
-			if err != nil {
-				panic(err)
-			}
-			year = date.Year()
-		case 6:
-			date, err := time.Parse("2006/1", year_month)
-			if err != nil {
-				panic(err)
-			}
-			year = date.Year()
-			month = int(date.Month())
-		case 7:
-			date, err := time.Parse("2006/01", year_month)
-			if err != nil {
-				panic(err)
-			}
-			year = date.Year()
-			month = int(date.Month())
-		default:
-			err := errors.New("please enter a valid date ('2021' or '2021/05')")
-			panic(err)
-		}
-
-		db, err := util.ConnectDB()
+		err := util.Downloadability(year_month, true)
 		if err != nil {
 			panic(err)
 		}
 
-		if month != 0 {
-			err = util.SaveWorklist(year, month, true, db)
-			if err != nil {
-				panic(err)
-			}
-			return
-		}
-
-		for i := 1; i <= 12; i++ {
-			err = util.SaveWorklist(year, i, true, db)
-			if err != nil {
-				panic(err)
-			}
-		}
-
+		fmt.Println("Successfully set download enabled for:", year_month)
 		os.Exit(0)
 	},
 }
