@@ -271,7 +271,7 @@ func (s *SEC) ParseRSSGoXML(url string) (RSSFile, error) {
 
 // Parsing RSS/XML using Go XML Library
 func (s *SEC) DownloadXbrlFiles(rssFile RSSFile, basepath string) error {
-	for _, v := range rssFile.Channel.Item[:1] {
+	for _, v := range rssFile.Channel.Item {
 		for _, v1 := range v.XbrlFiling.XbrlFiles.XbrlFile {
 			err := s.DownloadFile(basepath, v1.URL)
 			if err != nil {
@@ -280,16 +280,20 @@ func (s *SEC) DownloadXbrlFiles(rssFile RSSFile, basepath string) error {
 			time.Sleep(1 * time.Second)
 		}
 	}
+
 	return nil
 }
 
 func (s *SEC) DownloadFile(basepath, fullurl string) error {
+	// Base path is path from current folder to download folder
+	// Fullurl is the actual URL for the file to be downloaded
 	resp, err := http.Get(fullurl)
 	if err != nil {
 		return err
 	}
 	defer resp.Body.Close()
 
+	// Check if Folder for this XML exists
 	_, err = os.Stat(basepath)
 	if err != nil {
 		err = os.MkdirAll(basepath, 0755)
@@ -298,17 +302,23 @@ func (s *SEC) DownloadFile(basepath, fullurl string) error {
 		}
 	}
 
-	out, err := os.Create(strings.Join([]string{basepath, filepath.Base(fullurl)}, "/"))
+	_, err = os.Stat(basepath + "/" + filepath.Base(fullurl))
 	if err != nil {
-		return err
-	}
-	defer out.Close()
+		out, err := os.Create(strings.Join([]string{basepath, filepath.Base(fullurl)}, "/"))
+		if err != nil {
+			return err
+		}
+		defer out.Close()
 
-	_, err = io.Copy(out, resp.Body)
-	if err != nil {
-		return err
+		_, err = io.Copy(out, resp.Body)
+		if err != nil {
+			return err
+		}
+
+		return nil
 	}
 
+	fmt.Println("File already exists: " + basepath + "/" + filepath.Base(fullurl))
 	return nil
 }
 
