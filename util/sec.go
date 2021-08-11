@@ -88,6 +88,12 @@ type ExchangesFile struct {
 	Data   [][]interface{} `json:"data"`
 }
 
+type Worklist struct {
+	Year          int
+	Month         int
+	Will_download bool
+}
+
 // Ticker Struct Based on JSON
 type SecTicker struct {
 	Cik      int    `json:"cik_str"`
@@ -231,49 +237,50 @@ func (s *SEC) ExchangeTickersGet(db *sqlx.DB) error {
 	return nil
 }
 
-// Parsing RSS/XML using Go XML Library
-func (s *SEC) ParseRSSGoXML(url string) error {
+func (s *SEC) ParseRSSGoXML(url string) (RSSFile, error) {
 	client := &http.Client{}
+	var rssFile RSSFile
 
 	req, err := http.NewRequest("GET", s.BaseURL+url, nil)
 	if err != nil {
-		return err
+		return rssFile, err
 	}
 	req.Header.Set("User-Agent", "Equres LLC wojciech@koszek.com")
 
 	resp, err := client.Do(req)
 	if err != nil {
-		return err
+		return rssFile, err
 	}
 
 	defer resp.Body.Close()
 
 	data, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
-		return err
+		return rssFile, err
 	}
-
-	var rssFile RSSFile
 
 	reader := bytes.NewReader(data)
 	decoder := xml.NewDecoder(reader)
 	decoder.CharsetReader = charset.NewReaderLabel
 	err = decoder.Decode(&rssFile)
 	if err != nil {
-		return err
+		return rssFile, err
 	}
+	return rssFile, nil
+}
 
+// Parsing RSS/XML using Go XML Library
+func (s *SEC) DownloadXbrlFiles(rssFile RSSFile, basepath string) error {
 	for _, v := range rssFile.Channel.Item[:1] {
 		for _, v1 := range v.XbrlFiling.XbrlFiles.XbrlFile {
-			err = s.DownloadFile(url, v1.URL)
+			err := s.DownloadFile(basepath, v1.URL)
 			if err != nil {
 				return err
 			}
 			time.Sleep(1 * time.Second)
 		}
 	}
-
-	return err
+	return nil
 }
 
 func (s *SEC) DownloadFile(basepath, fullurl string) error {
@@ -368,4 +375,15 @@ func Downloadability(year_month string, will_download bool) error {
 		}
 	}
 	return nil
+}
+
+func WorklistWillDownloadGet(db *sqlx.DB) ([]Worklist, error) {
+	// Retrieve from DB
+	var worklist []Worklist
+
+	err := db.Select(&worklist, "SELECT year, month, will_download FROM worklist WHERE will_download = true")
+	if err != nil {
+		return nil, err
+	}
+	return worklist, nil
 }
