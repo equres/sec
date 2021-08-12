@@ -3,6 +3,7 @@
 package util
 
 import (
+	"github.com/DavidHuie/gomigrate"
 	"github.com/jmoiron/sqlx"
 )
 
@@ -20,4 +21,26 @@ func ConnectDB() (*sqlx.DB, error) {
 	}
 
 	return db, nil
+}
+
+func MigrateUp(db *sqlx.DB) error {
+	migrator, _ := gomigrate.NewMigrator(db.DB, gomigrate.Postgres{}, "./migrations")
+
+	err := migrator.Migrate()
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func MigrateDown(db *sqlx.DB) error {
+	migrator, _ := gomigrate.NewMigrator(db.DB, gomigrate.Postgres{}, "./migrations")
+
+	err := migrator.Rollback()
+	if err != nil {
+		return err
+	}
+
+	return nil
 }

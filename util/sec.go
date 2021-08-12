@@ -4,6 +4,7 @@ package util
 
 import (
 	"bytes"
+	"compress/gzip"
 	"encoding/json"
 	"encoding/xml"
 	"errors"
@@ -86,6 +87,12 @@ type RSSFile struct {
 type ExchangesFile struct {
 	Fields []string        `json:"fields"`
 	Data   [][]interface{} `json:"data"`
+}
+
+type Worklist struct {
+	Year          int
+	Month         int
+	Will_download bool
 }
 
 // Ticker Struct Based on JSON
@@ -231,41 +238,49 @@ func (s *SEC) ExchangeTickersGet(db *sqlx.DB) error {
 	return nil
 }
 
-// Parsing RSS/XML using Go XML Library
-func (s *SEC) ParseRSSGoXML(url string) error {
+func (s *SEC) ParseRSSGoXML(url string) (RSSFile, error) {
 	client := &http.Client{}
+	var rssFile RSSFile
 
 	req, err := http.NewRequest("GET", s.BaseURL+url, nil)
 	if err != nil {
-		return err
+		return rssFile, err
 	}
 	req.Header.Set("User-Agent", "Equres LLC wojciech@koszek.com")
+	req.Header.Set("Accept-Encoding", "gzip, deflate")
 
 	resp, err := client.Do(req)
 	if err != nil {
-		return err
+		return rssFile, err
 	}
 
 	defer resp.Body.Close()
 
 	data, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
-		return err
+		return rssFile, err
 	}
 
-	var rssFile RSSFile
-
 	reader := bytes.NewReader(data)
-	decoder := xml.NewDecoder(reader)
+	gzipReader, err := gzip.NewReader(reader)
+	if err != nil {
+		return rssFile, err
+	}
+
+	decoder := xml.NewDecoder(gzipReader)
 	decoder.CharsetReader = charset.NewReaderLabel
 	err = decoder.Decode(&rssFile)
 	if err != nil {
-		return err
+		return rssFile, err
 	}
+	return rssFile, nil
+}
 
-	for _, v := range rssFile.Channel.Item[:1] {
+// Parsing RSS/XML using Go XML Library
+func (s *SEC) DownloadXbrlFiles(rssFile RSSFile, basepath string) error {
+	for _, v := range rssFile.Channel.Item {
 		for _, v1 := range v.XbrlFiling.XbrlFiles.XbrlFile {
-			err = s.DownloadFile(url, v1.URL)
+			err := s.DownloadFile(basepath, v1.URL)
 			if err != nil {
 				return err
 			}
@@ -273,16 +288,19 @@ func (s *SEC) ParseRSSGoXML(url string) error {
 		}
 	}
 
-	return err
+	return nil
 }
 
 func (s *SEC) DownloadFile(basepath, fullurl string) error {
+	// Base path is path from current folder to download folder
+	// Fullurl is the actual URL for the file to be downloaded
 	resp, err := http.Get(fullurl)
 	if err != nil {
 		return err
 	}
 	defer resp.Body.Close()
 
+	// Check if Folder for this XML exists
 	_, err = os.Stat(basepath)
 	if err != nil {
 		err = os.MkdirAll(basepath, 0755)
@@ -291,17 +309,23 @@ func (s *SEC) DownloadFile(basepath, fullurl string) error {
 		}
 	}
 
-	out, err := os.Create(strings.Join([]string{basepath, filepath.Base(fullurl)}, "/"))
+	_, err = os.Stat(basepath + "/" + filepath.Base(fullurl))
 	if err != nil {
-		return err
-	}
-	defer out.Close()
+		out, err := os.Create(strings.Join([]string{basepath, filepath.Base(fullurl)}, "/"))
+		if err != nil {
+			return err
+		}
+		defer out.Close()
 
-	_, err = io.Copy(out, resp.Body)
-	if err != nil {
-		return err
+		_, err = io.Copy(out, resp.Body)
+		if err != nil {
+			return err
+		}
+
+		return nil
 	}
 
+	fmt.Println("File already exists: " + basepath + "/" + filepath.Base(fullurl))
 	return nil
 }
 
@@ -368,4 +392,15 @@ func Downloadability(year_month string, will_download bool) error {
 		}
 	}
 	return nil
+}
+
+func WorklistWillDownloadGet(db *sqlx.DB) ([]Worklist, error) {
+	// Retrieve from DB
+	var worklist []Worklist
+
+	err := db.Select(&worklist, "SELECT year, month, will_download FROM worklist WHERE will_download = true")
+	if err != nil {
+		return nil, err
+	}
+	return worklist, nil
 }

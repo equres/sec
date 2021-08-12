@@ -11,13 +11,8 @@ import (
 // retrieveCmd represents the retrieve command
 var retrieveCmd = &cobra.Command{
 	Use:   "retrieve",
-	Short: "A brief description of your command",
-	Long: `A longer description that spans multiple lines and likely contains examples
-and usage of using your command. For example:
-
-Cobra is a CLI library for Go that empowers applications.
-This application is a tool to generate the needed files
-to quickly create a Cobra application.`,
+	Short: "Retrieve all the tickers from sec.gov website that are saved in db",
+	Long:  `Retrieve all the tickers from sec.gov website that are saved in db`,
 	Run: func(cmd *cobra.Command, args []string) {
 		// Retrieving all SecTickers
 		sec := util.NewSEC("https://www.sec.gov/")
