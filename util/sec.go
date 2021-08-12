@@ -4,6 +4,7 @@ package util
 
 import (
 	"bytes"
+	"compress/gzip"
 	"encoding/json"
 	"encoding/xml"
 	"errors"
@@ -246,6 +247,7 @@ func (s *SEC) ParseRSSGoXML(url string) (RSSFile, error) {
 		return rssFile, err
 	}
 	req.Header.Set("User-Agent", "Equres LLC wojciech@koszek.com")
+	req.Header.Set("Accept-Encoding", "gzip, deflate")
 
 	resp, err := client.Do(req)
 	if err != nil {
@@ -260,7 +262,12 @@ func (s *SEC) ParseRSSGoXML(url string) (RSSFile, error) {
 	}
 
 	reader := bytes.NewReader(data)
-	decoder := xml.NewDecoder(reader)
+	gzipReader, err := gzip.NewReader(reader)
+	if err != nil {
+		return rssFile, err
+	}
+
+	decoder := xml.NewDecoder(gzipReader)
 	decoder.CharsetReader = charset.NewReaderLabel
 	err = decoder.Decode(&rssFile)
 	if err != nil {
