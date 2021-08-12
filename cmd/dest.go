@@ -54,7 +54,7 @@ var destCmd = &cobra.Command{
 			}
 		}
 
-		fmt.Printf("Size needed to download all files: %s", parseSize(size))
+		fmt.Printf("Size needed to download all files: %s\n", parseSize(size))
 	},
 }
 
