@@ -14,6 +14,7 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
+	"strconv"
 	"strings"
 	"time"
 
@@ -253,7 +254,6 @@ func (s *SEC) ParseRSSGoXML(url string) (RSSFile, error) {
 	if err != nil {
 		return rssFile, err
 	}
-
 	defer resp.Body.Close()
 
 	data, err := ioutil.ReadAll(resp.Body)
@@ -280,7 +280,12 @@ func (s *SEC) ParseRSSGoXML(url string) (RSSFile, error) {
 func (s *SEC) DownloadXbrlFiles(rssFile RSSFile, basepath string) error {
 	for _, v := range rssFile.Channel.Item {
 		for _, v1 := range v.XbrlFiling.XbrlFiles.XbrlFile {
-			err := s.DownloadFile(basepath, v1.URL)
+			size, err := strconv.ParseFloat(v1.Size, 64)
+			if err != nil {
+				return err
+			}
+
+			err = s.DownloadFile(basepath, v1.URL, size)
 			if err != nil {
 				return err
 			}
@@ -291,13 +296,37 @@ func (s *SEC) DownloadXbrlFiles(rssFile RSSFile, basepath string) error {
 	return nil
 }
 
-func (s *SEC) DownloadFile(basepath, fullurl string) error {
-	// Base path is path from current folder to download folder
-	// Fullurl is the actual URL for the file to be downloaded
-	resp, err := http.Get(fullurl)
+func (s *SEC) CreateFile(basepath, fullurl string, body io.Reader) error {
+	out, err := os.Create(strings.Join([]string{basepath, filepath.Base(fullurl)}, "/"))
 	if err != nil {
 		return err
 	}
+	defer out.Close()
+
+	_, err = io.Copy(out, body)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (s *SEC) DownloadFile(basepath, fullurl string, size float64) error {
+	// Base path is path from current folder to download folder
+	// Fullurl is the actual URL for the file to be downloaded
+	client := &http.Client{}
+
+	req, err := http.NewRequest("GET", fullurl, nil)
+	if err != nil {
+		return err
+	}
+	req.Header.Set("User-Agent", "Equres LLC wojciech@koszek.com")
+
+	resp, err := client.Do(req)
+	if err != nil {
+		return err
+	}
+
 	defer resp.Body.Close()
 
 	// Check if Folder for this XML exists
@@ -309,15 +338,20 @@ func (s *SEC) DownloadFile(basepath, fullurl string) error {
 		}
 	}
 
-	_, err = os.Stat(basepath + "/" + filepath.Base(fullurl))
+	filestat, err := os.Stat(basepath + "/" + filepath.Base(fullurl))
+
 	if err != nil {
-		out, err := os.Create(strings.Join([]string{basepath, filepath.Base(fullurl)}, "/"))
+		err = s.CreateFile(basepath, fullurl, resp.Body)
 		if err != nil {
 			return err
 		}
-		defer out.Close()
 
-		_, err = io.Copy(out, resp.Body)
+		return nil
+	}
+
+	if filestat.Size() != int64(size) {
+		fmt.Println("Old File Exists: Updating: " + basepath + "/" + filepath.Base(fullurl))
+		err = s.CreateFile(basepath, fullurl, resp.Body)
 		if err != nil {
 			return err
 		}
