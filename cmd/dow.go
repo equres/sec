@@ -1,18 +1,4 @@
-/*
-Copyright © 2021 NAME HERE <EMAIL ADDRESS>
-
-Licensed under the Apache License, Version 2.0 (the "License");
-you may not use this file except in compliance with the License.
-You may obtain a copy of the License at
-
-    http://www.apache.org/licenses/LICENSE-2.0
-
-Unless required by applicable law or agreed to in writing, software
-distributed under the License is distributed on an "AS IS" BASIS,
-WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-See the License for the specific language governing permissions and
-limitations under the License.
-*/
+// Copyright (c) 2021 Equres LLC. All rights reserved.
 package cmd
 
 import (
@@ -46,13 +32,14 @@ var dowCmd = &cobra.Command{
 				panic(err)
 			}
 			formatted := date.Format("2006-01")
+			fileURL := fmt.Sprintf("Archives/edgar/monthly/xbrlrss-%v.xml", formatted)
 
-			rssFile, err := sec.ParseRSSGoXML("Archives/edgar/monthly/xbrlrss-" + formatted + ".xml")
+			rssFile, err := sec.ParseRSSGoXML(fileURL)
 			if err != nil {
 				panic(err)
 			}
 
-			err = sec.DownloadXbrlFiles(rssFile, "Archives/edgar/monthly/xbrlrss-"+formatted+".xml")
+			err = sec.DownloadXbrlFiles(rssFile, fileURL)
 			if err != nil {
 				panic(err)
 			}
