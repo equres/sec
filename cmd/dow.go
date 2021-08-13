@@ -15,7 +15,6 @@ var dowCmd = &cobra.Command{
 	Short: "Download all files in the downloadable years",
 	Long:  `Download all files in the downloadable years`,
 	RunE: func(cmd *cobra.Command, args []string) error {
-
 		db, err := util.ConnectDB()
 		if err != nil {
 			return err
@@ -27,12 +26,18 @@ var dowCmd = &cobra.Command{
 		}
 
 		sec := util.NewSEC("https://www.sec.gov")
+		sec.Verbose, err = cmd.Flags().GetBool("verbose")
+		if err != nil {
+			return err
+		}
 
 		config, err := util.LoadConfig(".")
 		if err != nil {
 			return err
 		}
 
+		var total_count int
+		var current_count int
 		for _, v := range worklist {
 			date, err := time.Parse("2006-1", fmt.Sprintf("%d-%d", v.Year, v.Month))
 			if err != nil {
@@ -46,6 +51,16 @@ var dowCmd = &cobra.Command{
 				return err
 			}
 			time.Sleep(1 * time.Second)
+
+			filepath := fmt.Sprintf("%v/Archives/edgar/monthly/xbrlrss-%v.xml", config.CacheDir, formatted)
+			rssFile, err := sec.ParseRSSGoXML(filepath)
+			if err != nil {
+				return err
+			}
+
+			for _, v1 := range rssFile.Channel.Item {
+				total_count += len(v1.XbrlFiling.XbrlFiles.XbrlFile)
+			}
 		}
 
 		for _, v := range worklist {
@@ -67,6 +82,14 @@ var dowCmd = &cobra.Command{
 					if err != nil {
 						return err
 					}
+					current_count++
+					if !sec.Verbose {
+						fmt.Printf("\r[%d/%d files already downloaded]. Will download %d remaining files. Pass --verbose to see progress report", current_count, total_count, (total_count - current_count))
+					}
+
+					if sec.Verbose {
+						fmt.Printf("[%d/%d] %s downloaded...\n", current_count, total_count, time.Now().Format("2006-01-02 03:04:05"))
+					}
 					time.Sleep(1 * time.Second)
 				}
 			}
@@ -77,8 +100,6 @@ var dowCmd = &cobra.Command{
 
 func init() {
 	rootCmd.AddCommand(dowCmd)
-
-	dowCmd.PersistentFlags().Bool("verbose", false, "Display the summarized version of progress")
 	// Here you will define your flags and configuration settings.
 
 	// Cobra supports Persistent Flags which will work for this command

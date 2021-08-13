@@ -105,6 +105,7 @@ type SecTicker struct {
 type SEC struct {
 	BaseURL string
 	Tickers []SecTicker
+	Verbose bool
 }
 
 func (t SecTicker) String() string {
