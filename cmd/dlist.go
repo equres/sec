@@ -24,18 +24,21 @@ to quickly create a Cobra application.`,
 		fmt.Println("Year/Month that will be downloaded:")
 		db, err := util.ConnectDB()
 		if err != nil {
-			panic(err)
+			fmt.Println(err)
+			os.Exit(1)
 		}
 
 		worklist, err := util.WorklistWillDownloadGet(db)
 		if err != nil {
-			panic(err)
+			fmt.Println(err)
+			os.Exit(1)
 		}
 
 		for _, v := range worklist {
 			date, err := time.Parse("2006-1", fmt.Sprintf("%d-%d", v.Year, v.Month))
 			if err != nil {
-				panic(err)
+				fmt.Println(err)
+				os.Exit(1)
 			}
 			formatted := date.Format("2006-01")
 

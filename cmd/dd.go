@@ -18,14 +18,16 @@ var ddCmd = &cobra.Command{
 	Run: func(cmd *cobra.Command, args []string) {
 		if len(args) == 0 {
 			err := errors.New("please enter a year or year/month (for example: 2021 or 2021/06)")
-			panic(err)
+			fmt.Println(err)
+			os.Exit(1)
 		}
 
 		year_month := args[0]
 
 		err := util.Downloadability(year_month, false)
 		if err != nil {
-			panic(err)
+			fmt.Println(err)
+			os.Exit(1)
 		}
 
 		fmt.Println("Successfully set download disabled for:", year_month)

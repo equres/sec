@@ -3,6 +3,8 @@ package cmd
 
 import (
 	"errors"
+	"fmt"
+	"os"
 
 	"github.com/equres/sec/util"
 	"github.com/spf13/cobra"
@@ -16,28 +18,33 @@ var migrateCmd = &cobra.Command{
 	Run: func(cmd *cobra.Command, args []string) {
 		if len(args) == 0 {
 			err := errors.New("please type 'up' to migrate up and 'down' to migrate down (e.g. sec migrate up)")
-			panic(err)
+			fmt.Println(err)
+			os.Exit(1)
 		}
 
 		db, err := util.ConnectDB()
 		if err != nil {
-			panic(err)
+			fmt.Println(err)
+			os.Exit(1)
 		}
 
 		switch args[0] {
 		case "up":
 			err = util.MigrateUp(db)
 			if err != nil {
-				panic(err)
+				fmt.Println(err)
+				os.Exit(1)
 			}
 		case "down":
 			err = util.MigrateDown(db)
 			if err != nil {
-				panic(err)
+				fmt.Println(err)
+				os.Exit(1)
 			}
 		default:
 			err := errors.New("please type 'up' to migrate up and 'down' to migrate down (e.g. sec migrate up)")
-			panic(err)
+			fmt.Println(err)
+			os.Exit(1)
 		}
 	},
 }

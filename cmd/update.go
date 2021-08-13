@@ -2,6 +2,7 @@
 package cmd
 
 import (
+	"fmt"
 	"os"
 
 	"github.com/equres/sec/util"
@@ -19,12 +20,14 @@ var updateCmd = &cobra.Command{
 
 		db, err := util.ConnectDB()
 		if err != nil {
-			panic(err)
+			fmt.Println(err)
+			os.Exit(1)
 		}
 
 		err = sec.TickerUpdateAll(db)
 		if err != nil {
-			panic(err)
+			fmt.Println(err)
+			os.Exit(1)
 		}
 		os.Exit(0)
 	},

@@ -19,12 +19,14 @@ var retrieveCmd = &cobra.Command{
 
 		db, err := util.ConnectDB()
 		if err != nil {
-			panic(err)
+			fmt.Println(err)
+			os.Exit(1)
 		}
 
 		tickers, err := sec.TickersGetAll(db)
 		if err != nil {
-			panic(err)
+			fmt.Println(err)
+			os.Exit(1)
 		}
 		fmt.Println(tickers)
 		os.Exit(0)
