@@ -277,7 +277,17 @@ func (s *SEC) ParseRSSGoXML(url string) (RSSFile, error) {
 }
 
 // Parsing RSS/XML using Go XML Library
-func (s *SEC) DownloadXbrlFiles(rssFile RSSFile, basepath string) error {
+func (s *SEC) DownloadXbrlFiles(rssFile RSSFile, basepath string, isVerbose bool) error {
+	var total_count int
+	var current_count int
+	if !isVerbose {
+		for _, v := range rssFile.Channel.Item {
+			total_count += len(v.XbrlFiling.XbrlFiles.XbrlFile)
+		}
+
+		fmt.Printf("[%d/%d files already downloaded]. Will download %d remaining files. Pass --verbose to see progress report\n", current_count, total_count, (total_count - current_count))
+	}
+
 	for _, v := range rssFile.Channel.Item {
 		for _, v1 := range v.XbrlFiling.XbrlFiles.XbrlFile {
 			size, err := strconv.ParseFloat(v1.Size, 64)
@@ -289,6 +299,12 @@ func (s *SEC) DownloadXbrlFiles(rssFile RSSFile, basepath string) error {
 			if err != nil {
 				return err
 			}
+
+			current_count++
+			if !isVerbose {
+				fmt.Printf("[%d/%d files already downloaded]. Will download %d remaining files. Pass --verbose to see progress report\n", current_count, total_count, (total_count - current_count))
+			}
+
 			time.Sleep(1 * time.Second)
 		}
 	}
@@ -350,7 +366,7 @@ func (s *SEC) DownloadFile(basepath, fullurl string, size float64) error {
 	}
 
 	if filestat.Size() != int64(size) {
-		fmt.Println("Old File Exists: Updating: " + basepath + "/" + filepath.Base(fullurl))
+		// fmt.Println("Old File Exists: Updating: " + basepath + "/" + filepath.Base(fullurl))
 		err = s.CreateFile(basepath, fullurl, resp.Body)
 		if err != nil {
 			return err
@@ -359,7 +375,7 @@ func (s *SEC) DownloadFile(basepath, fullurl string, size float64) error {
 		return nil
 	}
 
-	fmt.Println("File already exists: " + basepath + "/" + filepath.Base(fullurl))
+	// fmt.Println("File already exists: " + basepath + "/" + filepath.Base(fullurl))
 	return nil
 }
 
