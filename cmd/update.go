@@ -2,8 +2,6 @@
 package cmd
 
 import (
-	"os"
-
 	"github.com/equres/sec/util"
 	"github.com/spf13/cobra"
 )
@@ -14,19 +12,20 @@ var updateCmd = &cobra.Command{
 	Use:   "update",
 	Short: "get critical RSS feeds and download them ~/.sec/data directory, parse them and update the DB",
 	Long:  `get critical RSS feeds and download them ~/.sec/data directory, parse them and update the DB`,
-	Run: func(cmd *cobra.Command, args []string) {
+	RunE: func(cmd *cobra.Command, args []string) error {
 		sec := util.NewSEC("https://www.sec.gov/")
 
 		db, err := util.ConnectDB()
 		if err != nil {
-			panic(err)
+			return err
 		}
 
 		err = sec.TickerUpdateAll(db)
 		if err != nil {
-			panic(err)
+			return err
 		}
-		os.Exit(0)
+
+		return nil
 	},
 }
 

@@ -4,7 +4,6 @@ package cmd
 import (
 	"errors"
 	"fmt"
-	"os"
 
 	"github.com/equres/sec/util"
 	"github.com/spf13/cobra"
@@ -15,21 +14,21 @@ var deCmd = &cobra.Command{
 	Use:   "de",
 	Short: "toggle 'download enable' flag for statements from yyyy/mm month",
 	Long:  `toggle 'download enable' flag for statements from yyyy/mm month`,
-	Run: func(cmd *cobra.Command, args []string) {
+	RunE: func(cmd *cobra.Command, args []string) error {
 		if len(args) == 0 {
 			err := errors.New("please enter a year and month (for example: 2021 or 2021/06)")
-			panic(err)
+			return err
 		}
 
 		year_month := args[0]
 
 		err := util.Downloadability(year_month, true)
 		if err != nil {
-			panic(err)
+			return err
 		}
 
 		fmt.Println("Successfully set download enabled for:", year_month)
-		os.Exit(0)
+		return nil
 	},
 }
 

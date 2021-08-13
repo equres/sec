@@ -3,7 +3,6 @@ package cmd
 
 import (
 	"fmt"
-	"os"
 	"time"
 
 	"github.com/equres/sec/util"
@@ -20,29 +19,29 @@ and usage of using your command. For example:
 Cobra is a CLI library for Go that empowers applications.
 This application is a tool to generate the needed files
 to quickly create a Cobra application.`,
-	Run: func(cmd *cobra.Command, args []string) {
+	RunE: func(cmd *cobra.Command, args []string) error {
 		fmt.Println("Year/Month that will be downloaded:")
 		db, err := util.ConnectDB()
 		if err != nil {
-			panic(err)
+			return err
 		}
 
 		worklist, err := util.WorklistWillDownloadGet(db)
 		if err != nil {
-			panic(err)
+			return err
 		}
 
 		for _, v := range worklist {
 			date, err := time.Parse("2006-1", fmt.Sprintf("%d-%d", v.Year, v.Month))
 			if err != nil {
-				panic(err)
+				return err
 			}
 			formatted := date.Format("2006-01")
 
 			fmt.Println(formatted)
 		}
 
-		os.Exit(0)
+		return nil
 	},
 }
 
