@@ -4,7 +4,6 @@ package util
 
 import (
 	"bytes"
-	"compress/gzip"
 	"encoding/json"
 	"encoding/xml"
 	"errors"
@@ -14,7 +13,6 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
-	"strconv"
 	"strings"
 	"time"
 
@@ -239,97 +237,34 @@ func (s *SEC) ExchangeTickersGet(db *sqlx.DB) error {
 	return nil
 }
 
-func (s *SEC) ParseRSSGoXML(url string) (RSSFile, error) {
-	client := &http.Client{}
+func (s *SEC) ParseRSSGoXML(path string) (RSSFile, error) {
 	var rssFile RSSFile
 
-	req, err := http.NewRequest("GET", s.BaseURL+url, nil)
+	xmlFile, err := os.Open(path)
 	if err != nil {
 		return rssFile, err
 	}
-	req.Header.Set("User-Agent", "Equres LLC wojciech@koszek.com")
-	req.Header.Set("Accept-Encoding", "gzip, deflate")
 
-	resp, err := client.Do(req)
-	if err != nil {
-		return rssFile, err
-	}
-	defer resp.Body.Close()
-
-	data, err := ioutil.ReadAll(resp.Body)
+	data, err := ioutil.ReadAll(xmlFile)
 	if err != nil {
 		return rssFile, err
 	}
 
 	reader := bytes.NewReader(data)
-	gzipReader, err := gzip.NewReader(reader)
-	if err != nil {
-		return rssFile, err
-	}
-
-	decoder := xml.NewDecoder(gzipReader)
+	decoder := xml.NewDecoder(reader)
 	decoder.CharsetReader = charset.NewReaderLabel
 	err = decoder.Decode(&rssFile)
 	if err != nil {
 		return rssFile, err
 	}
-	return rssFile, nil
+
+	return rssFile, err
 }
 
-// Parsing RSS/XML using Go XML Library
-func (s *SEC) DownloadXbrlFiles(rssFile RSSFile, basepath string, isVerbose bool) error {
-	var total_count int
-	var current_count int
-	if !isVerbose {
-		for _, v := range rssFile.Channel.Item {
-			total_count += len(v.XbrlFiling.XbrlFiles.XbrlFile)
-		}
+func (s *SEC) DownloadFile(fullurl string, cfg Config) error {
+	filePath := strings.ReplaceAll(fullurl, s.BaseURL, "")
+	cachePath := fmt.Sprintf("%v%v", cfg.CacheDir, filePath)
 
-		fmt.Printf("[%d/%d files already downloaded]. Will download %d remaining files. Pass --verbose to see progress report\n", current_count, total_count, (total_count - current_count))
-	}
-
-	for _, v := range rssFile.Channel.Item {
-		for _, v1 := range v.XbrlFiling.XbrlFiles.XbrlFile {
-			size, err := strconv.ParseFloat(v1.Size, 64)
-			if err != nil {
-				return err
-			}
-
-			err = s.DownloadFile(basepath, v1.URL, size)
-			if err != nil {
-				return err
-			}
-
-			current_count++
-			if !isVerbose {
-				fmt.Printf("[%d/%d files already downloaded]. Will download %d remaining files. Pass --verbose to see progress report\n", current_count, total_count, (total_count - current_count))
-			}
-
-			time.Sleep(1 * time.Second)
-		}
-	}
-
-	return nil
-}
-
-func (s *SEC) CreateFile(basepath, fullurl string, body io.Reader) error {
-	out, err := os.Create(strings.Join([]string{basepath, filepath.Base(fullurl)}, "/"))
-	if err != nil {
-		return err
-	}
-	defer out.Close()
-
-	_, err = io.Copy(out, body)
-	if err != nil {
-		return err
-	}
-
-	return nil
-}
-
-func (s *SEC) DownloadFile(basepath, fullurl string, size float64) error {
-	// Base path is path from current folder to download folder
-	// Fullurl is the actual URL for the file to be downloaded
 	client := &http.Client{}
 
 	req, err := http.NewRequest("GET", fullurl, nil)
@@ -342,40 +277,36 @@ func (s *SEC) DownloadFile(basepath, fullurl string, size float64) error {
 	if err != nil {
 		return err
 	}
-
 	defer resp.Body.Close()
 
-	// Check if Folder for this XML exists
-	_, err = os.Stat(basepath)
+	size, err := io.Copy(ioutil.Discard, resp.Body)
 	if err != nil {
-		err = os.MkdirAll(basepath, 0755)
+		return err
+	}
+
+	filestat, err := os.Stat(cachePath)
+	if err != nil || filestat.Size() != size {
+		foldersPath := strings.ReplaceAll(cachePath, filepath.Base(cachePath), "")
+		if _, err = os.Stat(foldersPath); err != nil {
+			err = os.MkdirAll(foldersPath, 0755)
+			if err != nil {
+				return err
+			}
+		}
+
+		out, err := os.Create(cachePath)
 		if err != nil {
 			return err
 		}
-	}
+		defer out.Close()
 
-	filestat, err := os.Stat(basepath + "/" + filepath.Base(fullurl))
-
-	if err != nil {
-		err = s.CreateFile(basepath, fullurl, resp.Body)
+		_, err = io.Copy(out, resp.Body)
 		if err != nil {
 			return err
 		}
 
 		return nil
 	}
-
-	if filestat.Size() != int64(size) {
-		// fmt.Println("Old File Exists: Updating: " + basepath + "/" + filepath.Base(fullurl))
-		err = s.CreateFile(basepath, fullurl, resp.Body)
-		if err != nil {
-			return err
-		}
-
-		return nil
-	}
-
-	// fmt.Println("File already exists: " + basepath + "/" + filepath.Base(fullurl))
 	return nil
 }
 

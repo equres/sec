@@ -32,6 +32,12 @@ var destCmd = &cobra.Command{
 			os.Exit(1)
 		}
 
+		config, err := util.LoadConfig(".")
+		if err != nil {
+			fmt.Println(err)
+			os.Exit(1)
+		}
+
 		for _, v := range worklist {
 			date, err := time.Parse("2006-1", fmt.Sprintf("%d-%d", v.Year, v.Month))
 			if err != nil {
@@ -40,7 +46,7 @@ var destCmd = &cobra.Command{
 			}
 			formatted := date.Format("2006-01")
 
-			fileURL := fmt.Sprintf("Archives/edgar/monthly/xbrlrss-%v.xml", formatted)
+			fileURL := fmt.Sprintf("%v/Archives/edgar/monthly/xbrlrss-%v.xml", config.CacheDir, formatted)
 
 			rssFile, err := sec.ParseRSSGoXML(fileURL)
 			if err != nil {

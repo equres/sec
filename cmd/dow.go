@@ -17,11 +17,6 @@ var dowCmd = &cobra.Command{
 	Long:  `Download all files in the downloadable years`,
 	Run: func(cmd *cobra.Command, args []string) {
 
-		isVerbose, err := cmd.Flags().GetBool("verbose")
-		if err != nil {
-			panic(err)
-		}
-
 		db, err := util.ConnectDB()
 		if err != nil {
 			fmt.Println(err)
@@ -34,7 +29,14 @@ var dowCmd = &cobra.Command{
 			os.Exit(1)
 		}
 
-		sec := util.NewSEC("https://sec.gov/")
+		sec := util.NewSEC("https://www.sec.gov")
+
+		config, err := util.LoadConfig(".")
+		if err != nil {
+			fmt.Println(err)
+			os.Exit(1)
+		}
+
 		for _, v := range worklist {
 			date, err := time.Parse("2006-1", fmt.Sprintf("%d-%d", v.Year, v.Month))
 			if err != nil {
@@ -42,20 +44,40 @@ var dowCmd = &cobra.Command{
 				os.Exit(1)
 			}
 			formatted := date.Format("2006-01")
-			fileURL := fmt.Sprintf("Archives/edgar/monthly/xbrlrss-%v.xml", formatted)
+
+			fileURL := fmt.Sprintf("%v/Archives/edgar/monthly/xbrlrss-%v.xml", sec.BaseURL, formatted)
+			err = sec.DownloadFile(fileURL, config)
+			if err != nil {
+				panic(err)
+			}
+			time.Sleep(1 * time.Second)
+		}
+
+		for _, v := range worklist {
+			date, err := time.Parse("2006-1", fmt.Sprintf("%d-%d", v.Year, v.Month))
+			if err != nil {
+				fmt.Println(err)
+				os.Exit(1)
+			}
+			formatted := date.Format("2006-01")
+			fileURL := fmt.Sprintf("%v/Archives/edgar/monthly/xbrlrss-%v.xml", config.CacheDir, formatted)
 
 			rssFile, err := sec.ParseRSSGoXML(fileURL)
 			if err != nil {
-				fmt.Println(err)
-				os.Exit(1)
+				panic(err)
 			}
 
-			err = sec.DownloadXbrlFiles(rssFile, fileURL, isVerbose)
-			if err != nil {
-				fmt.Println(err)
-				os.Exit(1)
+			for _, v1 := range rssFile.Channel.Item {
+				for _, v2 := range v1.XbrlFiling.XbrlFiles.XbrlFile {
+					err = sec.DownloadFile(v2.URL, config)
+					if err != nil {
+						panic(err)
+					}
+					time.Sleep(1 * time.Second)
+				}
 			}
 		}
+
 	},
 }
 
