@@ -3,7 +3,6 @@ package cmd
 
 import (
 	"fmt"
-	"os"
 	"strconv"
 	"time"
 
@@ -16,33 +15,29 @@ var destCmd = &cobra.Command{
 	Use:   "dest",
 	Short: "Displaying disk space needed for all worklist that will be downloaded",
 	Long:  `Displaying disk space needed for all worklist that will be downloaded`,
-	Run: func(cmd *cobra.Command, args []string) {
+	RunE: func(cmd *cobra.Command, args []string) error {
 		var size float64
 
 		sec := util.NewSEC("https://sec.gov/")
 		db, err := util.ConnectDB()
 		if err != nil {
-			fmt.Println(err)
-			os.Exit(1)
+			return err
 		}
 
 		worklist, err := util.WorklistWillDownloadGet(db)
 		if err != nil {
-			fmt.Println(err)
-			os.Exit(1)
+			return err
 		}
 
 		config, err := util.LoadConfig(".")
 		if err != nil {
-			fmt.Println(err)
-			os.Exit(1)
+			return err
 		}
 
 		for _, v := range worklist {
 			date, err := time.Parse("2006-1", fmt.Sprintf("%d-%d", v.Year, v.Month))
 			if err != nil {
-				fmt.Println(err)
-				os.Exit(1)
+				return err
 			}
 			formatted := date.Format("2006-01")
 
@@ -50,16 +45,14 @@ var destCmd = &cobra.Command{
 
 			rssFile, err := sec.ParseRSSGoXML(fileURL)
 			if err != nil {
-				fmt.Println(err)
-				os.Exit(1)
+				return err
 			}
 
 			for _, item := range rssFile.Channel.Item {
 				for _, xbrlFile := range item.XbrlFiling.XbrlFiles.XbrlFile {
 					val, err := strconv.ParseFloat(xbrlFile.Size, 64)
 					if err != nil {
-						fmt.Println(err)
-						os.Exit(1)
+						return err
 					}
 					size += val
 				}
@@ -67,6 +60,7 @@ var destCmd = &cobra.Command{
 		}
 
 		fmt.Printf("Size needed to download all files: %s\n", parseSize(size))
+		return nil
 	},
 }
 
