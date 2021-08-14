@@ -3,10 +3,15 @@ package cmd
 
 import (
 	"errors"
+	"fmt"
+
+	"embed"
 
 	"github.com/equres/sec/util"
 	"github.com/spf13/cobra"
 )
+
+var GlobalMigrationsFS embed.FS
 
 // migrateCmd represents the migrate command
 var migrateCmd = &cobra.Command{
@@ -26,15 +31,17 @@ var migrateCmd = &cobra.Command{
 
 		switch args[0] {
 		case "up":
-			err = util.MigrateUp(db)
+			err = util.MigrateUp(db, GlobalMigrationsFS)
 			if err != nil {
 				return err
 			}
+			fmt.Println("Successfully migrated the DB UP")
 		case "down":
-			err = util.MigrateDown(db)
+			err = util.MigrateDown(db, GlobalMigrationsFS)
 			if err != nil {
 				return err
 			}
+			fmt.Println("Successfully migrated the DB DOWN")
 		default:
 			err := errors.New("please type 'up' to migrate up and 'down' to migrate down (e.g. sec migrate up)")
 			return err
