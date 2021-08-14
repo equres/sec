@@ -4,6 +4,7 @@ go 1.16
 
 require (
 	github.com/DavidHuie/gomigrate v0.0.0-20190826182718-4adc4b3de142 // indirect
+	github.com/golang-migrate/migrate v3.5.4+incompatible // indirect
 	github.com/jmoiron/sqlx v1.3.4
 	github.com/lib/pq v1.10.2
 	github.com/mmcdole/gofeed v1.1.3

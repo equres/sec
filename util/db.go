@@ -3,8 +3,15 @@
 package util
 
 import (
+	"embed"
+	"fmt"
+
 	"github.com/DavidHuie/gomigrate"
+	"github.com/golang-migrate/migrate"
+	"github.com/golang-migrate/migrate/v4"
+	_ "github.com/golang-migrate/migrate/v4/database/postgres"
 	"github.com/jmoiron/sqlx"
+	"github.com/johejo/golang-migrate-extra/source/iofs"
 )
 
 func ConnectDB() (*sqlx.DB, error) {
@@ -24,11 +31,35 @@ func ConnectDB() (*sqlx.DB, error) {
 }
 
 func MigrateUp(db *sqlx.DB) error {
-	migrator, _ := gomigrate.NewMigrator(db.DB, gomigrate.Postgres{}, "./migrations")
+	//go:embed _migrations
+	var fileSystem embed.FS
 
-	err := migrator.Migrate()
+	config, err := LoadConfig(".")
 	if err != nil {
 		return err
+	}
+
+	err = db.Ping()
+	if err != nil {
+		return err
+	}
+
+	d, err := iofs.New(fileSystem, "migrations")
+	if err != nil {
+		fmt.Println("failed to make migrations")
+		return err
+	}
+
+	m, err := migrate.NewWithSourceInstance("iofs", d, config.DBURLString)
+	if err != nil {
+		fmt.Println("failed make iofs source")
+		return nil
+	}
+
+	err = m.Up()
+	if err != nil && err != migrate.ErrNoChange {
+		fmt.Println("failed to UP the migrations " + err.Error())
+		return nil
 	}
 
 	return nil

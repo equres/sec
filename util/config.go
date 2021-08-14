@@ -7,6 +7,7 @@ import "github.com/spf13/viper"
 type Config struct {
 	DBDriver         string `mapstructure:"DB_DRIVER"`
 	DBDataSourceName string `mapstructure:"DB_DATA_SOURCE_NAME"`
+	DBURLString      string `mapstructure:"DB_URL_STRING"`
 	CacheDir         string `mapstructure:"CACHE_DIR"`
 }
 
