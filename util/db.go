@@ -6,7 +6,6 @@ import (
 	"embed"
 	"fmt"
 
-	"github.com/DavidHuie/gomigrate"
 	"github.com/golang-migrate/migrate/v4"
 	_ "github.com/golang-migrate/migrate/v4/database/postgres"
 	"github.com/jmoiron/sqlx"
@@ -62,10 +61,31 @@ func MigrateUp(db *sqlx.DB, fs embed.FS) error {
 }
 
 func MigrateDown(db *sqlx.DB, fs embed.FS) error {
-	migrator, _ := gomigrate.NewMigrator(db.DB, gomigrate.Postgres{}, "./migrations")
-
-	err := migrator.Rollback()
+	config, err := LoadConfig(".")
 	if err != nil {
+		return err
+	}
+
+	err = db.Ping()
+	if err != nil {
+		return err
+	}
+
+	d, err := iofs.New(fs, "migrations")
+	if err != nil {
+		fmt.Println("failed to make migrations")
+		return err
+	}
+
+	m, err := migrate.NewWithSourceInstance("iofs", d, config.DBURLString)
+	if err != nil {
+		fmt.Println("failed make iofs source")
+		return err
+	}
+
+	err = m.Down()
+	if err != nil && err != migrate.ErrNoChange {
+		fmt.Println("failed to DOWN the migrations")
 		return err
 	}
 
