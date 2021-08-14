@@ -2,9 +2,13 @@
 package main
 
 import (
+	"embed"
 	"github.com/equres/sec/cmd"
 	_ "github.com/lib/pq"
 )
+
+// go:embed _migrations
+var GlobalMigrationsFS embed.FS
 
 func main() {
 	cmd.Execute()
