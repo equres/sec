@@ -21,6 +21,11 @@ import (
 	"golang.org/x/net/html/charset"
 )
 
+const (
+	XMLStartYear  = 2005
+	XMLStartMonth = 04
+)
+
 type RSSFile struct {
 	XMLName xml.Name `xml:"rss"`
 	Text    string   `xml:",chardata"`
@@ -404,50 +409,73 @@ func SaveSecItemFile(db *sqlx.DB, item Item) error {
 	return nil
 }
 
-func Downloadability(year_month string, will_download bool) error {
-	var month int
-	var year int
-
+func ParseYearMonth(year_month string) (year int, month int, err error) {
 	switch len(year_month) {
 	case 4:
 		date, err := time.Parse("2006", year_month)
 		if err != nil {
-			return err
+			return 0, 0, err
 		}
 		year = date.Year()
 	case 6:
 		date, err := time.Parse("2006/1", year_month)
 		if err != nil {
-			return err
+			return 0, 0, err
 		}
 		year = date.Year()
 		month = int(date.Month())
 	case 7:
 		date, err := time.Parse("2006/01", year_month)
 		if err != nil {
-			return err
+			return 0, 0, err
 		}
 		year = date.Year()
 		month = int(date.Month())
 	default:
 		err := errors.New("please enter a valid date ('2021' or '2021/05')")
+		return 0, 0, err
+	}
+	return year, month, nil
+}
+
+func CheckRSSAvailability(year int, month int) (err error) {
+	if year < XMLStartYear {
+		err = errors.New(fmt.Sprintf("the earliest available XML is %d/%d", XMLStartYear, XMLStartMonth))
 		return err
 	}
 
+	if year == XMLStartYear && month < XMLStartMonth {
+		err = errors.New(fmt.Sprintf("the earliest available XML is %d/%d", XMLStartYear, XMLStartMonth))
+		return err
+	}
+
+	if year > time.Now().Year() || month < 0 || month > 12 {
+		err = errors.New(fmt.Sprintf("the latest available XML is %d/%d", time.Now().Year(), time.Now().Month()))
+		return err
+	}
+
+	return nil
+}
+
+func Downloadability(year int, month int, will_download bool) error {
 	db, err := ConnectDB()
 	if err != nil {
-		panic(err)
+		return err
 	}
 
 	if month != 0 {
 		err = SaveWorklist(year, month, will_download, db)
 		if err != nil {
-			panic(err)
+			return err
 		}
 		return nil
 	}
 
-	for i := 1; i <= 12; i++ {
+	firstMonthAvailable := XMLStartMonth
+	if year > XMLStartYear {
+		firstMonthAvailable = 1
+	}
+	for i := firstMonthAvailable; i <= 12; i++ {
 		err = SaveWorklist(year, i, will_download, db)
 		if err != nil {
 			return err

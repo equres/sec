@@ -22,7 +22,17 @@ var deCmd = &cobra.Command{
 
 		year_month := args[0]
 
-		err := util.Downloadability(year_month, true)
+		year, month, err := util.ParseYearMonth(year_month)
+		if err != nil {
+			return err
+		}
+
+		err = util.CheckRSSAvailability(year, month)
+		if err != nil {
+			return err
+		}
+
+		err = util.Downloadability(year, month, true)
 		if err != nil {
 			return err
 		}
