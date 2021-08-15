@@ -1,4 +1,4 @@
-CREATE TABLE secItemFile (
+CREATE TABLE sec.secItemFile (
     id serial PRIMARY KEY,
     title text,
     link text,

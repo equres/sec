@@ -1,4 +1,4 @@
-CREATE TABLE worklist (
+CREATE TABLE sec.worklist (
     id serial PRIMARY KEY,
     year integer,
     month integer,
