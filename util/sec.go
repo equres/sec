@@ -139,7 +139,7 @@ func NewSEC(baseUrl string) *SEC {
 
 func (t SecTicker) Save(db *sqlx.DB) error {
 	_, err := db.Exec(`
-	INSERT INTO tickers (cik, ticker, title, exchange, created_at, updated_at) 
+	INSERT INTO sec.tickers (cik, ticker, title, exchange, created_at, updated_at) 
 	VALUES ($1, $2, $3, $4, NOW(), NOW()) 
 	ON CONFLICT (cik, ticker, title) 
 	DO UPDATE SET cik=EXCLUDED.cik, ticker=EXCLUDED.ticker, title=EXCLUDED.title, exchange=EXCLUDED.exchange, updated_at=NOW() 
@@ -182,7 +182,7 @@ func (s *SEC) TickerUpdateAll(db *sqlx.DB) error {
 func (s *SEC) TickersGetAll(db *sqlx.DB) ([]SecTicker, error) {
 	// Retrieve from DB
 	tickers := []SecTicker{}
-	err := db.Select(&tickers, "SELECT cik, ticker, title, exchange FROM tickers")
+	err := db.Select(&tickers, "SELECT cik, ticker, title, exchange FROM sec.tickers")
 	if err != nil {
 		return nil, err
 	}
@@ -297,15 +297,28 @@ func (s *SEC) DownloadFile(fullurl string, cfg Config) error {
 	if err != nil {
 		return err
 	}
+
 	defer resp.Body.Close()
 
-	size, err := io.Copy(ioutil.Discard, resp.Body)
+	responseBody, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
+		return err
+	}
+
+	size, err := io.Copy(ioutil.Discard, bytes.NewReader(responseBody))
 	if err != nil {
 		return err
 	}
 
 	filestat, err := os.Stat(cachePath)
-	if err != nil || filestat.Size() != size {
+	if err != nil || (filestat != nil && filestat.Size() != size) {
+		if filestat != nil {
+			err = os.Remove(cachePath)
+			if err != nil {
+				return err
+			}
+		}
+
 		foldersPath := strings.ReplaceAll(cachePath, filepath.Base(cachePath), "")
 		if _, err = os.Stat(foldersPath); err != nil {
 			err = os.MkdirAll(foldersPath, 0755)
@@ -320,19 +333,17 @@ func (s *SEC) DownloadFile(fullurl string, cfg Config) error {
 		}
 		defer out.Close()
 
-		_, err = io.Copy(out, resp.Body)
+		_, err = io.Copy(out, bytes.NewReader(responseBody))
 		if err != nil {
 			return err
 		}
-
-		return nil
 	}
 	return nil
 }
 
 func SaveWorklist(year int, month int, will_download bool, db *sqlx.DB) error {
 	_, err := db.Exec(`
-	INSERT INTO worklist (year, month, will_download, created_at, updated_at) 
+	INSERT INTO sec.worklist (year, month, will_download, created_at, updated_at) 
 	VALUES ($1, $2, $3, NOW(), NOW()) 
 	ON CONFLICT (month, year) 
 	DO UPDATE SET will_download=EXCLUDED.will_download, updated_at=NOW() 
@@ -395,7 +406,7 @@ func SaveSecItemFile(db *sqlx.DB, item Item) error {
 		}
 
 		_, err = db.Exec(`
-		INSERT INTO secItemFile (title, link, guid, enclosure_url, enclosure_length, enclosure_type, description, pubdate, companyname, formtype, fillingdate, ciknumber, accessionnumber, filenumber, acceptancedatetime, period, assistantdirector, assignedsic, fiscalyearend, xbrlsequence, xbrlfile, xbrltype, xbrlsize, xbrldescription, xbrlinlinexbrl, xbrlurl, created_at, updated_at)
+		INSERT INTO sec.secItemFile (title, link, guid, enclosure_url, enclosure_length, enclosure_type, description, pubdate, companyname, formtype, fillingdate, ciknumber, accessionnumber, filenumber, acceptancedatetime, period, assistantdirector, assignedsic, fiscalyearend, xbrlsequence, xbrlfile, xbrltype, xbrlsize, xbrldescription, xbrlinlinexbrl, xbrlurl, created_at, updated_at)
 		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23, $24, $25, $26, NOW(), NOW()) 
 
 		ON CONFLICT (xbrlsequence, xbrlfile, xbrltype, xbrlsize, xbrldescription, xbrlinlinexbrl, xbrlurl)
@@ -488,7 +499,7 @@ func WorklistWillDownloadGet(db *sqlx.DB) ([]Worklist, error) {
 	// Retrieve from DB
 	var worklist []Worklist
 
-	err := db.Select(&worklist, "SELECT year, month, will_download FROM worklist WHERE will_download = true")
+	err := db.Select(&worklist, "SELECT year, month, will_download FROM sec.worklist WHERE will_download = true")
 	if err != nil {
 		return nil, err
 	}
