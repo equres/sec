@@ -92,6 +92,11 @@ var dowCmd = &cobra.Command{
 					}
 					time.Sleep(1 * time.Second)
 				}
+
+				err = util.SaveSecItemFile(db, v1)
+				if err != nil {
+					return err
+				}
 			}
 		}
 		return nil

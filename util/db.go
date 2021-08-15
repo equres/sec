@@ -48,13 +48,13 @@ func MigrateUp(db *sqlx.DB, fs embed.FS) error {
 	m, err := migrate.NewWithSourceInstance("iofs", d, config.DBURLString)
 	if err != nil {
 		fmt.Println("failed make iofs source")
-		return nil
+		return err
 	}
 
 	err = m.Up()
 	if err != nil && err != migrate.ErrNoChange {
-		fmt.Println("failed to UP the migrations " + err.Error())
-		return nil
+		fmt.Println("failed to UP the migrations")
+		return err
 	}
 
 	return nil

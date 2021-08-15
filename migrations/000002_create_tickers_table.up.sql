@@ -1,4 +1,4 @@
-CREATE TABLE tickers (
+CREATE TABLE sec.tickers (
     id serial PRIMARY KEY,
     ticker text,
     cik text,
