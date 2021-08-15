@@ -13,6 +13,7 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
+	"strconv"
 	"strings"
 	"time"
 
@@ -24,63 +25,76 @@ type RSSFile struct {
 	XMLName xml.Name `xml:"rss"`
 	Text    string   `xml:",chardata"`
 	Version string   `xml:"version,attr"`
-	Channel struct {
-		Text  string `xml:",chardata"`
-		Title string `xml:"title"`
-		Link  struct {
-			Text string `xml:",chardata"`
-			Href string `xml:"href,attr"`
-			Rel  string `xml:"rel,attr"`
-			Type string `xml:"type,attr"`
-			Atom string `xml:"atom,attr"`
-		} `xml:"link"`
-		Description   string `xml:"description"`
-		Language      string `xml:"language"`
-		PubDate       string `xml:"pubDate"`
-		LastBuildDate string `xml:"lastBuildDate"`
-		Item          []struct {
-			Text      string `xml:",chardata"`
-			Title     string `xml:"title"`
-			Link      string `xml:"link"`
-			Guid      string `xml:"guid"`
-			Enclosure struct {
-				Text   string `xml:",chardata"`
-				URL    string `xml:"url,attr"`
-				Length string `xml:"length,attr"`
-				Type   string `xml:"type,attr"`
-			} `xml:"enclosure"`
-			Description string `xml:"description"`
-			PubDate     string `xml:"pubDate"`
-			XbrlFiling  struct {
-				Text               string `xml:",chardata"`
-				Edgar              string `xml:"edgar,attr"`
-				CompanyName        string `xml:"companyName"`
-				FormType           string `xml:"formType"`
-				FilingDate         string `xml:"filingDate"`
-				CikNumber          string `xml:"cikNumber"`
-				AccessionNumber    string `xml:"accessionNumber"`
-				FileNumber         string `xml:"fileNumber"`
-				AcceptanceDatetime string `xml:"acceptanceDatetime"`
-				Period             string `xml:"period"`
-				AssistantDirector  string `xml:"assistantDirector"`
-				AssignedSic        string `xml:"assignedSic"`
-				FiscalYearEnd      string `xml:"fiscalYearEnd"`
-				XbrlFiles          struct {
-					Text     string `xml:",chardata"`
-					XbrlFile []struct {
-						Text        string `xml:",chardata"`
-						Sequence    string `xml:"sequence,attr"`
-						File        string `xml:"file,attr"`
-						Type        string `xml:"type,attr"`
-						Size        string `xml:"size,attr"`
-						Description string `xml:"description,attr"`
-						InlineXBRL  string `xml:"inlineXBRL,attr"`
-						URL         string `xml:"url,attr"`
-					} `xml:"xbrlFile"`
-				} `xml:"xbrlFiles"`
-			} `xml:"xbrlFiling"`
-		} `xml:"item"`
-	} `xml:"channel"`
+	Channel Channel  `xml:"channel"`
+}
+type Channel struct {
+	Text          string `xml:",chardata"`
+	Title         string `xml:"title"`
+	Link          Link   `xml:"link"`
+	Description   string `xml:"description"`
+	Language      string `xml:"language"`
+	PubDate       string `xml:"pubDate"`
+	LastBuildDate string `xml:"lastBuildDate"`
+	Item          []Item `xml:"item"`
+}
+
+type Link struct {
+	Text string `xml:",chardata"`
+	Href string `xml:"href,attr"`
+	Rel  string `xml:"rel,attr"`
+	Type string `xml:"type,attr"`
+	Atom string `xml:"atom,attr"`
+}
+
+type Item struct {
+	Text        string     `xml:",chardata"`
+	Title       string     `xml:"title"`
+	Link        string     `xml:"link"`
+	Guid        string     `xml:"guid"`
+	Enclosure   Enclosure  `xml:"enclosure"`
+	Description string     `xml:"description"`
+	PubDate     string     `xml:"pubDate"`
+	XbrlFiling  XbrlFiling `xml:"xbrlFiling"`
+}
+
+type Enclosure struct {
+	Text   string `xml:",chardata"`
+	URL    string `xml:"url,attr"`
+	Length string `xml:"length,attr"`
+	Type   string `xml:"type,attr"`
+}
+
+type XbrlFiling struct {
+	Text               string    `xml:",chardata"`
+	Edgar              string    `xml:"edgar,attr"`
+	CompanyName        string    `xml:"companyName"`
+	FormType           string    `xml:"formType"`
+	FilingDate         string    `xml:"filingDate"`
+	CikNumber          string    `xml:"cikNumber"`
+	AccessionNumber    string    `xml:"accessionNumber"`
+	FileNumber         string    `xml:"fileNumber"`
+	AcceptanceDatetime string    `xml:"acceptanceDatetime"`
+	Period             string    `xml:"period"`
+	AssistantDirector  string    `xml:"assistantDirector"`
+	AssignedSic        string    `xml:"assignedSic"`
+	FiscalYearEnd      string    `xml:"fiscalYearEnd"`
+	XbrlFiles          XbrlFiles `xml:"xbrlFiles"`
+}
+
+type XbrlFiles struct {
+	Text     string     `xml:",chardata"`
+	XbrlFile []XbrlFile `xml:"xbrlFile"`
+}
+
+type XbrlFile struct {
+	Text        string `xml:",chardata"`
+	Sequence    string `xml:"sequence,attr"`
+	File        string `xml:"file,attr"`
+	Type        string `xml:"type,attr"`
+	Size        string `xml:"size,attr"`
+	Description string `xml:"description,attr"`
+	InlineXBRL  string `xml:"inlineXBRL,attr"`
+	URL         string `xml:"url,attr"`
 }
 
 type ExchangesFile struct {
@@ -320,6 +334,72 @@ func SaveWorklist(year int, month int, will_download bool, db *sqlx.DB) error {
 	WHERE worklist.year=EXCLUDED.year AND worklist.month=EXCLUDED.month ;`, year, month, will_download)
 	if err != nil {
 		return err
+	}
+	return nil
+}
+
+func SaveSecItemFile(db *sqlx.DB, item Item) error {
+	var err error
+
+	var enclosureLength int
+	if item.Enclosure.Length != "" {
+		enclosureLength, err = strconv.Atoi(item.Enclosure.Length)
+		if err != nil {
+			return err
+		}
+	}
+	var assignedSic int
+	if item.XbrlFiling.AssignedSic != "" {
+		assignedSic, err = strconv.Atoi(item.XbrlFiling.AssignedSic)
+		if err != nil {
+			return err
+		}
+	}
+
+	var fiscalYearEnd int
+	if item.XbrlFiling.FiscalYearEnd != "" {
+		fiscalYearEnd, err = strconv.Atoi(item.XbrlFiling.FiscalYearEnd)
+		if err != nil {
+			return err
+		}
+	}
+
+	for _, v := range item.XbrlFiling.XbrlFiles.XbrlFile {
+		var xbrlInline bool
+		if v.InlineXBRL != "" {
+			xbrlInline, err = strconv.ParseBool(v.InlineXBRL)
+			if err != nil {
+				return err
+			}
+		}
+
+		var xbrlSequence int
+		if v.Sequence != "" {
+			xbrlSequence, err = strconv.Atoi(v.Sequence)
+			if err != nil {
+				return err
+			}
+		}
+
+		var xbrlSize int
+		if v.Size != "" {
+			xbrlSize, err = strconv.Atoi(v.Size)
+			if err != nil {
+				return err
+			}
+		}
+
+		_, err = db.Exec(`
+		INSERT INTO secItemFile (title, link, guid, enclosure_url, enclosure_length, enclosure_type, description, pubdate, companyname, formtype, fillingdate, ciknumber, accessionnumber, filenumber, acceptancedatetime, period, assistantdirector, assignedsic, fiscalyearend, xbrlsequence, xbrlfile, xbrltype, xbrlsize, xbrldescription, xbrlinlinexbrl, xbrlurl, created_at, updated_at)
+		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23, $24, $25, $26, NOW(), NOW()) 
+
+		ON CONFLICT (xbrlsequence, xbrlfile, xbrltype, xbrlsize, xbrldescription, xbrlinlinexbrl, xbrlurl)
+		DO UPDATE SET title=EXCLUDED.title, link=EXCLUDED.link, guid=EXCLUDED.guid, enclosure_url=EXCLUDED.enclosure_url, enclosure_length=EXCLUDED.enclosure_length, enclosure_type=EXCLUDED.enclosure_type, description=EXCLUDED.description, pubdate=EXCLUDED.pubdate, companyname=EXCLUDED.companyname, formtype=EXCLUDED.formtype, fillingdate=EXCLUDED.fillingdate, ciknumber=EXCLUDED.ciknumber, accessionnumber=EXCLUDED.accessionnumber, filenumber=EXCLUDED.filenumber, acceptancedatetime=EXCLUDED.acceptancedatetime, period=EXCLUDED.period, assistantdirector=EXCLUDED.assistantdirector, assignedsic=EXCLUDED.assignedsic, fiscalyearend=EXCLUDED.fiscalyearend, xbrlsequence=EXCLUDED.xbrlsequence, xbrlfile=EXCLUDED.xbrlfile, xbrltype=EXCLUDED.xbrltype, xbrlsize=EXCLUDED.xbrlsize, xbrldescription=EXCLUDED.xbrldescription, xbrlinlinexbrl=EXCLUDED.xbrlinlinexbrl, xbrlurl=EXCLUDED.xbrlurl, updated_at=NOW()
+		WHERE secItemFile.xbrlsequence=EXCLUDED.xbrlsequence AND secItemFile.xbrlfile=EXCLUDED.xbrlfile AND secItemFile.xbrltype=EXCLUDED.xbrltype AND secItemFile.xbrlsize=EXCLUDED.xbrlsize AND secItemFile.xbrldescription=EXCLUDED.xbrldescription AND secItemFile.xbrlinlinexbrl=EXCLUDED.xbrlinlinexbrl AND secItemFile.xbrlurl=EXCLUDED.xbrlurl;`,
+			item.Title, item.Link, item.Guid, item.Enclosure.URL, enclosureLength, item.Enclosure.Type, item.Description, item.PubDate, item.XbrlFiling.CompanyName, item.XbrlFiling.FormType, item.XbrlFiling.FilingDate, item.XbrlFiling.CikNumber, item.XbrlFiling.AccessionNumber, item.XbrlFiling.FileNumber, item.XbrlFiling.AcceptanceDatetime, item.XbrlFiling.Period, item.XbrlFiling.AssistantDirector, assignedSic, fiscalYearEnd, xbrlSequence, v.File, v.Type, xbrlSize, v.Description, xbrlInline, v.URL)
+		if err != nil {
+			return err
+		}
 	}
 	return nil
 }
