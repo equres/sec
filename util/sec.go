@@ -440,17 +440,17 @@ func ParseYearMonth(year_month string) (year int, month int, err error) {
 
 func CheckRSSAvailability(year int, month int) (err error) {
 	if year < XMLStartYear {
-		err = errors.New(fmt.Sprintf("the earliest available XML is %d/%d", XMLStartYear, XMLStartMonth))
+		err = fmt.Errorf("the earliest available XML is %d/%d", XMLStartYear, XMLStartMonth)
 		return err
 	}
 
 	if year == XMLStartYear && month < XMLStartMonth {
-		err = errors.New(fmt.Sprintf("the earliest available XML is %d/%d", XMLStartYear, XMLStartMonth))
+		err = fmt.Errorf("the earliest available XML is %d/%d", XMLStartYear, XMLStartMonth)
 		return err
 	}
 
 	if year > time.Now().Year() || month < 0 || month > 12 {
-		err = errors.New(fmt.Sprintf("the latest available XML is %d/%d", time.Now().Year(), time.Now().Month()))
+		err = fmt.Errorf("the latest available XML is %d/%d", time.Now().Year(), time.Now().Month())
 		return err
 	}
 
