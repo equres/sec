@@ -283,7 +283,7 @@ func (s *SEC) ParseRSSGoXML(path string) (RSSFile, error) {
 
 func (s *SEC) DownloadFile(fullurl string, cfg Config) error {
 	filePath := strings.ReplaceAll(fullurl, s.BaseURL, "")
-	cachePath := fmt.Sprintf("%v%v", cfg.CacheDir, filePath)
+	cachePath := fmt.Sprintf("%v%v", cfg.Database.CacheDir, filePath)
 
 	client := &http.Client{}
 

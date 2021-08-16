@@ -2,19 +2,25 @@
 
 package util
 
-import "github.com/spf13/viper"
+import (
+	"github.com/spf13/viper"
+)
 
 type Config struct {
-	DBDriver         string `mapstructure:"DB_DRIVER"`
-	DBDataSourceName string `mapstructure:"DB_DATA_SOURCE_NAME"`
-	DBURLString      string `mapstructure:"DB_URL_STRING"`
-	CacheDir         string `mapstructure:"CACHE_DIR"`
+	Database DatabaseConfig
+}
+
+type DatabaseConfig struct {
+	DBDriver         string `mapstructure:"driver"`
+	DBDataSourceName string `mapstructure:"data_source_name"`
+	DBURLString      string `mapstructure:"database_string"`
+	CacheDir         string `mapstructure:"cache_dir"`
 }
 
 func LoadConfig(path string) (config Config, err error) {
 	viper.AddConfigPath(path)
-	viper.SetConfigName("app")
-	viper.SetConfigType("env")
+	viper.SetConfigName("config")
+	viper.SetConfigType("yaml")
 
 	viper.AutomaticEnv()
 

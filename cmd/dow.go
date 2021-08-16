@@ -62,7 +62,7 @@ var dowCmd = &cobra.Command{
 			}
 			formatted := date.Format("2006-01")
 
-			filepath := fmt.Sprintf("%v/Archives/edgar/monthly/xbrlrss-%v.xml", config.CacheDir, formatted)
+			filepath := fmt.Sprintf("%v/Archives/edgar/monthly/xbrlrss-%v.xml", config.Database.CacheDir, formatted)
 			rssFile, err := sec.ParseRSSGoXML(filepath)
 			if err != nil {
 				return err
@@ -80,7 +80,7 @@ var dowCmd = &cobra.Command{
 					return err
 				}
 				formatted := date.Format("2006-01")
-				fileURL := fmt.Sprintf("%v/Archives/edgar/monthly/xbrlrss-%v.xml", config.CacheDir, formatted)
+				fileURL := fmt.Sprintf("%v/Archives/edgar/monthly/xbrlrss-%v.xml", config.Database.CacheDir, formatted)
 
 				rssFile, err := sec.ParseRSSGoXML(fileURL)
 				if err != nil {

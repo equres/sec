@@ -20,7 +20,7 @@ func ConnectDB() (*sqlx.DB, error) {
 	}
 
 	// Connect to DB
-	db, err := sqlx.Open(config.DBDriver, config.DBDataSourceName)
+	db, err := sqlx.Open(config.Database.DBDriver, config.Database.DBDataSourceName)
 	if err != nil {
 		return nil, err
 	}
@@ -45,7 +45,7 @@ func MigrateUp(db *sqlx.DB, fs embed.FS) error {
 		return err
 	}
 
-	m, err := migrate.NewWithSourceInstance("iofs", d, config.DBURLString)
+	m, err := migrate.NewWithSourceInstance("iofs", d, config.Database.DBURLString)
 	if err != nil {
 		fmt.Println("failed make iofs source")
 		return err
@@ -77,7 +77,7 @@ func MigrateDown(db *sqlx.DB, fs embed.FS) error {
 		return err
 	}
 
-	m, err := migrate.NewWithSourceInstance("iofs", d, config.DBURLString)
+	m, err := migrate.NewWithSourceInstance("iofs", d, config.Database.DBURLString)
 	if err != nil {
 		fmt.Println("failed make iofs source")
 		return err
