@@ -34,6 +34,11 @@ var destCmd = &cobra.Command{
 			return err
 		}
 
+		err = sec.DownloadIndex()
+		if err != nil {
+			return err
+		}
+
 		for _, v := range worklist {
 			date, err := time.Parse("2006-1", fmt.Sprintf("%d-%d", v.Year, v.Month))
 			if err != nil {
