@@ -482,6 +482,48 @@ func ParseYearMonth(year_month string) (year int, month int, err error) {
 	return year, month, nil
 }
 
+func (s *SEC) TotalXbrlFileCountGet(worklist []Worklist, cache_dir string) (int, error) {
+	var total_count int
+	for _, v := range worklist {
+		date, err := time.Parse("2006-1", fmt.Sprintf("%d-%d", v.Year, v.Month))
+		if err != nil {
+			return 0, err
+		}
+		formatted := date.Format("2006-01")
+
+		filepath := fmt.Sprintf("%v/Archives/edgar/monthly/xbrlrss-%v.xml", cache_dir, formatted)
+		rssFile, err := s.ParseRSSGoXML(filepath)
+		if err != nil {
+			return 0, err
+		}
+
+		for _, v1 := range rssFile.Channel.Item {
+			total_count += len(v1.XbrlFiling.XbrlFiles.XbrlFile)
+		}
+	}
+	return total_count, nil
+}
+
+func (s *SEC) DownloadXbrlFileContent(files []XbrlFile, config Config, current_count *int, total_count int) error {
+	for _, v := range files {
+		err := s.DownloadFile(v.URL, config)
+		if err != nil {
+			return err
+		}
+		*current_count++
+		if !s.Verbose {
+			fmt.Printf("\r[%d/%d files already downloaded]. Will download %d remaining files. Pass --verbose to see progress report", *current_count, total_count, (total_count - *current_count))
+		}
+
+		if s.Verbose {
+			fmt.Printf("[%d/%d] %s downloaded...\n", *current_count, total_count, time.Now().Format("2006-01-02 03:04:05"))
+		}
+		time.Sleep(1 * time.Second)
+	}
+
+	return nil
+}
+
 func CheckRSSAvailability(year int, month int) (err error) {
 	if year < XMLStartYear {
 		err = fmt.Errorf("the earliest available XML is %d/%d", XMLStartYear, XMLStartMonth)
