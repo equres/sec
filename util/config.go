@@ -8,13 +8,17 @@ import (
 
 type Config struct {
 	Database DatabaseConfig
+	Main     MainConfig
 }
 
 type DatabaseConfig struct {
 	DBDriver         string `mapstructure:"driver"`
 	DBDataSourceName string `mapstructure:"data_source_name"`
 	DBURLString      string `mapstructure:"database_string"`
-	CacheDir         string `mapstructure:"cache_dir"`
+}
+
+type MainConfig struct {
+	CacheDir string `mapstructure:"cache_dir"`
 }
 
 func LoadConfig(path string) (config Config, err error) {
