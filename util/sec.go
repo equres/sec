@@ -341,6 +341,39 @@ func (s *SEC) DownloadFile(fullurl string, cfg Config) error {
 	return nil
 }
 
+func (s *SEC) DownloadIndex() error {
+	db, err := ConnectDB()
+	if err != nil {
+		return err
+	}
+
+	config, err := LoadConfig(".")
+	if err != nil {
+		return err
+	}
+
+	worklist, err := WorklistWillDownloadGet(db)
+	if err != nil {
+		return err
+	}
+
+	for _, v := range worklist {
+		date, err := time.Parse("2006-1", fmt.Sprintf("%d-%d", v.Year, v.Month))
+		if err != nil {
+			return err
+		}
+		formatted := date.Format("2006-01")
+
+		fileURL := fmt.Sprintf("%v/Archives/edgar/monthly/xbrlrss-%v.xml", s.BaseURL, formatted)
+		err = s.DownloadFile(fileURL, config)
+		if err != nil {
+			return err
+		}
+		time.Sleep(1 * time.Second)
+	}
+	return nil
+}
+
 func SaveWorklist(year int, month int, will_download bool, db *sqlx.DB) error {
 	_, err := db.Exec(`
 	INSERT INTO sec.worklist (year, month, will_download, created_at, updated_at) 
