@@ -11,3 +11,9 @@ clean:
 
 lint:
 	golangci-lint run
+
+createdb:
+	docker exec -it postgres12 createdb --username=postgres --owner=postgres sec_project
+
+migrateup:
+	./sec migrate up
