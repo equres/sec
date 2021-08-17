@@ -42,4 +42,6 @@ jobs:
           sudo apt-get install --yes postgresql-client
 
       - name: Testing Database
-        run: ./sec dlist
+        run: | 
+          ./sec de 2021/06
+          ./sec dlist
