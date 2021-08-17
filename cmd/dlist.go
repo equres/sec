@@ -3,6 +3,7 @@ package cmd
 
 import (
 	"fmt"
+	"sort"
 	"time"
 
 	"github.com/equres/sec/util"
@@ -31,14 +32,41 @@ to quickly create a Cobra application.`,
 			return err
 		}
 
+		sort.SliceStable(worklist, func(i, j int) bool {
+			return worklist[i].Year < worklist[j].Year
+		})
+
+		worklistMap := make(map[string]util.Worklist)
+
+		years := make(map[int]struct{})
+
 		for _, v := range worklist {
 			date, err := time.Parse("2006-1", fmt.Sprintf("%d-%d", v.Year, v.Month))
 			if err != nil {
 				return err
 			}
 			formatted := date.Format("2006-01")
+			worklistMap[formatted] = v
+			years[v.Year] = struct{}{}
+			// fmt.Println(v.Year, v.Month, v.Will_download)
+		}
 
-			fmt.Println(formatted)
+		for k := range years {
+			fmt.Print(k, " [")
+			for i := 1; i <= 12; i++ {
+				date, err := time.Parse("2006-1", fmt.Sprintf("%d-%d", k, i))
+				if err != nil {
+					return err
+				}
+				formatted := date.Format("2006-01")
+
+				if _, ok := worklistMap[formatted]; ok && worklistMap[formatted].Will_download {
+					fmt.Printf("+%d ", i)
+					continue
+				}
+				fmt.Printf("-%d ", i)
+			}
+			fmt.Println("]")
 		}
 
 		return nil

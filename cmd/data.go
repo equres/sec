@@ -3,22 +3,23 @@ package cmd
 
 import (
 	"fmt"
-	"strconv"
 	"time"
 
 	"github.com/equres/sec/util"
 	"github.com/spf13/cobra"
 )
 
-// destCmd represents the dest command
-var destCmd = &cobra.Command{
-	Use:   "dest",
-	Short: "Displaying disk space needed for all worklist that will be downloaded",
-	Long:  `Displaying disk space needed for all worklist that will be downloaded`,
-	RunE: func(cmd *cobra.Command, args []string) error {
-		var size float64
+// dataCmd represents the data command
+var dataCmd = &cobra.Command{
+	Use:   "data",
+	Short: "A brief description of your command",
+	Long: `A longer description that spans multiple lines and likely contains examples
+and usage of using your command. For example:
 
-		sec := util.NewSEC("https://sec.gov/")
+Cobra is a CLI library for Go that empowers applications.
+This application is a tool to generate the needed files
+to quickly create a Cobra application.`,
+	RunE: func(cmd *cobra.Command, args []string) error {
 		db, err := util.ConnectDB()
 		if err != nil {
 			return err
@@ -29,12 +30,27 @@ var destCmd = &cobra.Command{
 			return err
 		}
 
+		sec := util.NewSEC("https://www.sec.gov")
+		sec.Verbose, err = cmd.Flags().GetBool("verbose")
+		if err != nil {
+			return err
+		}
+
 		config, err := util.LoadConfig(".")
 		if err != nil {
 			return err
 		}
 
 		err = sec.DownloadIndex()
+		if err != nil {
+			return err
+		}
+
+		// Get Count of Items in RSSFile
+		var total_count int
+		var current_count int
+
+		total_count, err = sec.TotalXbrlFileCountGet(worklist, config.Main.CacheDir)
 		if err != nil {
 			return err
 		}
@@ -53,45 +69,32 @@ var destCmd = &cobra.Command{
 				return err
 			}
 
-			for _, item := range rssFile.Channel.Item {
-				for _, xbrlFile := range item.XbrlFiling.XbrlFiles.XbrlFile {
-					val, err := strconv.ParseFloat(xbrlFile.Size, 64)
-					if err != nil {
-						return err
-					}
-					size += val
+			for _, v1 := range rssFile.Channel.Item {
+				err = sec.DownloadXbrlFileContent(v1.XbrlFiling.XbrlFiles.XbrlFile, config, &current_count, total_count)
+				if err != nil {
+					return err
+				}
+
+				err = util.SaveSecItemFile(db, v1)
+				if err != nil {
+					return err
 				}
 			}
 		}
-
-		fmt.Printf("Size needed to download all files: %s\n", parseSize(size))
 		return nil
 	},
 }
 
-func parseSize(size float64) string {
-	const unit = 1024
-	if size < unit {
-		return fmt.Sprintf("%g B", size)
-	}
-	div, exp := int64(unit), 0
-	for n := size / unit; n >= unit; n /= unit {
-		div *= unit
-		exp++
-	}
-	return fmt.Sprintf("%.1f %cB", float64(size)/float64(div), "kMGTPE"[exp])
-}
-
 func init() {
-	rootCmd.AddCommand(destCmd)
+	dowCmd.AddCommand(dataCmd)
 
 	// Here you will define your flags and configuration settings.
 
 	// Cobra supports Persistent Flags which will work for this command
 	// and all subcommands, e.g.:
-	// destCmd.PersistentFlags().String("foo", "", "A help for foo")
+	// dataCmd.PersistentFlags().String("foo", "", "A help for foo")
 
 	// Cobra supports local flags which will only run when this command
 	// is called directly, e.g.:
-	// destCmd.Flags().BoolP("toggle", "t", false, "Help message for toggle")
+	// dataCmd.Flags().BoolP("toggle", "t", false, "Help message for toggle")
 }
