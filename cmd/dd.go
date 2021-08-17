@@ -20,6 +20,11 @@ var ddCmd = &cobra.Command{
 			return err
 		}
 
+		err := util.CheckMigration()
+		if err != nil {
+			return err
+		}
+
 		year_month := args[0]
 
 		year, month, err := util.ParseYearMonth(year_month)

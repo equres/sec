@@ -91,3 +91,18 @@ func MigrateDown(db *sqlx.DB, fs embed.FS) error {
 
 	return nil
 }
+
+func CheckMigration() error {
+	db, err := ConnectDB()
+	if err != nil {
+		return err
+	}
+
+	// Check if migrated
+	_, err = db.Exec("SELECT 'sec.tickers'::regclass")
+	if err != nil {
+		err = fmt.Errorf("looks like you're running sec for the first time. Please initialize the database with sec migrate up")
+		return err
+	}
+	return nil
+}
