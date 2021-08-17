@@ -41,5 +41,5 @@ jobs:
           sudo apt-get update
           sudo apt-get install --yes postgresql-client
 
-      - name: Query database
-        run: psql -U postgres -d sec_project -c "\dt sec."
+      - name: Testing Database
+        run: ./sec dlist
