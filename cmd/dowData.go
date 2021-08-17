@@ -9,8 +9,8 @@ import (
 	"github.com/spf13/cobra"
 )
 
-// dataCmd represents the data command
-var dataCmd = &cobra.Command{
+// dowDataCmd represents the data command
+var dowDataCmd = &cobra.Command{
 	Use:   "data",
 	Short: "A brief description of your command",
 	Long: `A longer description that spans multiple lines and likely contains examples
@@ -74,11 +74,6 @@ to quickly create a Cobra application.`,
 				if err != nil {
 					return err
 				}
-
-				err = util.SaveSecItemFile(db, v1)
-				if err != nil {
-					return err
-				}
 			}
 		}
 		return nil
@@ -86,15 +81,15 @@ to quickly create a Cobra application.`,
 }
 
 func init() {
-	dowCmd.AddCommand(dataCmd)
+	dowCmd.AddCommand(dowDataCmd)
 
 	// Here you will define your flags and configuration settings.
 
 	// Cobra supports Persistent Flags which will work for this command
 	// and all subcommands, e.g.:
-	// dataCmd.PersistentFlags().String("foo", "", "A help for foo")
+	// dowDataCmd.PersistentFlags().String("foo", "", "A help for foo")
 
 	// Cobra supports local flags which will only run when this command
 	// is called directly, e.g.:
-	// dataCmd.Flags().BoolP("toggle", "t", false, "Help message for toggle")
+	// dowDataCmd.Flags().BoolP("toggle", "t", false, "Help message for toggle")
 }
