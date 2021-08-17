@@ -36,5 +36,10 @@ jobs:
       - name: Run Migration
         run: make migrateup
 
+      - name: Install PostgreSQL
+        run: |
+          apt-get update
+          apt-get install --yes postgresql-client
+
       - name: Query database
         run: psql -U postgres -d sec_project -c "\dt sec."
