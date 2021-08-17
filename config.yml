@@ -3,5 +3,8 @@ main:
 
 database:
   driver: postgres
-  data_source_name: host=localhost port=5432 user=postgres password=hazem1999 dbname=sec_project sslmode=disable
-  database_string: postgres://postgres:hazem1999@localhost:5432/sec_project?sslmode=disable
+  host: localhost
+  port: 5432
+  name: sec_project
+  password: hazem1999
+  user: postgres

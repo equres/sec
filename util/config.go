@@ -3,6 +3,8 @@
 package util
 
 import (
+	"fmt"
+
 	"github.com/spf13/viper"
 )
 
@@ -12,9 +14,12 @@ type Config struct {
 }
 
 type DatabaseConfig struct {
-	DBDriver         string `mapstructure:"driver"`
-	DBDataSourceName string `mapstructure:"data_source_name"`
-	DBURLString      string `mapstructure:"database_string"`
+	Driver   string `mapstructure:"driver"`
+	Host     string `mapstructure:"host"`
+	Port     int    `mapstructure:"port"`
+	Name     string `mapstructure:"name"`
+	Password string `mapstructure:"password"`
+	User     string `mapstructure:"user"`
 }
 
 type MainConfig struct {
@@ -35,4 +40,24 @@ func LoadConfig(path string) (config Config, err error) {
 
 	err = viper.Unmarshal(&config)
 	return
+}
+
+func (c *Config) DBGetURL() string {
+	return fmt.Sprintf("%v://%v:%v@%v:%d/%v?sslmode=disable",
+		c.Database.Driver,
+		c.Database.User,
+		c.Database.Password,
+		c.Database.Host,
+		c.Database.Port,
+		c.Database.Name)
+}
+
+func (c *Config) DBGetDataSourceName() string {
+	// host=localhost port=5432 user=postgres password=hazem1999 dbname=sec_project sslmode=disable
+	return fmt.Sprintf("host=%v port=%d user=%v password=%v dbname=%v sslmode=disable",
+		c.Database.Host,
+		c.Database.Port,
+		c.Database.User,
+		c.Database.Password,
+		c.Database.Name)
 }
