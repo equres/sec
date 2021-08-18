@@ -11,6 +11,9 @@ var indexCmd = &cobra.Command{
 	Use:   "index",
 	Short: "Download only index (RSS/XML) files into the local disk",
 	Long:  ``,
+	PreRunE: func(cmd *cobra.Command, args []string) error {
+		return util.CheckMigration()
+	},
 	RunE: func(cmd *cobra.Command, args []string) (err error) {
 		sec := util.NewSEC("https://www.sec.gov")
 		sec.Verbose, err = cmd.Flags().GetBool("verbose")
