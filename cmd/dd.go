@@ -15,11 +15,7 @@ var ddCmd = &cobra.Command{
 	Short: "toggle 'download disable' flag for statements from yyyy/mm month ",
 	Long:  `toggle 'download disable' flag for statements from yyyy/mm month `,
 	PreRunE: func(cmd *cobra.Command, args []string) error {
-		err := util.CheckMigration()
-		if err != nil {
-			return err
-		}
-		return nil
+		return util.CheckMigration()
 	},
 	RunE: func(cmd *cobra.Command, args []string) error {
 		if len(args) == 0 {

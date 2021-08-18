@@ -13,11 +13,7 @@ var updateCmd = &cobra.Command{
 	Short: "get critical RSS feeds and download them ~/.sec/data directory, parse them and update the DB",
 	Long:  `get critical RSS feeds and download them ~/.sec/data directory, parse them and update the DB`,
 	PreRunE: func(cmd *cobra.Command, args []string) error {
-		err := util.CheckMigration()
-		if err != nil {
-			return err
-		}
-		return nil
+		return util.CheckMigration()
 	},
 	RunE: func(cmd *cobra.Command, args []string) error {
 		sec := util.NewSEC("https://www.sec.gov/")
