@@ -18,18 +18,17 @@ var destCmd = &cobra.Command{
 	RunE: func(cmd *cobra.Command, args []string) error {
 		var size float64
 
-		sec := util.NewSEC("https://sec.gov/")
+		sec, err := util.NewSEC("https://sec.gov/")
+		if err != nil {
+			return err
+		}
+
 		db, err := util.ConnectDB()
 		if err != nil {
 			return err
 		}
 
 		worklist, err := util.WorklistWillDownloadGet(db)
-		if err != nil {
-			return err
-		}
-
-		config, err := util.LoadConfig(".")
 		if err != nil {
 			return err
 		}
@@ -46,7 +45,7 @@ var destCmd = &cobra.Command{
 			}
 			formatted := date.Format("2006-01")
 
-			fileURL := fmt.Sprintf("%v/Archives/edgar/monthly/xbrlrss-%v.xml", config.Main.CacheDir, formatted)
+			fileURL := fmt.Sprintf("%v/Archives/edgar/monthly/xbrlrss-%v.xml", sec.Config.Main.CacheDir, formatted)
 
 			rssFile, err := sec.ParseRSSGoXML(fileURL)
 			if err != nil {

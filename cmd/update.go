@@ -13,7 +13,10 @@ var updateCmd = &cobra.Command{
 	Short: "get critical RSS feeds and download them ~/.sec/data directory, parse them and update the DB",
 	Long:  `get critical RSS feeds and download them ~/.sec/data directory, parse them and update the DB`,
 	RunE: func(cmd *cobra.Command, args []string) error {
-		sec := util.NewSEC("https://www.sec.gov/")
+		sec, err := util.NewSEC("https://www.sec.gov/")
+		if err != nil {
+			return err
+		}
 
 		db, err := util.ConnectDB()
 		if err != nil {

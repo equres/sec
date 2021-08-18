@@ -13,14 +13,13 @@ import (
 )
 
 func ConnectDB() (*sqlx.DB, error) {
-	// Load config data
-	config, err := LoadConfig(".")
+	sec, err := NewSEC("https://sec.gov/")
 	if err != nil {
 		return nil, err
 	}
 
 	// Connect to DB
-	db, err := sqlx.Open(config.Database.Driver, config.DBGetDataSourceName())
+	db, err := sqlx.Open(sec.Config.Database.Driver, sec.Config.DBGetDataSourceName())
 	if err != nil {
 		return nil, err
 	}
@@ -29,7 +28,7 @@ func ConnectDB() (*sqlx.DB, error) {
 }
 
 func MigrateUp(db *sqlx.DB, fs embed.FS) error {
-	config, err := LoadConfig(".")
+	sec, err := NewSEC("https://sec.gov/")
 	if err != nil {
 		return err
 	}
@@ -45,7 +44,7 @@ func MigrateUp(db *sqlx.DB, fs embed.FS) error {
 		return err
 	}
 
-	m, err := migrate.NewWithSourceInstance("iofs", d, config.DBGetURL())
+	m, err := migrate.NewWithSourceInstance("iofs", d, sec.Config.DBGetURL())
 	if err != nil {
 		fmt.Println("failed make iofs source")
 		return err
@@ -61,7 +60,7 @@ func MigrateUp(db *sqlx.DB, fs embed.FS) error {
 }
 
 func MigrateDown(db *sqlx.DB, fs embed.FS) error {
-	config, err := LoadConfig(".")
+	sec, err := NewSEC("https://sec.gov/")
 	if err != nil {
 		return err
 	}
@@ -77,7 +76,7 @@ func MigrateDown(db *sqlx.DB, fs embed.FS) error {
 		return err
 	}
 
-	m, err := migrate.NewWithSourceInstance("iofs", d, config.DBGetURL())
+	m, err := migrate.NewWithSourceInstance("iofs", d, sec.Config.DBGetURL())
 	if err != nil {
 		fmt.Println("failed make iofs source")
 		return err

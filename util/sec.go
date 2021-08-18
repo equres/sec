@@ -125,16 +125,23 @@ type SEC struct {
 	BaseURL string
 	Tickers []SecTicker
 	Verbose bool
+	Config  Config
 }
 
 func (t SecTicker) String() string {
 	return fmt.Sprintf("Cik: %d\nTicker: %s\nTitle: %s\nExchange: %s\n", t.Cik, t.Ticker, t.Title, t.Exchange)
 }
 
-func NewSEC(baseUrl string) *SEC {
+func NewSEC(baseUrl string) (*SEC, error) {
+	config, err := LoadConfig(".")
+	if err != nil {
+		return nil, err
+	}
+
 	return &SEC{
 		BaseURL: baseUrl,
-	}
+		Config:  config,
+	}, nil
 }
 
 func (t SecTicker) Save(db *sqlx.DB) error {
@@ -347,11 +354,6 @@ func (s *SEC) DownloadIndex() error {
 		return err
 	}
 
-	config, err := LoadConfig(".")
-	if err != nil {
-		return err
-	}
-
 	worklist, err := WorklistWillDownloadGet(db)
 	if err != nil {
 		return err
@@ -365,7 +367,7 @@ func (s *SEC) DownloadIndex() error {
 		formatted := date.Format("2006-01")
 
 		fileURL := fmt.Sprintf("%v/Archives/edgar/monthly/xbrlrss-%v.xml", s.BaseURL, formatted)
-		err = s.DownloadFile(fileURL, config)
+		err = s.DownloadFile(fileURL, s.Config)
 		if err != nil {
 			return err
 		}
@@ -387,7 +389,7 @@ func SaveWorklist(year int, month int, will_download bool, db *sqlx.DB) error {
 	return nil
 }
 
-func (s *SEC) SaveSecItemFile(db *sqlx.DB, item Item) error {
+func (s *SEC) SecItemFileUpsert(db *sqlx.DB, item Item) error {
 	var err error
 
 	var enclosureLength int
@@ -438,12 +440,7 @@ func (s *SEC) SaveSecItemFile(db *sqlx.DB, item Item) error {
 			}
 		}
 
-		config, err := LoadConfig(".")
-		if err != nil {
-			return err
-		}
-
-		filePath := strings.ReplaceAll(v.URL, s.BaseURL, config.Main.CacheDir)
+		filePath := strings.ReplaceAll(v.URL, s.BaseURL, s.Config.Main.CacheDir)
 
 		_, err = os.Stat(filePath)
 		if err != nil {

@@ -25,9 +25,7 @@ var indexCmd = &cobra.Command{
 			return err
 		}
 
-		sec := util.NewSEC("https://www.sec.gov")
-
-		config, err := util.LoadConfig(".")
+		sec, err := util.NewSEC("https://www.sec.gov")
 		if err != nil {
 			return err
 		}
@@ -39,7 +37,7 @@ var indexCmd = &cobra.Command{
 			}
 			formatted := date.Format("2006-01")
 
-			fileURL := fmt.Sprintf("%v/Archives/edgar/monthly/xbrlrss-%v.xml", config.Main.CacheDir, formatted)
+			fileURL := fmt.Sprintf("%v/Archives/edgar/monthly/xbrlrss-%v.xml", sec.Config.Main.CacheDir, formatted)
 
 			rssFile, err := sec.ParseRSSGoXML(fileURL)
 			if err != nil {
@@ -48,7 +46,7 @@ var indexCmd = &cobra.Command{
 			}
 
 			for _, v1 := range rssFile.Channel.Item {
-				err = sec.SaveSecItemFile(db, v1)
+				err = sec.SecItemFileUpsert(db, v1)
 				if err != nil {
 					return err
 				}

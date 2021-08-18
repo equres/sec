@@ -30,13 +30,12 @@ to quickly create a Cobra application.`,
 			return err
 		}
 
-		sec := util.NewSEC("https://www.sec.gov")
-		sec.Verbose, err = cmd.Flags().GetBool("verbose")
+		sec, err := util.NewSEC("https://www.sec.gov")
 		if err != nil {
 			return err
 		}
 
-		config, err := util.LoadConfig(".")
+		sec.Verbose, err = cmd.Flags().GetBool("verbose")
 		if err != nil {
 			return err
 		}
@@ -50,7 +49,7 @@ to quickly create a Cobra application.`,
 		var total_count int
 		var current_count int
 
-		total_count, err = sec.TotalXbrlFileCountGet(worklist, config.Main.CacheDir)
+		total_count, err = sec.TotalXbrlFileCountGet(worklist, sec.Config.Main.CacheDir)
 		if err != nil {
 			return err
 		}
@@ -62,7 +61,7 @@ to quickly create a Cobra application.`,
 			}
 			formatted := date.Format("2006-01")
 
-			fileURL := fmt.Sprintf("%v/Archives/edgar/monthly/xbrlrss-%v.xml", config.Main.CacheDir, formatted)
+			fileURL := fmt.Sprintf("%v/Archives/edgar/monthly/xbrlrss-%v.xml", sec.Config.Main.CacheDir, formatted)
 
 			rssFile, err := sec.ParseRSSGoXML(fileURL)
 			if err != nil {
@@ -70,7 +69,7 @@ to quickly create a Cobra application.`,
 			}
 
 			for _, v1 := range rssFile.Channel.Item {
-				err = sec.DownloadXbrlFileContent(v1.XbrlFiling.XbrlFiles.XbrlFile, config, &current_count, total_count)
+				err = sec.DownloadXbrlFileContent(v1.XbrlFiling.XbrlFiles.XbrlFile, sec.Config, &current_count, total_count)
 				if err != nil {
 					return err
 				}

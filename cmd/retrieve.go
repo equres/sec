@@ -14,7 +14,10 @@ var retrieveCmd = &cobra.Command{
 	Long:  `Retrieve all the tickers from sec.gov website that are saved in db`,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		// Retrieving all SecTickers
-		sec := util.NewSEC("https://www.sec.gov/")
+		sec, err := util.NewSEC("https://www.sec.gov/")
+		if err != nil {
+			return err
+		}
 
 		db, err := util.ConnectDB()
 		if err != nil {
