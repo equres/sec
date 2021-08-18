@@ -14,7 +14,7 @@ import (
 
 func ConnectDB() (*sqlx.DB, error) {
 	// Load config data
-	config, err := LoadConfig(".")
+	config, err := LoadConfig("./ci")
 	if err != nil {
 		return nil, err
 	}
@@ -29,7 +29,7 @@ func ConnectDB() (*sqlx.DB, error) {
 }
 
 func MigrateUp(db *sqlx.DB, fs embed.FS) error {
-	config, err := LoadConfig(".")
+	config, err := LoadConfig("./ci")
 	if err != nil {
 		return err
 	}
@@ -61,7 +61,7 @@ func MigrateUp(db *sqlx.DB, fs embed.FS) error {
 }
 
 func MigrateDown(db *sqlx.DB, fs embed.FS) error {
-	config, err := LoadConfig(".")
+	config, err := LoadConfig("./ci")
 	if err != nil {
 		return err
 	}

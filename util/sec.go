@@ -347,7 +347,7 @@ func (s *SEC) DownloadIndex() error {
 		return err
 	}
 
-	config, err := LoadConfig(".")
+	config, err := LoadConfig("./ci")
 	if err != nil {
 		return err
 	}
