@@ -326,3 +326,8 @@ database).
 The search should be based entirely on PostgreSQL Full-Text Search.
 We can assume we're always going to have an access to PostgreSQL 12 or 13.
 The data needs to
+
+
+# Notes
+
+- https://www.sedar.com/search/search_form_pc_en.htm -- Canadian SEC
