@@ -14,14 +14,16 @@ var deCmd = &cobra.Command{
 	Use:   "de",
 	Short: "toggle 'download enable' flag for statements from yyyy/mm month",
 	Long:  `toggle 'download enable' flag for statements from yyyy/mm month`,
+	PreRunE: func(cmd *cobra.Command, args []string) error {
+		err := util.CheckMigration()
+		if err != nil {
+			return err
+		}
+		return nil
+	},
 	RunE: func(cmd *cobra.Command, args []string) error {
 		if len(args) == 0 {
 			err := errors.New("please enter a year and month (for example: 2021 or 2021/06)")
-			return err
-		}
-
-		err := util.CheckMigration()
-		if err != nil {
 			return err
 		}
 

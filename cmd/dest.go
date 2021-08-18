@@ -15,13 +15,15 @@ var destCmd = &cobra.Command{
 	Use:   "dest",
 	Short: "Displaying disk space needed for all worklist that will be downloaded",
 	Long:  `Displaying disk space needed for all worklist that will be downloaded`,
-	RunE: func(cmd *cobra.Command, args []string) error {
-		var size float64
-
+	PreRunE: func(cmd *cobra.Command, args []string) error {
 		err := util.CheckMigration()
 		if err != nil {
 			return err
 		}
+		return nil
+	},
+	RunE: func(cmd *cobra.Command, args []string) error {
+		var size float64
 
 		sec := util.NewSEC("https://sec.gov/")
 		db, err := util.ConnectDB()
