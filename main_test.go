@@ -2,7 +2,6 @@
 package main
 
 import (
-	"embed"
 	"fmt"
 	"net/http"
 	"net/http/httptest"
@@ -10,9 +9,6 @@ import (
 
 	"github.com/equres/sec/util"
 )
-
-//go:embed migrations
-var MigrationsFS embed.FS
 
 // Serve file in HTTP and download to testdata directory
 func TestHTTPDownloadFile(t *testing.T) {
