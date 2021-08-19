@@ -32,7 +32,7 @@ var destCmd = &cobra.Command{
 			return err
 		}
 
-		config, err := util.LoadConfig(".")
+		config, err := util.LoadConfig("./ci")
 		if err != nil {
 			return err
 		}
