@@ -1,5 +1,5 @@
 main:
-  cache_dir: ./testdata/cache
+  cache_dir: testdata/cache
 
 database:
   driver: postgres
