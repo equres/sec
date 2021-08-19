@@ -15,7 +15,7 @@ var indexCmd = &cobra.Command{
 	Short: "saves XBRL File data in the database",
 	Long:  `saves XBRL File data in the database`,
 	RunE: func(cmd *cobra.Command, args []string) error {
-		db, err := util.ConnectDB()
+		db, err := util.ConnectDB(RootConfig)
 		if err != nil {
 			return err
 		}
@@ -25,7 +25,7 @@ var indexCmd = &cobra.Command{
 			return err
 		}
 
-		sec, err := util.NewSEC("https://www.sec.gov")
+		sec, err := util.NewSEC(RootConfig)
 		if err != nil {
 			return err
 		}

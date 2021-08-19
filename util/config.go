@@ -23,6 +23,7 @@ type DatabaseConfig struct {
 }
 
 type MainConfig struct {
+	BaseURL  string `mapstructure:"base_url"`
 	CacheDir string `mapstructure:"cache_dir"`
 }
 

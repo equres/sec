@@ -32,7 +32,12 @@ var ddCmd = &cobra.Command{
 			return err
 		}
 
-		err = util.Downloadability(year, month, false)
+		sec, err := util.NewSEC(RootConfig)
+		if err != nil {
+			return err
+		}
+
+		err = sec.Downloadability(year, month, false)
 		if err != nil {
 			return err
 		}

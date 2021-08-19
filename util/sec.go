@@ -132,14 +132,9 @@ func (t SecTicker) String() string {
 	return fmt.Sprintf("Cik: %d\nTicker: %s\nTitle: %s\nExchange: %s\n", t.Cik, t.Ticker, t.Title, t.Exchange)
 }
 
-func NewSEC(baseUrl string) (*SEC, error) {
-	config, err := LoadConfig(".")
-	if err != nil {
-		return nil, err
-	}
-
+func NewSEC(config Config) (*SEC, error) {
 	return &SEC{
-		BaseURL: baseUrl,
+		BaseURL: config.Main.BaseURL,
 		Config:  config,
 	}, nil
 }
@@ -349,7 +344,7 @@ func (s *SEC) DownloadFile(fullurl string, cfg Config) error {
 }
 
 func (s *SEC) DownloadIndex() error {
-	db, err := ConnectDB()
+	db, err := ConnectDB(s.Config)
 	if err != nil {
 		return err
 	}
@@ -568,8 +563,8 @@ func CheckRSSAvailability(year int, month int) (err error) {
 	return nil
 }
 
-func Downloadability(year int, month int, will_download bool) error {
-	db, err := ConnectDB()
+func (s *SEC) Downloadability(year int, month int, will_download bool) error {
+	db, err := ConnectDB(s.Config)
 	if err != nil {
 		return err
 	}

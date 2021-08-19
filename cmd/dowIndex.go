@@ -12,7 +12,7 @@ var dowIndexCmd = &cobra.Command{
 	Short: "Download only index (RSS/XML) files into the local disk",
 	Long:  ``,
 	RunE: func(cmd *cobra.Command, args []string) (err error) {
-		sec, err := util.NewSEC("https://www.sec.gov")
+		sec, err := util.NewSEC(RootConfig)
 		if err != nil {
 			return err
 		}

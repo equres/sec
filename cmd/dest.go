@@ -18,12 +18,12 @@ var destCmd = &cobra.Command{
 	RunE: func(cmd *cobra.Command, args []string) error {
 		var size float64
 
-		sec, err := util.NewSEC("https://sec.gov/")
+		sec, err := util.NewSEC(RootConfig)
 		if err != nil {
 			return err
 		}
 
-		db, err := util.ConnectDB()
+		db, err := util.ConnectDB(RootConfig)
 		if err != nil {
 			return err
 		}

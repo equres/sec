@@ -12,8 +12,8 @@ import (
 	"github.com/johejo/golang-migrate-extra/source/iofs"
 )
 
-func ConnectDB() (*sqlx.DB, error) {
-	sec, err := NewSEC("https://sec.gov/")
+func ConnectDB(config Config) (*sqlx.DB, error) {
+	sec, err := NewSEC(config)
 	if err != nil {
 		return nil, err
 	}
@@ -27,8 +27,8 @@ func ConnectDB() (*sqlx.DB, error) {
 	return db, nil
 }
 
-func MigrateUp(db *sqlx.DB, fs embed.FS) error {
-	sec, err := NewSEC("https://sec.gov/")
+func MigrateUp(db *sqlx.DB, fs embed.FS, config Config) error {
+	sec, err := NewSEC(config)
 	if err != nil {
 		return err
 	}
@@ -59,8 +59,8 @@ func MigrateUp(db *sqlx.DB, fs embed.FS) error {
 	return nil
 }
 
-func MigrateDown(db *sqlx.DB, fs embed.FS) error {
-	sec, err := NewSEC("https://sec.gov/")
+func MigrateDown(db *sqlx.DB, fs embed.FS, config Config) error {
+	sec, err := NewSEC(config)
 	if err != nil {
 		return err
 	}
