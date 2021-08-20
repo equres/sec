@@ -5,12 +5,14 @@ import (
 	"fmt"
 	"os"
 
+	"github.com/equres/sec/util"
 	"github.com/spf13/cobra"
 
 	"github.com/spf13/viper"
 )
 
 var cfgFile string
+var RootConfig util.Config
 
 // rootCmd represents the base command when called without any subcommands
 var rootCmd = &cobra.Command{
@@ -24,7 +26,14 @@ This application is a tool to generate the needed files
 to quickly create a Cobra application.`,
 	// Uncomment the following line if your bare application
 	// has an action associated with it:
-	// Run: func(cmd *cobra.Command, args []string) { },
+	PersistentPreRunE: func(cmd *cobra.Command, args []string) error {
+		config, err := util.LoadConfig("./ci")
+		if err != nil {
+			return err
+		}
+		RootConfig = config
+		return nil
+	},
 }
 
 // Execute adds all child commands to the root command and sets flags appropriately.

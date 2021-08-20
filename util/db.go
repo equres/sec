@@ -12,13 +12,7 @@ import (
 	"github.com/johejo/golang-migrate-extra/source/iofs"
 )
 
-func ConnectDB() (*sqlx.DB, error) {
-	// Load config data
-	config, err := LoadConfig("./ci")
-	if err != nil {
-		return nil, err
-	}
-
+func ConnectDB(config Config) (*sqlx.DB, error) {
 	// Connect to DB
 	db, err := sqlx.Open(config.Database.Driver, config.DBGetDataSourceName())
 	if err != nil {
@@ -28,13 +22,8 @@ func ConnectDB() (*sqlx.DB, error) {
 	return db, nil
 }
 
-func MigrateUp(db *sqlx.DB, fs embed.FS) error {
-	config, err := LoadConfig("./ci")
-	if err != nil {
-		return err
-	}
-
-	err = db.Ping()
+func MigrateUp(db *sqlx.DB, fs embed.FS, config Config) error {
+	err := db.Ping()
 	if err != nil {
 		return err
 	}
@@ -60,13 +49,8 @@ func MigrateUp(db *sqlx.DB, fs embed.FS) error {
 	return nil
 }
 
-func MigrateDown(db *sqlx.DB, fs embed.FS) error {
-	config, err := LoadConfig("./ci")
-	if err != nil {
-		return err
-	}
-
-	err = db.Ping()
+func MigrateDown(db *sqlx.DB, fs embed.FS, config Config) error {
+	err := db.Ping()
 	if err != nil {
 		return err
 	}
@@ -92,8 +76,8 @@ func MigrateDown(db *sqlx.DB, fs embed.FS) error {
 	return nil
 }
 
-func CheckMigration() error {
-	db, err := ConnectDB()
+func CheckMigration(config Config) error {
+	db, err := ConnectDB(config)
 	if err != nil {
 		return err
 	}

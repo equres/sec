@@ -1,11 +1,11 @@
 main:
   base_url: https://sec.gov/
-  cache_dir: ./cache
+  cache_dir: testdata/cache
 
 database:
   driver: postgres
   host: localhost
   port: 5432
   name: sec_project
-  password: postgres
+  password: hazem1999
   user: postgres

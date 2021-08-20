@@ -9,8 +9,8 @@ import (
 	"github.com/spf13/cobra"
 )
 
-// dataCmd represents the data command
-var dataCmd = &cobra.Command{
+// dowDataCmd represents the data command
+var dowDataCmd = &cobra.Command{
 	Use:   "data",
 	Short: "A brief description of your command",
 	Long: `A longer description that spans multiple lines and likely contains examples
@@ -20,10 +20,10 @@ Cobra is a CLI library for Go that empowers applications.
 This application is a tool to generate the needed files
 to quickly create a Cobra application.`,
 	PreRunE: func(cmd *cobra.Command, args []string) error {
-		return util.CheckMigration()
+		return util.CheckMigration(RootConfig)
 	},
 	RunE: func(cmd *cobra.Command, args []string) error {
-		db, err := util.ConnectDB()
+		db, err := util.ConnectDB(RootConfig)
 		if err != nil {
 			return err
 		}
@@ -33,13 +33,12 @@ to quickly create a Cobra application.`,
 			return err
 		}
 
-		sec := util.NewSEC("https://www.sec.gov")
-		sec.Verbose, err = cmd.Flags().GetBool("verbose")
+		sec, err := util.NewSEC(RootConfig)
 		if err != nil {
 			return err
 		}
 
-		config, err := util.LoadConfig("./ci")
+		sec.Verbose, err = cmd.Flags().GetBool("verbose")
 		if err != nil {
 			return err
 		}
@@ -53,7 +52,7 @@ to quickly create a Cobra application.`,
 		var total_count int
 		var current_count int
 
-		total_count, err = sec.TotalXbrlFileCountGet(worklist, config.Main.CacheDir)
+		total_count, err = sec.TotalXbrlFileCountGet(worklist, sec.Config.Main.CacheDir)
 		if err != nil {
 			return err
 		}
@@ -65,7 +64,7 @@ to quickly create a Cobra application.`,
 			}
 			formatted := date.Format("2006-01")
 
-			fileURL := fmt.Sprintf("%v/Archives/edgar/monthly/xbrlrss-%v.xml", config.Main.CacheDir, formatted)
+			fileURL := fmt.Sprintf("%v/Archives/edgar/monthly/xbrlrss-%v.xml", sec.Config.Main.CacheDir, formatted)
 
 			rssFile, err := sec.ParseRSSGoXML(fileURL)
 			if err != nil {
@@ -73,12 +72,7 @@ to quickly create a Cobra application.`,
 			}
 
 			for _, v1 := range rssFile.Channel.Item {
-				err = sec.DownloadXbrlFileContent(v1.XbrlFiling.XbrlFiles.XbrlFile, config, &current_count, total_count)
-				if err != nil {
-					return err
-				}
-
-				err = util.SaveSecItemFile(db, v1)
+				err = sec.DownloadXbrlFileContent(v1.XbrlFiling.XbrlFiles.XbrlFile, sec.Config, &current_count, total_count)
 				if err != nil {
 					return err
 				}
@@ -89,15 +83,15 @@ to quickly create a Cobra application.`,
 }
 
 func init() {
-	dowCmd.AddCommand(dataCmd)
+	dowCmd.AddCommand(dowDataCmd)
 
 	// Here you will define your flags and configuration settings.
 
 	// Cobra supports Persistent Flags which will work for this command
 	// and all subcommands, e.g.:
-	// dataCmd.PersistentFlags().String("foo", "", "A help for foo")
+	// dowDataCmd.PersistentFlags().String("foo", "", "A help for foo")
 
 	// Cobra supports local flags which will only run when this command
 	// is called directly, e.g.:
-	// dataCmd.Flags().BoolP("toggle", "t", false, "Help message for toggle")
+	// dowDataCmd.Flags().BoolP("toggle", "t", false, "Help message for toggle")
 }

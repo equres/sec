@@ -24,20 +24,20 @@ var migrateCmd = &cobra.Command{
 			return err
 		}
 
-		db, err := util.ConnectDB()
+		db, err := util.ConnectDB(RootConfig)
 		if err != nil {
 			return err
 		}
 
 		switch args[0] {
 		case "up":
-			err = util.MigrateUp(db, GlobalMigrationsFS)
+			err = util.MigrateUp(db, GlobalMigrationsFS, RootConfig)
 			if err != nil {
 				return err
 			}
 			fmt.Println("Successfully migrated the DB UP")
 		case "down":
-			err = util.MigrateDown(db, GlobalMigrationsFS)
+			err = util.MigrateDown(db, GlobalMigrationsFS, RootConfig)
 			if err != nil {
 				return err
 			}

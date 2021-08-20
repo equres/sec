@@ -125,16 +125,18 @@ type SEC struct {
 	BaseURL string
 	Tickers []SecTicker
 	Verbose bool
+	Config  Config
 }
 
 func (t SecTicker) String() string {
 	return fmt.Sprintf("Cik: %d\nTicker: %s\nTitle: %s\nExchange: %s\n", t.Cik, t.Ticker, t.Title, t.Exchange)
 }
 
-func NewSEC(baseUrl string) *SEC {
+func NewSEC(config Config) (*SEC, error) {
 	return &SEC{
-		BaseURL: baseUrl,
-	}
+		BaseURL: config.Main.BaseURL,
+		Config:  config,
+	}, nil
 }
 
 func (t SecTicker) Save(db *sqlx.DB) error {
@@ -342,12 +344,7 @@ func (s *SEC) DownloadFile(fullurl string, cfg Config) error {
 }
 
 func (s *SEC) DownloadIndex() error {
-	db, err := ConnectDB()
-	if err != nil {
-		return err
-	}
-
-	config, err := LoadConfig("./ci")
+	db, err := ConnectDB(s.Config)
 	if err != nil {
 		return err
 	}
@@ -365,7 +362,7 @@ func (s *SEC) DownloadIndex() error {
 		formatted := date.Format("2006-01")
 
 		fileURL := fmt.Sprintf("%v/Archives/edgar/monthly/xbrlrss-%v.xml", s.BaseURL, formatted)
-		err = s.DownloadFile(fileURL, config)
+		err = s.DownloadFile(fileURL, s.Config)
 		if err != nil {
 			return err
 		}
@@ -387,7 +384,7 @@ func SaveWorklist(year int, month int, will_download bool, db *sqlx.DB) error {
 	return nil
 }
 
-func SaveSecItemFile(db *sqlx.DB, item Item) error {
+func (s *SEC) SecItemFileUpsert(db *sqlx.DB, item Item) error {
 	var err error
 
 	var enclosureLength int
@@ -438,14 +435,37 @@ func SaveSecItemFile(db *sqlx.DB, item Item) error {
 			}
 		}
 
+		filePath := strings.ReplaceAll(v.URL, s.BaseURL, s.Config.Main.CacheDir)
+
+		_, err = os.Stat(filePath)
+		if err != nil {
+			return fmt.Errorf("successfully inserted into database all downloaded files")
+		}
+
+		xbrlFile, err := os.Open(filePath)
+		if err != nil {
+			return err
+		}
+
+		fileBody, err := ioutil.ReadAll(xbrlFile)
+		if err != nil {
+			return err
+		}
+
+		// Skip saving image body in DB
+		fileExtension := filepath.Ext(filePath)
+		if fileExtension == ".jpg" || fileExtension == ".jpeg" {
+			fileBody = []byte{}
+		}
+
 		_, err = db.Exec(`
-		INSERT INTO sec.secItemFile (title, link, guid, enclosure_url, enclosure_length, enclosure_type, description, pubdate, companyname, formtype, fillingdate, ciknumber, accessionnumber, filenumber, acceptancedatetime, period, assistantdirector, assignedsic, fiscalyearend, xbrlsequence, xbrlfile, xbrltype, xbrlsize, xbrldescription, xbrlinlinexbrl, xbrlurl, created_at, updated_at)
-		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23, $24, $25, $26, NOW(), NOW()) 
+		INSERT INTO sec.secItemFile (title, link, guid, enclosure_url, enclosure_length, enclosure_type, description, pubdate, companyname, formtype, fillingdate, ciknumber, accessionnumber, filenumber, acceptancedatetime, period, assistantdirector, assignedsic, fiscalyearend, xbrlsequence, xbrlfile, xbrltype, xbrlsize, xbrldescription, xbrlinlinexbrl, xbrlurl, xbrlbody, created_at, updated_at)
+		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23, $24, $25, $26, $27, NOW(), NOW()) 
 
 		ON CONFLICT (xbrlsequence, xbrlfile, xbrltype, xbrlsize, xbrldescription, xbrlinlinexbrl, xbrlurl)
 		DO UPDATE SET title=EXCLUDED.title, link=EXCLUDED.link, guid=EXCLUDED.guid, enclosure_url=EXCLUDED.enclosure_url, enclosure_length=EXCLUDED.enclosure_length, enclosure_type=EXCLUDED.enclosure_type, description=EXCLUDED.description, pubdate=EXCLUDED.pubdate, companyname=EXCLUDED.companyname, formtype=EXCLUDED.formtype, fillingdate=EXCLUDED.fillingdate, ciknumber=EXCLUDED.ciknumber, accessionnumber=EXCLUDED.accessionnumber, filenumber=EXCLUDED.filenumber, acceptancedatetime=EXCLUDED.acceptancedatetime, period=EXCLUDED.period, assistantdirector=EXCLUDED.assistantdirector, assignedsic=EXCLUDED.assignedsic, fiscalyearend=EXCLUDED.fiscalyearend, xbrlsequence=EXCLUDED.xbrlsequence, xbrlfile=EXCLUDED.xbrlfile, xbrltype=EXCLUDED.xbrltype, xbrlsize=EXCLUDED.xbrlsize, xbrldescription=EXCLUDED.xbrldescription, xbrlinlinexbrl=EXCLUDED.xbrlinlinexbrl, xbrlurl=EXCLUDED.xbrlurl, updated_at=NOW()
-		WHERE secItemFile.xbrlsequence=EXCLUDED.xbrlsequence AND secItemFile.xbrlfile=EXCLUDED.xbrlfile AND secItemFile.xbrltype=EXCLUDED.xbrltype AND secItemFile.xbrlsize=EXCLUDED.xbrlsize AND secItemFile.xbrldescription=EXCLUDED.xbrldescription AND secItemFile.xbrlinlinexbrl=EXCLUDED.xbrlinlinexbrl AND secItemFile.xbrlurl=EXCLUDED.xbrlurl;`,
-			item.Title, item.Link, item.Guid, item.Enclosure.URL, enclosureLength, item.Enclosure.Type, item.Description, item.PubDate, item.XbrlFiling.CompanyName, item.XbrlFiling.FormType, item.XbrlFiling.FilingDate, item.XbrlFiling.CikNumber, item.XbrlFiling.AccessionNumber, item.XbrlFiling.FileNumber, item.XbrlFiling.AcceptanceDatetime, item.XbrlFiling.Period, item.XbrlFiling.AssistantDirector, assignedSic, fiscalYearEnd, xbrlSequence, v.File, v.Type, xbrlSize, v.Description, xbrlInline, v.URL)
+		WHERE secItemFile.xbrlsequence=EXCLUDED.xbrlsequence AND secItemFile.xbrlfile=EXCLUDED.xbrlfile AND secItemFile.xbrltype=EXCLUDED.xbrltype AND secItemFile.xbrlsize=EXCLUDED.xbrlsize AND secItemFile.xbrldescription=EXCLUDED.xbrldescription AND secItemFile.xbrlinlinexbrl=EXCLUDED.xbrlinlinexbrl AND secItemFile.xbrlurl=EXCLUDED.xbrlurl AND secItemFile.xbrlbody=EXCLUDED.xbrlbody;`,
+			item.Title, item.Link, item.Guid, item.Enclosure.URL, enclosureLength, item.Enclosure.Type, item.Description, item.PubDate, item.XbrlFiling.CompanyName, item.XbrlFiling.FormType, item.XbrlFiling.FilingDate, item.XbrlFiling.CikNumber, item.XbrlFiling.AccessionNumber, item.XbrlFiling.FileNumber, item.XbrlFiling.AcceptanceDatetime, item.XbrlFiling.Period, item.XbrlFiling.AssistantDirector, assignedSic, fiscalYearEnd, xbrlSequence, v.File, v.Type, xbrlSize, v.Description, xbrlInline, v.URL, string(fileBody))
 		if err != nil {
 			return err
 		}
@@ -543,8 +563,8 @@ func CheckRSSAvailability(year int, month int) (err error) {
 	return nil
 }
 
-func Downloadability(year int, month int, will_download bool) error {
-	db, err := ConnectDB()
+func (s *SEC) Downloadability(year int, month int, will_download bool) error {
+	db, err := ConnectDB(s.Config)
 	if err != nil {
 		return err
 	}
