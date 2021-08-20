@@ -11,8 +11,8 @@ jobs:
         image: postgres:latest
         env:
           POSTGRES_HOST: localhost
-          POSTGRES_USER: postgres
-          POSTGRES_PASSWORD: postgres
+          POSTGRES_USER: test_postgres
+          POSTGRES_PASSWORD: test_postgres
           POSTGRES_DB: sec_project
           POSTGRES_PORT: 5432
         options: >-
