@@ -20,7 +20,7 @@ var configCmd = &cobra.Command{
 	RunE: func(cmd *cobra.Command, args []string) error {
 		reader := bufio.NewReader(os.Stdin)
 
-		url := "https://www.sec.gov/"
+		url := "https://www.sec.gov"
 		fmt.Printf("URL [default: '%v']: ", url)
 		err := AcceptInput(reader, &url)
 		if err != nil {

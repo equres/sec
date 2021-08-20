@@ -1,6 +1,6 @@
 main:
-  base_url: https://www.sec.gov/
-  cache_dir: ./cache
+  baseurl: https://www.sec.gov
+  cachedir: ./cache
 
 database:
   driver: postgres
