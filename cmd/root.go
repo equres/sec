@@ -54,7 +54,7 @@ func init() {
 
 func initConfig() {
 	var err error
-	config := util.Config{}
+	var config util.Config
 	if cfgFile != defaultCfgPath {
 		if _, err = os.Stat(cfgFile); err != nil {
 			err = fmt.Errorf("file config '%v' was not found", cfgFile)
