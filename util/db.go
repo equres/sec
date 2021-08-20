@@ -23,12 +23,7 @@ func ConnectDB(config Config) (*sqlx.DB, error) {
 }
 
 func MigrateUp(db *sqlx.DB, fs embed.FS, config Config) error {
-	db, err := ConnectDB(config)
-	if err != nil {
-		return err
-	}
-
-	err = db.Ping()
+	err := db.Ping()
 	if err != nil {
 		return err
 	}
@@ -55,12 +50,7 @@ func MigrateUp(db *sqlx.DB, fs embed.FS, config Config) error {
 }
 
 func MigrateDown(db *sqlx.DB, fs embed.FS, config Config) error {
-	db, err := ConnectDB(config)
-	if err != nil {
-		return err
-	}
-
-	err = db.Ping()
+	err := db.Ping()
 	if err != nil {
 		return err
 	}
