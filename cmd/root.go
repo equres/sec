@@ -70,6 +70,7 @@ func initConfig() {
 			if err != nil {
 				cobra.CheckErr(err)
 			}
+			os.Exit(0)
 		}
 	}
 
