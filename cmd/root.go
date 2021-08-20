@@ -2,6 +2,8 @@
 package cmd
 
 import (
+	"fmt"
+
 	"github.com/equres/sec/util"
 	"github.com/spf13/cobra"
 )
@@ -22,7 +24,8 @@ to quickly create a Cobra application.`,
 	// Uncomment the following line if your bare application
 	// has an action associated with it:
 	PersistentPreRunE: func(cmd *cobra.Command, args []string) error {
-		config, err := util.LoadConfig("./.sec")
+		fmt.Println(cfgFile)
+		config, err := util.LoadConfig(cfgFile)
 		if err != nil {
 			return err
 		}
@@ -42,7 +45,7 @@ func init() {
 	// Cobra supports persistent flags, which, if defined here,
 	// will be global for your application.
 	dowCmd.PersistentFlags().Bool("verbose", false, "Display the summarized version of progress")
-	rootCmd.PersistentFlags().StringVar(&cfgFile, "config", "", "config file (default is $HOME/.sec.yaml)")
+	rootCmd.PersistentFlags().StringVar(&cfgFile, "config", "./.sec", "config file (default is ./.sec/config.yaml)")
 
 	// Cobra also supports local flags, which will only run
 	// when this action is called directly.

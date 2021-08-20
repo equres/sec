@@ -23,8 +23,8 @@ type DatabaseConfig struct {
 }
 
 type MainConfig struct {
-	BaseURL  string `mapstructure:"base_url"`
-	CacheDir string `mapstructure:"cache_dir"`
+	BaseURL  string `mapstructure:"baseurl"`
+	CacheDir string `mapstructure:"cachedir"`
 }
 
 func LoadConfig(path string) (config Config, err error) {
