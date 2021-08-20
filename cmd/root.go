@@ -2,8 +2,6 @@
 package cmd
 
 import (
-	"fmt"
-
 	"github.com/equres/sec/util"
 	"github.com/spf13/cobra"
 )
