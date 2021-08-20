@@ -23,7 +23,12 @@ func TestHTTPDownloadFile(t *testing.T) {
 
 	defer testServer.Close()
 
-	sec := util.NewSEC(testServer.URL)
+	config.Main.BaseURL = testServer.URL
+
+	sec, err := util.NewSEC(config)
+	if err != nil {
+		t.Errorf(err.Error())
+	}
 
 	err = sec.DownloadFile(fmt.Sprintf("%v/%v", sec.BaseURL, "xbrlrss-2021-04.xml"), config)
 	if err != nil {
