@@ -1,5 +1,5 @@
 main:
-  base_url: https://sec.gov/
+  base_url: https://www.sec.gov/
   cache_dir: ./cache
 
 database:
@@ -7,5 +7,5 @@ database:
   host: localhost
   port: 5432
   name: sec_project
-  password: postgres
-  user: postgres
+  password: test_postgres
+  user: test_postgres
