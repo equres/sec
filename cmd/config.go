@@ -48,6 +48,20 @@ func GenerateConfig() error {
 		return err
 	}
 
+	host := "localhost"
+	fmt.Printf("Host [default: '%v']: ", host)
+	err = AcceptInput(reader, &host)
+	if err != nil {
+		return err
+	}
+
+	db_name := "sec_project"
+	fmt.Printf("DB Name [default: '%v']: ", db_name)
+	err = AcceptInput(reader, &db_name)
+	if err != nil {
+		return err
+	}
+
 	config := viper.New()
 
 	if _, err = os.Stat(cfgFile); err != nil {
@@ -75,9 +89,9 @@ func GenerateConfig() error {
 
 	config.SetDefault("database", util.DatabaseConfig{
 		Driver:   "postgres",
-		Host:     "localhost",
+		Host:     host,
 		Port:     5432,
-		Name:     "sec_project",
+		Name:     db_name,
 		Password: db_password,
 		User:     db_user,
 	})
