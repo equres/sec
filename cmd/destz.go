@@ -35,7 +35,7 @@ var destzCmd = &cobra.Command{
 			return err
 		}
 
-		var total_count float64
+		var total_count int
 		for _, v := range worklist {
 			date, err := time.Parse("2006-1", fmt.Sprintf("%d-%d", v.Year, v.Month))
 			if err != nil {
@@ -57,7 +57,7 @@ var destzCmd = &cobra.Command{
 			total_count += val
 		}
 
-		fmt.Printf("Size needed to download all ZIP files: %s\n", parseSize(total_count))
+		fmt.Printf("Size needed to download all ZIP files: %s\n", parseSize(float64(total_count)))
 
 		return nil
 	},

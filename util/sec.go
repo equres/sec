@@ -371,15 +371,16 @@ func (s *SEC) DownloadIndex() error {
 	return nil
 }
 
-func (s *SEC) CalculateRSSFilesZIP(rssFile RSSFile) (float64, error) {
-	var total_size float64
+func (s *SEC) CalculateRSSFilesZIP(rssFile RSSFile) (int, error) {
+	var total_size int
 	for _, v := range rssFile.Channel.Item {
-		val, err := strconv.ParseFloat(v.Enclosure.Length, 64)
-		if err != nil {
-			return 0, err
+		if v.Enclosure.Length != "" {
+			val, err := strconv.Atoi(v.Enclosure.Length)
+			if err != nil {
+				return 0, err
+			}
+			total_size += val
 		}
-		total_size += val
-		fmt.Println("total_size:", total_size)
 	}
 	return total_size, nil
 }
