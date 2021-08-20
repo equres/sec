@@ -13,13 +13,8 @@ import (
 )
 
 func ConnectDB(config Config) (*sqlx.DB, error) {
-	sec, err := NewSEC(config)
-	if err != nil {
-		return nil, err
-	}
-
 	// Connect to DB
-	db, err := sqlx.Open(sec.Config.Database.Driver, sec.Config.DBGetDataSourceName())
+	db, err := sqlx.Open(config.Database.Driver, config.DBGetDataSourceName())
 	if err != nil {
 		return nil, err
 	}
@@ -28,7 +23,7 @@ func ConnectDB(config Config) (*sqlx.DB, error) {
 }
 
 func MigrateUp(db *sqlx.DB, fs embed.FS, config Config) error {
-	sec, err := NewSEC(config)
+	db, err := ConnectDB(config)
 	if err != nil {
 		return err
 	}
@@ -44,7 +39,7 @@ func MigrateUp(db *sqlx.DB, fs embed.FS, config Config) error {
 		return err
 	}
 
-	m, err := migrate.NewWithSourceInstance("iofs", d, sec.Config.DBGetURL())
+	m, err := migrate.NewWithSourceInstance("iofs", d, config.DBGetURL())
 	if err != nil {
 		fmt.Println("failed make iofs source")
 		return err
@@ -60,7 +55,7 @@ func MigrateUp(db *sqlx.DB, fs embed.FS, config Config) error {
 }
 
 func MigrateDown(db *sqlx.DB, fs embed.FS, config Config) error {
-	sec, err := NewSEC(config)
+	db, err := ConnectDB(config)
 	if err != nil {
 		return err
 	}
@@ -76,7 +71,7 @@ func MigrateDown(db *sqlx.DB, fs embed.FS, config Config) error {
 		return err
 	}
 
-	m, err := migrate.NewWithSourceInstance("iofs", d, sec.Config.DBGetURL())
+	m, err := migrate.NewWithSourceInstance("iofs", d, config.DBGetURL())
 	if err != nil {
 		fmt.Println("failed make iofs source")
 		return err
@@ -88,5 +83,20 @@ func MigrateDown(db *sqlx.DB, fs embed.FS, config Config) error {
 		return err
 	}
 
+	return nil
+}
+
+func CheckMigration() error {
+	db, err := ConnectDB()
+	if err != nil {
+		return err
+	}
+
+	// Check if migrated
+	_, err = db.Exec("SELECT 'sec.tickers'::regclass")
+	if err != nil {
+		err = fmt.Errorf("looks like you're running sec for the first time. Please initialize the database with sec migrate up")
+		return err
+	}
 	return nil
 }

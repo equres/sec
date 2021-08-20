@@ -12,20 +12,28 @@ import (
 // indexCmd represents the index command
 var indexCmd = &cobra.Command{
 	Use:   "index",
-	Short: "saves XBRL File data in the database",
-	Long:  `saves XBRL File data in the database`,
-	RunE: func(cmd *cobra.Command, args []string) error {
+	Short: "Download only index (RSS/XML) files into the local disk",
+	Long:  ``,
+	PreRunE: func(cmd *cobra.Command, args []string) error {
+		return util.CheckMigration()
+	},
+	RunE: func(cmd *cobra.Command, args []string) (err error) {
 		db, err := util.ConnectDB(RootConfig)
 		if err != nil {
 			return err
 		}
 
-		worklist, err := util.WorklistWillDownloadGet(db)
+		sec, err := util.NewSEC(RootConfig)
 		if err != nil {
 			return err
 		}
 
-		sec, err := util.NewSEC(RootConfig)
+		sec.Verbose, err = cmd.Flags().GetBool("verbose")
+		if err != nil {
+			return err
+		}
+
+		worklist, err := util.WorklistWillDownloadGet(db)
 		if err != nil {
 			return err
 		}
