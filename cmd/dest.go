@@ -16,7 +16,7 @@ var destCmd = &cobra.Command{
 	Short: "Displaying disk space needed for all worklist that will be downloaded",
 	Long:  `Displaying disk space needed for all worklist that will be downloaded`,
 	PreRunE: func(cmd *cobra.Command, args []string) error {
-		return util.CheckMigration()
+		return util.CheckMigration(RootConfig)
 	},
 	RunE: func(cmd *cobra.Command, args []string) error {
 		var size float64

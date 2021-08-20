@@ -13,7 +13,7 @@ var retrieveCmd = &cobra.Command{
 	Short: "Retrieve all the tickers from sec.gov website that are saved in db",
 	Long:  `Retrieve all the tickers from sec.gov website that are saved in db`,
 	PreRunE: func(cmd *cobra.Command, args []string) error {
-		return util.CheckMigration()
+		return util.CheckMigration(RootConfig)
 	},
 	RunE: func(cmd *cobra.Command, args []string) error {
 		// Retrieving all SecTickers

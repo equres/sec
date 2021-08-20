@@ -27,7 +27,7 @@ to quickly create a Cobra application.`,
 	// Uncomment the following line if your bare application
 	// has an action associated with it:
 	PersistentPreRunE: func(cmd *cobra.Command, args []string) error {
-		config, err := util.LoadConfig(".")
+		config, err := util.LoadConfig("./ci")
 		if err != nil {
 			return err
 		}

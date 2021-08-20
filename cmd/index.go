@@ -15,7 +15,7 @@ var indexCmd = &cobra.Command{
 	Short: "Download only index (RSS/XML) files into the local disk",
 	Long:  ``,
 	PreRunE: func(cmd *cobra.Command, args []string) error {
-		return util.CheckMigration()
+		return util.CheckMigration(RootConfig)
 	},
 	RunE: func(cmd *cobra.Command, args []string) (err error) {
 		db, err := util.ConnectDB(RootConfig)
@@ -24,11 +24,6 @@ var indexCmd = &cobra.Command{
 		}
 
 		sec, err := util.NewSEC(RootConfig)
-		if err != nil {
-			return err
-		}
-
-		sec.Verbose, err = cmd.Flags().GetBool("verbose")
 		if err != nil {
 			return err
 		}
