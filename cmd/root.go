@@ -2,12 +2,18 @@
 package cmd
 
 import (
+	"fmt"
+	"os"
+	"path/filepath"
+
 	"github.com/equres/sec/util"
 	"github.com/spf13/cobra"
+	"github.com/spf13/viper"
 )
 
 var cfgFile string
 var RootConfig util.Config
+var defaultCfgPath string
 
 // rootCmd represents the base command when called without any subcommands
 var rootCmd = &cobra.Command{
@@ -21,14 +27,6 @@ This application is a tool to generate the needed files
 to quickly create a Cobra application.`,
 	// Uncomment the following line if your bare application
 	// has an action associated with it:
-	PersistentPreRunE: func(cmd *cobra.Command, args []string) error {
-		config, err := util.LoadConfig(cfgFile)
-		if err != nil {
-			return err
-		}
-		RootConfig = config
-		return nil
-	},
 }
 
 // Execute adds all child commands to the root command and sets flags appropriately.
@@ -38,13 +36,53 @@ func Execute() {
 }
 
 func init() {
+	home, err := os.UserHomeDir()
+	cobra.CheckErr(err)
+	defaultCfgPath = filepath.Join(home, "/.sec")
+
+	cobra.OnInitialize(initConfig)
 	// Here you will define your flags and configuration settings.
 	// Cobra supports persistent flags, which, if defined here,
 	// will be global for your application.
 	dowCmd.PersistentFlags().Bool("verbose", false, "Display the summarized version of progress")
-	rootCmd.PersistentFlags().StringVar(&cfgFile, "config", "./.sec", "config file (default is ./.sec/config.yaml)")
+	rootCmd.PersistentFlags().StringVar(&cfgFile, "config", defaultCfgPath, fmt.Sprintf("config file (default is %v)", defaultCfgPath))
 
 	// Cobra also supports local flags, which will only run
 	// when this action is called directly.
 	rootCmd.Flags().BoolP("toggle", "t", false, "Help message for toggle")
+}
+
+func initConfig() {
+	var err error
+	config := util.Config{}
+	if cfgFile != defaultCfgPath {
+		if _, err = os.Stat(cfgFile); err != nil {
+			err = fmt.Errorf("file config '%v' was not found", cfgFile)
+			cobra.CheckErr(err)
+		}
+		// Use config file from the flag.
+		viper.SetConfigFile(cfgFile)
+	} else {
+		filePath := filepath.Join(defaultCfgPath, "config.yaml")
+		if _, err := os.Stat(filePath); err != nil {
+			fmt.Println("you do not have a config file. Please create it by answering the questions below")
+			err = GenerateConfig()
+			if err != nil {
+				cobra.CheckErr(err)
+			}
+		}
+	}
+
+	viper.AutomaticEnv() // read in environment variables that match
+
+	// If a config file is found, read it in.
+	if err := viper.ReadInConfig(); err == nil {
+		fmt.Fprintln(os.Stderr, "Using config file:", viper.ConfigFileUsed())
+	}
+
+	config, err = util.LoadConfig(cfgFile)
+	if err != nil {
+		cobra.CheckErr(err)
+	}
+	RootConfig = config
 }

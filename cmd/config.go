@@ -5,6 +5,7 @@ import (
 	"bufio"
 	"fmt"
 	"os"
+	"path/filepath"
 	"strings"
 
 	"github.com/equres/sec/util"
@@ -18,62 +19,81 @@ var configCmd = &cobra.Command{
 	Short: "setup the config file for the SEC program",
 	Long:  `setup the config file for the SEC program`,
 	RunE: func(cmd *cobra.Command, args []string) error {
-		reader := bufio.NewReader(os.Stdin)
-
-		url := "https://www.sec.gov"
-		fmt.Printf("URL [default: '%v']: ", url)
-		err := AcceptInput(reader, &url)
-		if err != nil {
-			return err
-		}
-
-		db_user := "postgres"
-		fmt.Println("Database Config:")
-		fmt.Printf("User [default: '%v']: ", db_user)
-		err = AcceptInput(reader, &db_user)
-		if err != nil {
-			return err
-		}
-
-		db_password := ""
-		fmt.Printf("Password [default: '%v']: ", db_password)
-		err = AcceptInput(reader, &db_password)
-		if err != nil {
-			return err
-		}
-
-		config := viper.New()
-
-		config.AddConfigPath("./.sec")
-		config.SetConfigName("config")
-
-		config.SetDefault("main", util.MainConfig{
-			BaseURL:  url,
-			CacheDir: "./cache",
-		})
-
-		config.SetDefault("database", util.DatabaseConfig{
-			Driver:   "postgres",
-			Host:     "localhost",
-			Port:     5432,
-			Name:     "sec_project",
-			Password: db_password,
-			User:     db_user,
-		})
-
-		err = config.WriteConfig()
-		if err != nil {
-			return err
-		}
-		err = config.ReadInConfig()
-		if err != nil {
-			return err
-		}
-
-		fmt.Println("Successfully created the config")
-
-		return nil
+		return GenerateConfig()
 	},
+}
+
+func GenerateConfig() error {
+	reader := bufio.NewReader(os.Stdin)
+
+	url := "https://www.sec.gov"
+	fmt.Printf("URL [default: '%v']: ", url)
+	err := AcceptInput(reader, &url)
+	if err != nil {
+		return err
+	}
+
+	db_user := "postgres"
+	fmt.Println("Database Config:")
+	fmt.Printf("User [default: '%v']: ", db_user)
+	err = AcceptInput(reader, &db_user)
+	if err != nil {
+		return err
+	}
+
+	db_password := ""
+	fmt.Printf("Password [default: '%v']: ", db_password)
+	err = AcceptInput(reader, &db_password)
+	if err != nil {
+		return err
+	}
+
+	config := viper.New()
+
+	if _, err = os.Stat(cfgFile); err != nil {
+		err = os.MkdirAll(cfgFile, 0755)
+		if err != nil {
+			return err
+		}
+	}
+
+	if _, err = os.Stat(filepath.Join(cfgFile, "config.yaml")); err != nil {
+		_, err = os.Create(filepath.Join(cfgFile, "config.yaml"))
+		if err != nil {
+			return err
+		}
+	}
+
+	config.AddConfigPath(cfgFile)
+	config.SetConfigType("yaml")
+	config.SetConfigName("config")
+
+	config.SetDefault("main", util.MainConfig{
+		BaseURL:  url,
+		CacheDir: "./cache",
+	})
+
+	config.SetDefault("database", util.DatabaseConfig{
+		Driver:   "postgres",
+		Host:     "localhost",
+		Port:     5432,
+		Name:     "sec_project",
+		Password: db_password,
+		User:     db_user,
+	})
+
+	err = config.WriteConfig()
+	if err != nil {
+		return err
+	}
+	err = config.ReadInConfig()
+	if err != nil {
+		return err
+	}
+
+	fmt.Println("Successfully created the config")
+
+	return nil
 }
 
 func AcceptInput(reader *bufio.Reader, data *string) error {
