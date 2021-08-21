@@ -37,7 +37,7 @@ func Execute() {
 }
 
 func init() {
-	defaultCfgPath = filepath.Join(xdg.DataHome, "/.sec")
+	defaultCfgPath = filepath.Join(xdg.ConfigHome, "/.sec")
 
 	cobra.OnInitialize(initConfig)
 	// Here you will define your flags and configuration settings.
