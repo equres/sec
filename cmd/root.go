@@ -6,6 +6,7 @@ import (
 	"os"
 	"path/filepath"
 
+	"github.com/adrg/xdg"
 	"github.com/equres/sec/util"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
@@ -36,9 +37,7 @@ func Execute() {
 }
 
 func init() {
-	home, err := os.UserHomeDir()
-	cobra.CheckErr(err)
-	defaultCfgPath = filepath.Join(home, "/.sec")
+	defaultCfgPath = filepath.Join(xdg.DataHome, "/.sec")
 
 	cobra.OnInitialize(initConfig)
 	// Here you will define your flags and configuration settings.
