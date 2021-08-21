@@ -371,6 +371,20 @@ func (s *SEC) DownloadIndex() error {
 	return nil
 }
 
+func (s *SEC) CalculateRSSFilesZIP(rssFile RSSFile) (int, error) {
+	var total_size int
+	for _, v := range rssFile.Channel.Item {
+		if v.Enclosure.Length != "" {
+			val, err := strconv.Atoi(v.Enclosure.Length)
+			if err != nil {
+				return 0, err
+			}
+			total_size += val
+		}
+	}
+	return total_size, nil
+}
+
 func SaveWorklist(year int, month int, will_download bool, db *sqlx.DB) error {
 	_, err := db.Exec(`
 	INSERT INTO sec.worklist (year, month, will_download, created_at, updated_at) 
