@@ -13,7 +13,7 @@ lint:
 	golangci-lint run
 
 createdb:
-	docker exec -it postgres12 createdb --username=postgres --owner=postgres sec_project
+	docker exec -it postgres12 createdb --username=test_postgres --owner=test_postgres sec_project
 
 migrateup:
-	./sec migrate up
+	./sec migrate up --config=ci

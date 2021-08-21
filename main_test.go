@@ -18,7 +18,7 @@ func TestHTTPDownloadFile(t *testing.T) {
 	}
 
 	// Path for files
-	filesPath := "cache/Archives/edgar/monthly"
+	filesPath := "./cache/Archives/edgar/monthly/"
 	testServer := httptest.NewServer(http.FileServer(http.Dir(filesPath)))
 
 	defer testServer.Close()
@@ -30,6 +30,7 @@ func TestHTTPDownloadFile(t *testing.T) {
 		t.Errorf(err.Error())
 	}
 
+	config.Main.CacheDir = "./testdata"
 	err = sec.DownloadFile(fmt.Sprintf("%v/%v", sec.BaseURL, "xbrlrss-2021-04.xml"), config)
 	if err != nil {
 		t.Errorf(err.Error())

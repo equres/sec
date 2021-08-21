@@ -23,8 +23,8 @@ type DatabaseConfig struct {
 }
 
 type MainConfig struct {
-	BaseURL  string `mapstructure:"base_url"`
-	CacheDir string `mapstructure:"cache_dir"`
+	BaseURL  string `mapstructure:"baseurl"`
+	CacheDir string `mapstructure:"cachedir"`
 }
 
 func LoadConfig(path string) (config Config, err error) {
@@ -54,7 +54,6 @@ func (c *Config) DBGetURL() string {
 }
 
 func (c *Config) DBGetDataSourceName() string {
-	// host=localhost port=5432 user=postgres password=hazem1999 dbname=sec_project sslmode=disable
 	return fmt.Sprintf("host=%v port=%d user=%v password=%v dbname=%v sslmode=disable",
 		c.Database.Host,
 		c.Database.Port,
