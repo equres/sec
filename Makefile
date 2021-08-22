@@ -1,10 +1,10 @@
 all: clean build
 
 build:
-	go build
+	go build -o secapp
 
 run:
-	./sec $(action)
+	./secapp $(action)
 
 clean:
 	gofmt -w -l -e .
@@ -16,4 +16,4 @@ createdb:
 	docker exec -it postgres12 createdb --username=test_postgres --owner=test_postgres sec_project
 
 migrateup:
-	./sec migrate up --config=ci
+	./secapp migrate up --config=ci
