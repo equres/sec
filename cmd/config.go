@@ -8,7 +8,7 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/equres/sec/util"
+	"github.com/equres/sec/config"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 )
@@ -62,7 +62,7 @@ func GenerateConfig() error {
 		return err
 	}
 
-	config := viper.New()
+	cfg := viper.New()
 
 	if _, err = os.Stat(cfgFile); err != nil {
 		err = os.MkdirAll(cfgFile, 0755)
@@ -78,16 +78,16 @@ func GenerateConfig() error {
 		}
 	}
 
-	config.AddConfigPath(cfgFile)
-	config.SetConfigType("yaml")
-	config.SetConfigName("config")
+	cfg.AddConfigPath(cfgFile)
+	cfg.SetConfigType("yaml")
+	cfg.SetConfigName("config")
 
-	config.SetDefault("main", util.MainConfig{
+	cfg.SetDefault("main", config.MainConfig{
 		BaseURL:  url,
 		CacheDir: "./cache",
 	})
 
-	config.SetDefault("database", util.DatabaseConfig{
+	cfg.SetDefault("database", config.DatabaseConfig{
 		Driver:   "postgres",
 		Host:     host,
 		Port:     5432,
@@ -96,11 +96,11 @@ func GenerateConfig() error {
 		User:     db_user,
 	})
 
-	err = config.WriteConfig()
+	err = cfg.WriteConfig()
 	if err != nil {
 		return err
 	}
-	err = config.ReadInConfig()
+	err = cfg.ReadInConfig()
 	if err != nil {
 		return err
 	}

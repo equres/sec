@@ -1,18 +1,19 @@
 // Copyright (c) 2021 Equres LLC. All rights reserved.
 
-package util
+package database
 
 import (
 	"embed"
 	"fmt"
 
+	"github.com/equres/sec/config"
 	"github.com/golang-migrate/migrate/v4"
 	_ "github.com/golang-migrate/migrate/v4/database/postgres"
 	"github.com/jmoiron/sqlx"
 	"github.com/johejo/golang-migrate-extra/source/iofs"
 )
 
-func ConnectDB(config Config) (*sqlx.DB, error) {
+func ConnectDB(config config.Config) (*sqlx.DB, error) {
 	// Connect to DB
 	db, err := sqlx.Open(config.Database.Driver, config.DBGetDataSourceName())
 	if err != nil {
@@ -22,7 +23,7 @@ func ConnectDB(config Config) (*sqlx.DB, error) {
 	return db, nil
 }
 
-func MigrateUp(db *sqlx.DB, fs embed.FS, config Config) error {
+func MigrateUp(db *sqlx.DB, fs embed.FS, config config.Config) error {
 	err := db.Ping()
 	if err != nil {
 		return err
@@ -49,7 +50,7 @@ func MigrateUp(db *sqlx.DB, fs embed.FS, config Config) error {
 	return nil
 }
 
-func MigrateDown(db *sqlx.DB, fs embed.FS, config Config) error {
+func MigrateDown(db *sqlx.DB, fs embed.FS, config config.Config) error {
 	err := db.Ping()
 	if err != nil {
 		return err
@@ -76,7 +77,7 @@ func MigrateDown(db *sqlx.DB, fs embed.FS, config Config) error {
 	return nil
 }
 
-func CheckMigration(config Config) error {
+func CheckMigration(config config.Config) error {
 	db, err := ConnectDB(config)
 	if err != nil {
 		return err

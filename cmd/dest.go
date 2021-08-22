@@ -6,7 +6,8 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/equres/sec/util"
+	"github.com/equres/sec/database"
+	"github.com/equres/sec/sec"
 	"github.com/spf13/cobra"
 )
 
@@ -16,27 +17,27 @@ var destCmd = &cobra.Command{
 	Short: "Displaying disk space needed for all worklist that will be downloaded",
 	Long:  `Displaying disk space needed for all worklist that will be downloaded`,
 	PreRunE: func(cmd *cobra.Command, args []string) error {
-		return util.CheckMigration(RootConfig)
+		return database.CheckMigration(RootConfig)
 	},
 	RunE: func(cmd *cobra.Command, args []string) error {
 		var size float64
 
-		sec, err := util.NewSEC(RootConfig)
+		s, err := sec.NewSEC(RootConfig)
 		if err != nil {
 			return err
 		}
 
-		db, err := util.ConnectDB(RootConfig)
+		db, err := database.ConnectDB(RootConfig)
 		if err != nil {
 			return err
 		}
 
-		worklist, err := util.WorklistWillDownloadGet(db)
+		worklist, err := sec.WorklistWillDownloadGet(db)
 		if err != nil {
 			return err
 		}
 
-		err = sec.DownloadIndex()
+		err = s.DownloadIndex()
 		if err != nil {
 			return err
 		}
@@ -48,9 +49,9 @@ var destCmd = &cobra.Command{
 			}
 			formatted := date.Format("2006-01")
 
-			fileURL := fmt.Sprintf("%v/Archives/edgar/monthly/xbrlrss-%v.xml", sec.Config.Main.CacheDir, formatted)
+			fileURL := fmt.Sprintf("%v/Archives/edgar/monthly/xbrlrss-%v.xml", s.Config.Main.CacheDir, formatted)
 
-			rssFile, err := sec.ParseRSSGoXML(fileURL)
+			rssFile, err := s.ParseRSSGoXML(fileURL)
 			if err != nil {
 				return err
 			}

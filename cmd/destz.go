@@ -5,7 +5,8 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/equres/sec/util"
+	"github.com/equres/sec/database"
+	"github.com/equres/sec/sec"
 	"github.com/spf13/cobra"
 )
 
@@ -15,22 +16,22 @@ var destzCmd = &cobra.Command{
 	Short: "Displaying disk space needed for all worklist ZIPs that will be downloaded",
 	Long:  `Displaying disk space needed for all worklist ZIPs that will be downloaded`,
 	RunE: func(cmd *cobra.Command, args []string) error {
-		db, err := util.ConnectDB(RootConfig)
+		db, err := database.ConnectDB(RootConfig)
 		if err != nil {
 			return err
 		}
 
-		sec, err := util.NewSEC(RootConfig)
+		s, err := sec.NewSEC(RootConfig)
 		if err != nil {
 			return err
 		}
 
-		worklist, err := util.WorklistWillDownloadGet(db)
+		worklist, err := sec.WorklistWillDownloadGet(db)
 		if err != nil {
 			return err
 		}
 
-		err = sec.DownloadIndex()
+		err = s.DownloadIndex()
 		if err != nil {
 			return err
 		}
@@ -43,14 +44,14 @@ var destzCmd = &cobra.Command{
 			}
 			formatted := date.Format("2006-01")
 
-			fileURL := fmt.Sprintf("%v/Archives/edgar/monthly/xbrlrss-%v.xml", sec.Config.Main.CacheDir, formatted)
+			fileURL := fmt.Sprintf("%v/Archives/edgar/monthly/xbrlrss-%v.xml", s.Config.Main.CacheDir, formatted)
 
-			rssFile, err := sec.ParseRSSGoXML(fileURL)
+			rssFile, err := s.ParseRSSGoXML(fileURL)
 			if err != nil {
 				return err
 			}
 
-			val, err := sec.CalculateRSSFilesZIP(rssFile)
+			val, err := s.CalculateRSSFilesZIP(rssFile)
 			if err != nil {
 				return err
 			}

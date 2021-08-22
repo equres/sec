@@ -6,7 +6,8 @@ import (
 	"sort"
 	"time"
 
-	"github.com/equres/sec/util"
+	"github.com/equres/sec/database"
+	"github.com/equres/sec/sec"
 	"github.com/spf13/cobra"
 )
 
@@ -21,16 +22,16 @@ Cobra is a CLI library for Go that empowers applications.
 This application is a tool to generate the needed files
 to quickly create a Cobra application.`,
 	PreRunE: func(cmd *cobra.Command, args []string) error {
-		return util.CheckMigration(RootConfig)
+		return database.CheckMigration(RootConfig)
 	},
 	RunE: func(cmd *cobra.Command, args []string) error {
 		fmt.Println("Year/Month that will be downloaded:")
-		db, err := util.ConnectDB(RootConfig)
+		db, err := database.ConnectDB(RootConfig)
 		if err != nil {
 			return err
 		}
 
-		worklist, err := util.WorklistWillDownloadGet(db)
+		worklist, err := sec.WorklistWillDownloadGet(db)
 		if err != nil {
 			return err
 		}
@@ -39,7 +40,7 @@ to quickly create a Cobra application.`,
 			return worklist[i].Year < worklist[j].Year
 		})
 
-		worklistMap := make(map[string]util.Worklist)
+		worklistMap := make(map[string]sec.Worklist)
 
 		years := make(map[int]struct{})
 

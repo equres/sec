@@ -3,7 +3,8 @@ package cmd
 import (
 	"fmt"
 
-	"github.com/equres/sec/util"
+	"github.com/equres/sec/database"
+	"github.com/equres/sec/sec"
 	"github.com/spf13/cobra"
 )
 
@@ -13,21 +14,21 @@ var retrieveCmd = &cobra.Command{
 	Short: "Retrieve all the tickers from sec.gov website that are saved in db",
 	Long:  `Retrieve all the tickers from sec.gov website that are saved in db`,
 	PreRunE: func(cmd *cobra.Command, args []string) error {
-		return util.CheckMigration(RootConfig)
+		return database.CheckMigration(RootConfig)
 	},
 	RunE: func(cmd *cobra.Command, args []string) error {
 		// Retrieving all SecTickers
-		sec, err := util.NewSEC(RootConfig)
+		s, err := sec.NewSEC(RootConfig)
 		if err != nil {
 			return err
 		}
 
-		db, err := util.ConnectDB(RootConfig)
+		db, err := database.ConnectDB(RootConfig)
 		if err != nil {
 			return err
 		}
 
-		tickers, err := sec.TickersGetAll(db)
+		tickers, err := s.TickersGetAll(db)
 		if err != nil {
 			return err
 		}
