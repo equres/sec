@@ -7,7 +7,7 @@ import (
 
 	"embed"
 
-	"github.com/equres/sec/database"
+	"github.com/equres/sec/pkg/database"
 	"github.com/spf13/cobra"
 )
 

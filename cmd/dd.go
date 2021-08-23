@@ -5,8 +5,8 @@ import (
 	"errors"
 	"fmt"
 
-	"github.com/equres/sec/database"
-	"github.com/equres/sec/sec"
+	"github.com/equres/sec/pkg/database"
+	"github.com/equres/sec/pkg/sec"
 	"github.com/spf13/cobra"
 )
 

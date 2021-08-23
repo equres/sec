@@ -18,8 +18,8 @@ import (
 	"strings"
 	"time"
 
-	"github.com/equres/sec/config"
-	"github.com/equres/sec/database"
+	"github.com/equres/sec/pkg/config"
+	"github.com/equres/sec/pkg/database"
 	"github.com/jmoiron/sqlx"
 	"golang.org/x/net/html/charset"
 )

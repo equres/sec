@@ -7,8 +7,8 @@ import (
 	"net/http/httptest"
 	"testing"
 
-	"github.com/equres/sec/config"
-	"github.com/equres/sec/sec"
+	"github.com/equres/sec/pkg/config"
+	"github.com/equres/sec/pkg/sec"
 )
 
 // Serve file in HTTP and download to testdata directory

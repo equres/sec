@@ -6,7 +6,7 @@ import (
 	"embed"
 	"fmt"
 
-	"github.com/equres/sec/config"
+	"github.com/equres/sec/pkg/config"
 	"github.com/golang-migrate/migrate/v4"
 	_ "github.com/golang-migrate/migrate/v4/database/postgres"
 	"github.com/jmoiron/sqlx"
