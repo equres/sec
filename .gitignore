@@ -17,7 +17,8 @@ app.env
 cache
 
 # executable
-sec
+.sec
 
 # config
 config.yml
+secapp

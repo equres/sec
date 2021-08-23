@@ -7,7 +7,7 @@ import (
 
 	"embed"
 
-	"github.com/equres/sec/util"
+	"github.com/equres/sec/database"
 	"github.com/spf13/cobra"
 )
 
@@ -24,20 +24,20 @@ var migrateCmd = &cobra.Command{
 			return err
 		}
 
-		db, err := util.ConnectDB(RootConfig)
+		db, err := database.ConnectDB(RootConfig)
 		if err != nil {
 			return err
 		}
 
 		switch args[0] {
 		case "up":
-			err = util.MigrateUp(db, GlobalMigrationsFS, RootConfig)
+			err = database.MigrateUp(db, GlobalMigrationsFS, RootConfig)
 			if err != nil {
 				return err
 			}
 			fmt.Println("Successfully migrated the DB UP")
 		case "down":
-			err = util.MigrateDown(db, GlobalMigrationsFS, RootConfig)
+			err = database.MigrateDown(db, GlobalMigrationsFS, RootConfig)
 			if err != nil {
 				return err
 			}

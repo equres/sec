@@ -2,7 +2,7 @@
 package cmd
 
 import (
-	"github.com/equres/sec/util"
+	"github.com/equres/sec/sec"
 	"github.com/spf13/cobra"
 )
 
@@ -12,17 +12,17 @@ var dowIndexCmd = &cobra.Command{
 	Short: "Download only index (RSS/XML) files into the local disk",
 	Long:  ``,
 	RunE: func(cmd *cobra.Command, args []string) (err error) {
-		sec, err := util.NewSEC(RootConfig)
+		s, err := sec.NewSEC(RootConfig)
 		if err != nil {
 			return err
 		}
 
-		sec.Verbose, err = cmd.Flags().GetBool("verbose")
+		s.Verbose, err = cmd.Flags().GetBool("verbose")
 		if err != nil {
 			return err
 		}
 
-		err = sec.DownloadIndex()
+		err = s.DownloadIndex()
 		if err != nil {
 			return err
 		}

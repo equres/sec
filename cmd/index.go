@@ -5,7 +5,8 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/equres/sec/util"
+	"github.com/equres/sec/database"
+	"github.com/equres/sec/sec"
 	"github.com/spf13/cobra"
 )
 
@@ -15,20 +16,20 @@ var indexCmd = &cobra.Command{
 	Short: "Download only index (RSS/XML) files into the local disk",
 	Long:  ``,
 	PreRunE: func(cmd *cobra.Command, args []string) error {
-		return util.CheckMigration(RootConfig)
+		return database.CheckMigration(RootConfig)
 	},
 	RunE: func(cmd *cobra.Command, args []string) (err error) {
-		db, err := util.ConnectDB(RootConfig)
+		db, err := database.ConnectDB(RootConfig)
 		if err != nil {
 			return err
 		}
 
-		sec, err := util.NewSEC(RootConfig)
+		s, err := sec.NewSEC(RootConfig)
 		if err != nil {
 			return err
 		}
 
-		worklist, err := util.WorklistWillDownloadGet(db)
+		worklist, err := sec.WorklistWillDownloadGet(db)
 		if err != nil {
 			return err
 		}
@@ -40,16 +41,16 @@ var indexCmd = &cobra.Command{
 			}
 			formatted := date.Format("2006-01")
 
-			fileURL := fmt.Sprintf("%v/Archives/edgar/monthly/xbrlrss-%v.xml", sec.Config.Main.CacheDir, formatted)
+			fileURL := fmt.Sprintf("%v/Archives/edgar/monthly/xbrlrss-%v.xml", s.Config.Main.CacheDir, formatted)
 
-			rssFile, err := sec.ParseRSSGoXML(fileURL)
+			rssFile, err := s.ParseRSSGoXML(fileURL)
 			if err != nil {
 				err = fmt.Errorf("you did not download any files yet. Run sec dow data to download the files, then run sec index to save their information to the database")
 				return err
 			}
 
 			for _, v1 := range rssFile.Channel.Item {
-				err = sec.SecItemFileUpsert(db, v1)
+				err = s.SecItemFileUpsert(db, v1)
 				if err != nil {
 					return err
 				}

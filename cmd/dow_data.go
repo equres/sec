@@ -5,7 +5,8 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/equres/sec/util"
+	"github.com/equres/sec/database"
+	"github.com/equres/sec/sec"
 	"github.com/spf13/cobra"
 )
 
@@ -20,30 +21,30 @@ Cobra is a CLI library for Go that empowers applications.
 This application is a tool to generate the needed files
 to quickly create a Cobra application.`,
 	PreRunE: func(cmd *cobra.Command, args []string) error {
-		return util.CheckMigration(RootConfig)
+		return database.CheckMigration(RootConfig)
 	},
 	RunE: func(cmd *cobra.Command, args []string) error {
-		db, err := util.ConnectDB(RootConfig)
+		db, err := database.ConnectDB(RootConfig)
 		if err != nil {
 			return err
 		}
 
-		worklist, err := util.WorklistWillDownloadGet(db)
+		worklist, err := sec.WorklistWillDownloadGet(db)
 		if err != nil {
 			return err
 		}
 
-		sec, err := util.NewSEC(RootConfig)
+		s, err := sec.NewSEC(RootConfig)
 		if err != nil {
 			return err
 		}
 
-		sec.Verbose, err = cmd.Flags().GetBool("verbose")
+		s.Verbose, err = cmd.Flags().GetBool("verbose")
 		if err != nil {
 			return err
 		}
 
-		err = sec.DownloadIndex()
+		err = s.DownloadIndex()
 		if err != nil {
 			return err
 		}
@@ -52,7 +53,7 @@ to quickly create a Cobra application.`,
 		var total_count int
 		var current_count int
 
-		total_count, err = sec.TotalXbrlFileCountGet(worklist, sec.Config.Main.CacheDir)
+		total_count, err = s.TotalXbrlFileCountGet(worklist, s.Config.Main.CacheDir)
 		if err != nil {
 			return err
 		}
@@ -64,15 +65,15 @@ to quickly create a Cobra application.`,
 			}
 			formatted := date.Format("2006-01")
 
-			fileURL := fmt.Sprintf("%v/Archives/edgar/monthly/xbrlrss-%v.xml", sec.Config.Main.CacheDir, formatted)
+			fileURL := fmt.Sprintf("%v/Archives/edgar/monthly/xbrlrss-%v.xml", s.Config.Main.CacheDir, formatted)
 
-			rssFile, err := sec.ParseRSSGoXML(fileURL)
+			rssFile, err := s.ParseRSSGoXML(fileURL)
 			if err != nil {
 				return err
 			}
 
 			for _, v1 := range rssFile.Channel.Item {
-				err = sec.DownloadXbrlFileContent(v1.XbrlFiling.XbrlFiles.XbrlFile, sec.Config, &current_count, total_count)
+				err = s.DownloadXbrlFileContent(v1.XbrlFiling.XbrlFiles.XbrlFile, s.Config, &current_count, total_count)
 				if err != nil {
 					return err
 				}

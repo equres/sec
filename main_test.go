@@ -7,12 +7,13 @@ import (
 	"net/http/httptest"
 	"testing"
 
-	"github.com/equres/sec/util"
+	"github.com/equres/sec/config"
+	"github.com/equres/sec/sec"
 )
 
 // Serve file in HTTP and download to testdata directory
 func TestHTTPDownloadFile(t *testing.T) {
-	config, err := util.LoadConfig("./ci")
+	cfg, err := config.LoadConfig("./ci")
 	if err != nil {
 		t.Errorf(err.Error())
 	}
@@ -23,15 +24,15 @@ func TestHTTPDownloadFile(t *testing.T) {
 
 	defer testServer.Close()
 
-	config.Main.BaseURL = testServer.URL
+	cfg.Main.BaseURL = testServer.URL
 
-	sec, err := util.NewSEC(config)
+	s, err := sec.NewSEC(cfg)
 	if err != nil {
 		t.Errorf(err.Error())
 	}
 
-	config.Main.CacheDir = "./testdata"
-	err = sec.DownloadFile(fmt.Sprintf("%v/%v", sec.BaseURL, "xbrlrss-2021-04.xml"), config)
+	cfg.Main.CacheDir = "./testdata"
+	err = s.DownloadFile(fmt.Sprintf("%v/%v", s.BaseURL, "xbrlrss-2021-04.xml"), cfg)
 	if err != nil {
 		t.Errorf(err.Error())
 	}

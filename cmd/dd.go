@@ -5,7 +5,8 @@ import (
 	"errors"
 	"fmt"
 
-	"github.com/equres/sec/util"
+	"github.com/equres/sec/database"
+	"github.com/equres/sec/sec"
 	"github.com/spf13/cobra"
 )
 
@@ -15,7 +16,7 @@ var ddCmd = &cobra.Command{
 	Short: "toggle 'download disable' flag for statements from yyyy/mm month ",
 	Long:  `toggle 'download disable' flag for statements from yyyy/mm month `,
 	PreRunE: func(cmd *cobra.Command, args []string) error {
-		return util.CheckMigration(RootConfig)
+		return database.CheckMigration(RootConfig)
 	},
 	RunE: func(cmd *cobra.Command, args []string) error {
 		if len(args) == 0 {
@@ -25,22 +26,22 @@ var ddCmd = &cobra.Command{
 
 		year_month := args[0]
 
-		year, month, err := util.ParseYearMonth(year_month)
+		year, month, err := sec.ParseYearMonth(year_month)
 		if err != nil {
 			return err
 		}
 
-		err = util.CheckRSSAvailability(year, month)
+		err = sec.CheckRSSAvailability(year, month)
 		if err != nil {
 			return err
 		}
 
-		sec, err := util.NewSEC(RootConfig)
+		s, err := sec.NewSEC(RootConfig)
 		if err != nil {
 			return err
 		}
 
-		err = sec.Downloadability(year, month, false)
+		err = s.Downloadability(year, month, false)
 		if err != nil {
 			return err
 		}

@@ -7,13 +7,13 @@ import (
 	"path/filepath"
 
 	"github.com/adrg/xdg"
-	"github.com/equres/sec/util"
+	"github.com/equres/sec/config"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 )
 
 var cfgFile string
-var RootConfig util.Config
+var RootConfig config.Config
 var defaultCfgPath string
 
 // rootCmd represents the base command when called without any subcommands
@@ -53,7 +53,7 @@ func init() {
 
 func initConfig() {
 	var err error
-	var config util.Config
+	var cfg config.Config
 	if cfgFile != defaultCfgPath {
 		if _, err = os.Stat(cfgFile); err != nil {
 			err = fmt.Errorf("file config '%v' was not found", cfgFile)
@@ -80,9 +80,9 @@ func initConfig() {
 		fmt.Fprintln(os.Stderr, "Using config file:", viper.ConfigFileUsed())
 	}
 
-	config, err = util.LoadConfig(cfgFile)
+	cfg, err = config.LoadConfig(cfgFile)
 	if err != nil {
 		cobra.CheckErr(err)
 	}
-	RootConfig = config
+	RootConfig = cfg
 }

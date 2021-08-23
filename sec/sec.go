@@ -1,6 +1,6 @@
 // Copyright (c) 2021 Equres LLC. All rights reserved.
 
-package util
+package sec
 
 import (
 	"bytes"
@@ -11,12 +11,15 @@ import (
 	"io"
 	"io/ioutil"
 	"net/http"
+	"net/url"
 	"os"
 	"path/filepath"
 	"strconv"
 	"strings"
 	"time"
 
+	"github.com/equres/sec/config"
+	"github.com/equres/sec/database"
 	"github.com/jmoiron/sqlx"
 	"golang.org/x/net/html/charset"
 )
@@ -125,14 +128,14 @@ type SEC struct {
 	BaseURL string
 	Tickers []SecTicker
 	Verbose bool
-	Config  Config
+	Config  config.Config
 }
 
 func (t SecTicker) String() string {
 	return fmt.Sprintf("Cik: %d\nTicker: %s\nTitle: %s\nExchange: %s\n", t.Cik, t.Ticker, t.Title, t.Exchange)
 }
 
-func NewSEC(config Config) (*SEC, error) {
+func NewSEC(config config.Config) (*SEC, error) {
 	return &SEC{
 		BaseURL: config.Main.BaseURL,
 		Config:  config,
@@ -152,10 +155,19 @@ func (t SecTicker) Save(db *sqlx.DB) error {
 	return nil
 }
 
-func (s *SEC) FetchFile(url string) ([]byte, error) {
+func (s *SEC) FetchFile(url_var string) ([]byte, error) {
 	// Retrieving JSON From URL
-	resp, err := http.Get(s.BaseURL + url)
+	// main_url := path.Join(s.BaseURL, url_var)
+	parsed_url, err := url.Parse(s.BaseURL)
+	if err != nil {
+		return nil, err
+	}
+	other_url, err := url.Parse(url_var)
+	if err != nil {
+		return nil, err
+	}
 
+	resp, err := http.Get(parsed_url.ResolveReference(other_url).String())
 	if err != nil {
 		return nil, err
 	}
@@ -283,7 +295,7 @@ func (s *SEC) ParseRSSGoXML(path string) (RSSFile, error) {
 	return rssFile, err
 }
 
-func (s *SEC) DownloadFile(fullurl string, cfg Config) error {
+func (s *SEC) DownloadFile(fullurl string, cfg config.Config) error {
 	filePath := strings.ReplaceAll(fullurl, s.BaseURL, "")
 	cachePath := fmt.Sprintf("%v%v", cfg.Main.CacheDir, filePath)
 
@@ -344,7 +356,7 @@ func (s *SEC) DownloadFile(fullurl string, cfg Config) error {
 }
 
 func (s *SEC) DownloadIndex() error {
-	db, err := ConnectDB(s.Config)
+	db, err := database.ConnectDB(s.Config)
 	if err != nil {
 		return err
 	}
@@ -538,7 +550,7 @@ func (s *SEC) TotalXbrlFileCountGet(worklist []Worklist, cache_dir string) (int,
 	return total_count, nil
 }
 
-func (s *SEC) DownloadXbrlFileContent(files []XbrlFile, config Config, current_count *int, total_count int) error {
+func (s *SEC) DownloadXbrlFileContent(files []XbrlFile, config config.Config, current_count *int, total_count int) error {
 	for _, v := range files {
 		err := s.DownloadFile(v.URL, config)
 		if err != nil {
@@ -578,7 +590,7 @@ func CheckRSSAvailability(year int, month int) (err error) {
 }
 
 func (s *SEC) Downloadability(year int, month int, will_download bool) error {
-	db, err := ConnectDB(s.Config)
+	db, err := database.ConnectDB(s.Config)
 	if err != nil {
 		return err
 	}
