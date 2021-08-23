@@ -9,6 +9,9 @@ import (
 	"github.com/spf13/cobra"
 )
 
+// DID NOT FIX IMPORT:
+// ERROR EXPECTED
+
 // dowzCmd represents the dowz command
 var dowzCmd = &cobra.Command{
 	Use:   "dowz",
