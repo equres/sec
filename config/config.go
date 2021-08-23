@@ -52,12 +52,3 @@ func (c *Config) DBGetURL() string {
 		c.Database.Port,
 		c.Database.Name)
 }
-
-func (c *Config) DBGetDataSourceName() string {
-	return fmt.Sprintf("host=%v port=%d user=%v password=%v dbname=%v sslmode=disable",
-		c.Database.Host,
-		c.Database.Port,
-		c.Database.User,
-		c.Database.Password,
-		c.Database.Name)
-}

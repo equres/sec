@@ -15,7 +15,7 @@ import (
 
 func ConnectDB(config config.Config) (*sqlx.DB, error) {
 	// Connect to DB
-	db, err := sqlx.Open(config.Database.Driver, config.DBGetDataSourceName())
+	db, err := sqlx.Open(config.Database.Driver, config.DBGetURL())
 	if err != nil {
 		return nil, err
 	}
