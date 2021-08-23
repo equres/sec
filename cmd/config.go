@@ -8,7 +8,7 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/equres/sec/config"
+	"github.com/equres/sec/pkg/config"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 )

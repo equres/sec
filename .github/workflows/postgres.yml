@@ -43,5 +43,5 @@ jobs:
 
       - name: Testing Database
         run: | 
-          ./secapp de 2021/06 --config=ci
-          ./secapp dlist --config=ci
+          ./sec de 2021/06 --config=ci
+          ./sec dlist --config=ci
