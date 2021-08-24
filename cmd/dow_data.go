@@ -64,7 +64,10 @@ to quickly create a Cobra application.`,
 		if err != nil {
 			return err
 		}
-		fmt.Println(total_count)
+
+		if s.Verbose {
+			fmt.Println(total_count)
+		}
 
 		for _, v := range worklist {
 			date, err := time.Parse("2006-1", fmt.Sprintf("%d-%d", v.Year, v.Month))
