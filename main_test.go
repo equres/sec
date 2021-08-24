@@ -49,7 +49,7 @@ func TestHTTPDownloadFile(t *testing.T) {
 	}
 
 	if !not_download {
-		downloader.DownloadFile(db, fmt.Sprintf("%v/%v", s.BaseURL, "xbrlrss-2021-04.xml"))
+		err = downloader.DownloadFile(db, fmt.Sprintf("%v/%v", s.BaseURL, "xbrlrss-2021-04.xml"))
 		if err != nil {
 			t.Errorf(err.Error())
 		}
