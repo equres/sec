@@ -2,6 +2,8 @@
 package cmd
 
 import (
+	"fmt"
+
 	"github.com/equres/sec/pkg/sec"
 	"github.com/spf13/cobra"
 )
@@ -22,6 +24,9 @@ var dowIndexCmd = &cobra.Command{
 			return err
 		}
 
+		if s.Verbose {
+			fmt.Println("Checking/Downloading index files...")
+		}
 		err = s.DownloadIndex()
 		if err != nil {
 			return err

@@ -39,6 +39,9 @@ var dowzCmd = &cobra.Command{
 			return err
 		}
 
+		if s.Verbose {
+			fmt.Println("Checking/Downloading index files...")
+		}
 		err = s.DownloadIndex()
 		if err != nil {
 			return err

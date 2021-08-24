@@ -44,6 +44,9 @@ to quickly create a Cobra application.`,
 			return err
 		}
 
+		if s.Verbose {
+			fmt.Println("Checking/Downloading index files...")
+		}
 		err = s.DownloadIndex()
 		if err != nil {
 			return err
@@ -53,10 +56,15 @@ to quickly create a Cobra application.`,
 		var total_count int
 		var current_count int
 
+		if s.Verbose {
+			fmt.Print("Calculating number of XBRL Files in the index files: ")
+		}
+
 		total_count, err = s.TotalXbrlFileCountGet(worklist, s.Config.Main.CacheDir)
 		if err != nil {
 			return err
 		}
+		fmt.Println(total_count)
 
 		for _, v := range worklist {
 			date, err := time.Parse("2006-1", fmt.Sprintf("%d-%d", v.Year, v.Month))
@@ -70,6 +78,10 @@ to quickly create a Cobra application.`,
 			rssFile, err := s.ParseRSSGoXML(fileURL)
 			if err != nil {
 				return err
+			}
+
+			if s.Verbose {
+				fmt.Println("Checking/Downloading XBRL files listed in index files...")
 			}
 
 			for _, v1 := range rssFile.Channel.Item {

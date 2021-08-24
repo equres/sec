@@ -319,15 +319,27 @@ func (s *SEC) DownloadIndex() error {
 
 		fileURL := fmt.Sprintf("%v/Archives/edgar/monthly/xbrlrss-%v.xml", s.BaseURL, formatted)
 
+		if s.Verbose {
+			fmt.Printf("Checking file 'xbrlrss-%v.xml' in disk: ", formatted)
+		}
 		not_download, err := downloader.FileInCache(fileURL)
 		if err != nil {
 			return err
 		}
+		if s.Verbose && not_download {
+			fmt.Println("\u2713")
+		}
 
 		if !not_download {
+			if s.Verbose {
+				fmt.Printf("File 'xbrlrss-%v.xml' is not in disk. Downloading file...: ", formatted)
+			}
 			err = downloader.DownloadFile(db, fileURL)
 			if err != nil {
 				return err
+			}
+			if s.Verbose {
+				fmt.Println(time.Now().Format("2006-01-02 03:04:05"))
 			}
 			time.Sleep(downloader.RateLimitDuration)
 		}
