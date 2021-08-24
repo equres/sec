@@ -44,7 +44,7 @@ func (d Downloader) FileInCache(fullurl string) (bool, error) {
 
 	filestat, err := os.Stat(filePath)
 	if err != nil {
-		return false, err
+		return false, nil
 	}
 
 	db, err := database.ConnectDB(d.Config)
