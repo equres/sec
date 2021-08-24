@@ -576,7 +576,13 @@ func (s *SEC) Downloadability(year int, month int, will_download bool) error {
 	if year > XMLStartYear {
 		firstMonthAvailable = 1
 	}
-	for i := firstMonthAvailable; i <= 12; i++ {
+
+	lastMonthAvailable := 12
+	if year == time.Now().Year() {
+		lastMonthAvailable = int(time.Now().Month())
+	}
+
+	for i := firstMonthAvailable; i <= lastMonthAvailable; i++ {
 		err = SaveWorklist(year, i, will_download, db)
 		if err != nil {
 			return err
