@@ -550,7 +550,7 @@ func CheckRSSAvailability(year int, month int) (err error) {
 		return err
 	}
 
-	if year > time.Now().Year() || month < 0 || month > 12 {
+	if year > time.Now().Year() || month < 0 || month > 12 || month > int(time.Now().Month()) {
 		err = fmt.Errorf("the latest available XML is %d/%d", time.Now().Year(), time.Now().Month())
 		return err
 	}
