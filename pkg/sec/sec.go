@@ -20,6 +20,7 @@ import (
 
 	"github.com/equres/sec/pkg/config"
 	"github.com/equres/sec/pkg/database"
+	"github.com/equres/sec/pkg/download"
 	"github.com/jmoiron/sqlx"
 	"golang.org/x/net/html/charset"
 )
@@ -295,69 +296,6 @@ func (s *SEC) ParseRSSGoXML(path string) (RSSFile, error) {
 	return rssFile, err
 }
 
-func (s *SEC) DownloadFile(fullurl string, cfg config.Config) error {
-	fileUrl, err := url.Parse(fullurl)
-	if err != nil {
-		return err
-	}
-	cachePath := filepath.Join(cfg.Main.CacheDir, fileUrl.Path)
-
-	client := &http.Client{}
-
-	req, err := http.NewRequest("GET", fullurl, nil)
-	if err != nil {
-		return err
-	}
-	req.Header.Set("User-Agent", "Equres LLC wojciech@koszek.com")
-
-	resp, err := client.Do(req)
-	if err != nil {
-		return err
-	}
-
-	defer resp.Body.Close()
-
-	responseBody, err := ioutil.ReadAll(resp.Body)
-	if err != nil {
-		return err
-	}
-
-	size, err := io.Copy(ioutil.Discard, bytes.NewReader(responseBody))
-	if err != nil {
-		return err
-	}
-
-	filestat, err := os.Stat(cachePath)
-	if err != nil || (filestat != nil && filestat.Size() != size) {
-		if filestat != nil {
-			err = os.Remove(cachePath)
-			if err != nil {
-				return err
-			}
-		}
-
-		foldersPath := strings.ReplaceAll(cachePath, filepath.Base(cachePath), "")
-		if _, err = os.Stat(foldersPath); err != nil {
-			err = os.MkdirAll(foldersPath, 0755)
-			if err != nil {
-				return err
-			}
-		}
-
-		out, err := os.Create(cachePath)
-		if err != nil {
-			return err
-		}
-		defer out.Close()
-
-		_, err = io.Copy(out, bytes.NewReader(responseBody))
-		if err != nil {
-			return err
-		}
-	}
-	return nil
-}
-
 func (s *SEC) DownloadIndex() error {
 	db, err := database.ConnectDB(s.Config)
 	if err != nil {
@@ -369,6 +307,9 @@ func (s *SEC) DownloadIndex() error {
 		return err
 	}
 
+	downloader := download.NewDownloader(s.Config)
+	downloader.RateLimitDuration = 100 * time.Millisecond
+
 	for _, v := range worklist {
 		date, err := time.Parse("2006-1", fmt.Sprintf("%d-%d", v.Year, v.Month))
 		if err != nil {
@@ -377,11 +318,19 @@ func (s *SEC) DownloadIndex() error {
 		formatted := date.Format("2006-01")
 
 		fileURL := fmt.Sprintf("%v/Archives/edgar/monthly/xbrlrss-%v.xml", s.BaseURL, formatted)
-		err = s.DownloadFile(fileURL, s.Config)
+
+		not_download, err := downloader.FileInCache(fileURL)
 		if err != nil {
 			return err
 		}
-		time.Sleep(1 * time.Second)
+
+		if !not_download {
+			err = downloader.DownloadFile(db, fileURL)
+			if err != nil {
+				return err
+			}
+			time.Sleep(downloader.RateLimitDuration)
+		}
 	}
 	return nil
 }
@@ -554,11 +503,28 @@ func (s *SEC) TotalXbrlFileCountGet(worklist []Worklist, cache_dir string) (int,
 }
 
 func (s *SEC) DownloadXbrlFileContent(files []XbrlFile, config config.Config, current_count *int, total_count int) error {
+	db, err := database.ConnectDB(s.Config)
+	if err != nil {
+		return err
+	}
+
+	downloader := download.NewDownloader(s.Config)
+	downloader.RateLimitDuration = 100 * time.Millisecond
+
 	for _, v := range files {
-		err := s.DownloadFile(v.URL, config)
+		not_download, err := downloader.FileInCache(v.URL)
 		if err != nil {
 			return err
 		}
+
+		if !not_download {
+			err = downloader.DownloadFile(db, v.URL)
+			if err != nil {
+				return err
+			}
+			time.Sleep(downloader.RateLimitDuration)
+		}
+
 		*current_count++
 		if !s.Verbose {
 			fmt.Printf("\r[%d/%d files already downloaded]. Will download %d remaining files. Pass --verbose to see progress report", *current_count, total_count, (total_count - *current_count))

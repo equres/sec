@@ -26,6 +26,11 @@ var destzCmd = &cobra.Command{
 			return err
 		}
 
+		s.Verbose, err = cmd.Flags().GetBool("verbose")
+		if err != nil {
+			return err
+		}
+
 		worklist, err := sec.WorklistWillDownloadGet(db)
 		if err != nil {
 			return err
@@ -36,32 +41,52 @@ var destzCmd = &cobra.Command{
 			return err
 		}
 
-		var total_count int
+		sizeChan := make(chan int, len(worklist))
+		errChan := make(chan error, 1)
+
+		var total_size int
 		for _, v := range worklist {
-			date, err := time.Parse("2006-1", fmt.Sprintf("%d-%d", v.Year, v.Month))
-			if err != nil {
-				return err
-			}
-			formatted := date.Format("2006-01")
-
-			fileURL := fmt.Sprintf("%v/Archives/edgar/monthly/xbrlrss-%v.xml", s.Config.Main.CacheDir, formatted)
-
-			rssFile, err := s.ParseRSSGoXML(fileURL)
-			if err != nil {
-				return err
-			}
-
-			val, err := s.CalculateRSSFilesZIP(rssFile)
-			if err != nil {
-				return err
-			}
-			total_count += val
+			go CalculateZIPSizeInRSSFile(s, v, sizeChan, errChan)
 		}
 
-		fmt.Printf("Size needed to download all ZIP files: %s\n", parseSize(float64(total_count)))
+		for i := 0; i < len(worklist); i++ {
+			select {
+			case size := <-sizeChan:
+				total_size += size
+			case err = <-errChan:
+				return err
+			}
+		}
+
+		fmt.Printf("Size needed to download all ZIP files: %s\n", parseSize(float64(total_size)))
 
 		return nil
 	},
+}
+
+func CalculateZIPSizeInRSSFile(s *sec.SEC, worklist sec.Worklist, sizeChan chan int, errChan chan error) {
+	date, err := time.Parse("2006-1", fmt.Sprintf("%d-%d", worklist.Year, worklist.Month))
+	if err != nil {
+		errChan <- err
+	}
+	formatted := date.Format("2006-01")
+
+	fileURL := fmt.Sprintf("%v/Archives/edgar/monthly/xbrlrss-%v.xml", s.Config.Main.CacheDir, formatted)
+
+	if s.Verbose {
+		fmt.Printf("Calculating space needed for file %v\n", fmt.Sprintf("xbrlrss-%v.xml", formatted))
+	}
+
+	rssFile, err := s.ParseRSSGoXML(fileURL)
+	if err != nil {
+		errChan <- err
+	}
+
+	val, err := s.CalculateRSSFilesZIP(rssFile)
+	if err != nil {
+		errChan <- err
+	}
+	sizeChan <- val
 }
 
 func init() {
