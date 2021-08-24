@@ -19,5 +19,6 @@ apt autoremove -y
 apt install -y \
 	golang-go git make vim tig ncdu htop tmux jq \
 	postgresql
+	curl
 
 # we should figure out how to make a DB automatically too
