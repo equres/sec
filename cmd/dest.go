@@ -47,56 +47,45 @@ var destCmd = &cobra.Command{
 			return err
 		}
 
-		sizeChan := make(chan float64, len(worklist))
-		errChan := make(chan error, 1)
 		for _, v := range worklist {
-			go CalculateSizeInRSSFile(s, v, sizeChan, errChan)
-		}
+			var file_size float64
 
-		for i := 0; i < len(worklist); i++ {
-			select {
-			case size := <-sizeChan:
-				total_size += size
-			case err = <-errChan:
+			date, err := time.Parse("2006-1", fmt.Sprintf("%d-%d", v.Year, v.Month))
+			if err != nil {
 				return err
 			}
+			formatted := date.Format("2006-01")
+
+			fileURL := fmt.Sprintf("%v/Archives/edgar/monthly/xbrlrss-%v.xml", s.Config.Main.CacheDir, formatted)
+
+			if s.Verbose {
+				fmt.Printf("Calculating space needed for file %v: ", fmt.Sprintf("xbrlrss-%v.xml", formatted))
+			}
+
+			rssFile, err := s.ParseRSSGoXML(fileURL)
+			if err != nil {
+				return err
+			}
+
+			for _, item := range rssFile.Channel.Item {
+				for _, xbrlFile := range item.XbrlFiling.XbrlFiles.XbrlFile {
+					val, err := strconv.ParseFloat(xbrlFile.Size, 64)
+					if err != nil {
+						return err
+					}
+					file_size += val
+				}
+			}
+			if s.Verbose {
+				fmt.Println(parseSize(file_size))
+			}
+
+			total_size += file_size
 		}
 
 		fmt.Printf("Size needed to download all files: %s\n", parseSize(total_size))
 		return nil
 	},
-}
-
-func CalculateSizeInRSSFile(s *sec.SEC, worklist sec.Worklist, sizeChan chan float64, errChan chan error) {
-	var file_size float64
-
-	date, err := time.Parse("2006-1", fmt.Sprintf("%d-%d", worklist.Year, worklist.Month))
-	if err != nil {
-		errChan <- err
-	}
-	formatted := date.Format("2006-01")
-
-	fileURL := fmt.Sprintf("%v/Archives/edgar/monthly/xbrlrss-%v.xml", s.Config.Main.CacheDir, formatted)
-
-	if s.Verbose {
-		fmt.Printf("Calculating space needed for file %v\n", fmt.Sprintf("xbrlrss-%v.xml", formatted))
-	}
-
-	rssFile, err := s.ParseRSSGoXML(fileURL)
-	if err != nil {
-		errChan <- err
-	}
-
-	for _, item := range rssFile.Channel.Item {
-		for _, xbrlFile := range item.XbrlFiling.XbrlFiles.XbrlFile {
-			val, err := strconv.ParseFloat(xbrlFile.Size, 64)
-			if err != nil {
-				errChan <- err
-			}
-			file_size += val
-		}
-	}
-	sizeChan <- file_size
 }
 
 func parseSize(size float64) string {
