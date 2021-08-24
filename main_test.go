@@ -6,8 +6,11 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"testing"
+	"time"
 
 	"github.com/equres/sec/pkg/config"
+	"github.com/equres/sec/pkg/database"
+	"github.com/equres/sec/pkg/download"
 	"github.com/equres/sec/pkg/sec"
 )
 
@@ -25,15 +28,30 @@ func TestHTTPDownloadFile(t *testing.T) {
 	defer testServer.Close()
 
 	cfg.Main.BaseURL = testServer.URL
+	cfg.Main.CacheDir = "./testdata"
 
 	s, err := sec.NewSEC(cfg)
 	if err != nil {
 		t.Errorf(err.Error())
 	}
 
-	cfg.Main.CacheDir = "./testdata"
-	err = s.DownloadFile(fmt.Sprintf("%v/%v", s.BaseURL, "xbrlrss-2021-04.xml"), cfg)
+	db, err := database.ConnectDB(cfg)
 	if err != nil {
 		t.Errorf(err.Error())
+	}
+
+	downloader := download.NewDownloader(cfg)
+	downloader.RateLimitDuration = 100 * time.Millisecond
+
+	not_download, err := downloader.FileInCache(fmt.Sprintf("%v/%v", s.BaseURL, "xbrlrss-2021-04.xml"))
+	if err != nil {
+		t.Errorf(err.Error())
+	}
+
+	if !not_download {
+		err = downloader.DownloadFile(db, fmt.Sprintf("%v/%v", s.BaseURL, "xbrlrss-2021-04.xml"))
+		if err != nil {
+			t.Errorf(err.Error())
+		}
 	}
 }

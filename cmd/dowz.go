@@ -5,9 +5,13 @@ import (
 	"time"
 
 	"github.com/equres/sec/pkg/database"
+	"github.com/equres/sec/pkg/download"
 	"github.com/equres/sec/pkg/sec"
 	"github.com/spf13/cobra"
 )
+
+// DID NOT FIX IMPORT:
+// ERROR EXPECTED
 
 // dowzCmd represents the dowz command
 var dowzCmd = &cobra.Command{
@@ -35,6 +39,9 @@ var dowzCmd = &cobra.Command{
 			return err
 		}
 
+		if s.Verbose {
+			fmt.Println("Checking/Downloading index files...")
+		}
 		err = s.DownloadIndex()
 		if err != nil {
 			return err
@@ -56,12 +63,23 @@ var dowzCmd = &cobra.Command{
 
 			total_count := len(rssFile.Channel.Item)
 			var current_count int
+			downloader := download.NewDownloader(s.Config)
+			downloader.RateLimitDuration = 100 * time.Millisecond
+
 			for _, v1 := range rssFile.Channel.Item {
-				err = s.DownloadFile(v1.Enclosure.URL, s.Config)
+				not_download, err := downloader.FileInCache(v1.Enclosure.URL)
 				if err != nil {
 					return err
 				}
-				time.Sleep(1 * time.Second)
+
+				if !not_download {
+					err = downloader.DownloadFile(db, v1.Enclosure.URL)
+					if err != nil {
+						return err
+					}
+					time.Sleep(downloader.RateLimitDuration)
+				}
+
 				current_count++
 				if !s.Verbose {
 					fmt.Printf("\r[%d/%d files already downloaded]. Will download %d remaining files. Pass --verbose to see progress report", current_count, total_count, (total_count - current_count))
