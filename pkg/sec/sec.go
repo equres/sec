@@ -296,12 +296,7 @@ func (s *SEC) ParseRSSGoXML(path string) (RSSFile, error) {
 	return rssFile, err
 }
 
-func (s *SEC) DownloadIndex() error {
-	db, err := database.ConnectDB(s.Config)
-	if err != nil {
-		return err
-	}
-
+func (s *SEC) DownloadIndex(db *sqlx.DB) error {
 	worklist, err := WorklistWillDownloadGet(db)
 	if err != nil {
 		return err
@@ -309,7 +304,7 @@ func (s *SEC) DownloadIndex() error {
 
 	downloader := download.NewDownloader(s.Config)
 
-	rateLimit, err := time.ParseDuration(fmt.Sprintf("%vms", s.Config.Main.RateLimit))
+	rateLimit, err := time.ParseDuration(fmt.Sprintf("%vms", s.Config.Main.RateLimitMs))
 	if err != nil {
 		return err
 	}
@@ -526,7 +521,7 @@ func (s *SEC) DownloadXbrlFileContent(files []XbrlFile, config config.Config, cu
 
 	downloader := download.NewDownloader(s.Config)
 
-	rateLimit, err := time.ParseDuration(fmt.Sprintf("%vms", s.Config.Main.RateLimit))
+	rateLimit, err := time.ParseDuration(fmt.Sprintf("%vms", s.Config.Main.RateLimitMs))
 	if err != nil {
 		return err
 	}

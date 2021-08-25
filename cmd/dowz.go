@@ -42,12 +42,12 @@ var dowzCmd = &cobra.Command{
 		if s.Verbose {
 			fmt.Println("Checking/Downloading index files...")
 		}
-		err = s.DownloadIndex()
+		err = s.DownloadIndex(db)
 		if err != nil {
 			return err
 		}
 
-		rateLimit, err := time.ParseDuration(fmt.Sprintf("%vms", s.Config.Main.RateLimit))
+		rateLimit, err := time.ParseDuration(fmt.Sprintf("%vms", s.Config.Main.RateLimitMs))
 		if err != nil {
 			return err
 		}

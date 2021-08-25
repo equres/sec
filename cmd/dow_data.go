@@ -47,7 +47,7 @@ to quickly create a Cobra application.`,
 		if s.Verbose {
 			fmt.Println("Checking/Downloading index files...")
 		}
-		err = s.DownloadIndex()
+		err = s.DownloadIndex(db)
 		if err != nil {
 			return err
 		}
