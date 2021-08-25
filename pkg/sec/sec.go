@@ -573,11 +573,8 @@ func CheckRSSAvailability(year int, month int) (err error) {
 	return nil
 }
 
-func (s *SEC) Downloadability(year int, month int, will_download bool) error {
-	db, err := database.ConnectDB(s.Config)
-	if err != nil {
-		return err
-	}
+func (s *SEC) Downloadability(db *sqlx.DB, year int, month int, will_download bool) error {
+	var err error
 
 	if month != 0 {
 		err = SaveWorklist(year, month, will_download, db)
