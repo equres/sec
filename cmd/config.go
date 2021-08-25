@@ -33,6 +33,13 @@ func GenerateConfig() error {
 		return err
 	}
 
+	rateLimit := "100"
+	fmt.Printf("Rate Limit [default: '%v' Milliseconds]: ", rateLimit)
+	err = AcceptInput(reader, &rateLimit)
+	if err != nil {
+		return err
+	}
+
 	db_user := "postgres"
 	fmt.Println("Database Config:")
 	fmt.Printf("User [default: '%v']: ", db_user)
@@ -83,8 +90,9 @@ func GenerateConfig() error {
 	cfg.SetConfigName("config")
 
 	cfg.SetDefault("main", config.MainConfig{
-		BaseURL:  url,
-		CacheDir: "./cache",
+		BaseURL:   url,
+		CacheDir:  "./cache",
+		RateLimit: rateLimit,
 	})
 
 	cfg.SetDefault("database", config.DatabaseConfig{

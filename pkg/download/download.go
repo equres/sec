@@ -80,7 +80,7 @@ func (d Downloader) FileConsistent(db *sqlx.DB, file fs.FileInfo, fullurl string
 	if err != nil {
 		return false, err
 	}
-	req.Header.Set("User-Agent", "Equres LLC wojciech@koszek.com")
+	req.Header.Set("User-Agent", "Mozilla/5.0 (Windows NT 6.1; Win64; x64; rv:47.0)")
 
 	resp, err := new(http.Client).Do(req)
 	if err != nil {
@@ -117,7 +117,7 @@ func (d Downloader) DownloadFile(db *sqlx.DB, fullurl string) error {
 	if err != nil {
 		return err
 	}
-	req.Header.Set("User-Agent", "Equres LLC wojciech@koszek.com")
+	req.Header.Set("User-Agent", "Mozilla/5.0 (Windows NT 6.1; Win64; x64; rv:47.0)")
 
 	resp, err := client.Do(req)
 	if err != nil {

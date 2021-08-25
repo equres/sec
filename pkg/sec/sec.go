@@ -308,7 +308,11 @@ func (s *SEC) DownloadIndex() error {
 	}
 
 	downloader := download.NewDownloader(s.Config)
-	downloader.RateLimitDuration = 100 * time.Millisecond
+
+	rateLimit, err := time.ParseDuration(fmt.Sprintf("%vms", s.Config.Main.RateLimit))
+	if err != nil {
+		return err
+	}
 
 	for _, v := range worklist {
 		date, err := time.Parse("2006-1", fmt.Sprintf("%d-%d", v.Year, v.Month))
@@ -341,7 +345,7 @@ func (s *SEC) DownloadIndex() error {
 			if s.Verbose {
 				fmt.Println(time.Now().Format("2006-01-02 03:04:05"))
 			}
-			time.Sleep(downloader.RateLimitDuration)
+			time.Sleep(rateLimit)
 		}
 	}
 	return nil
@@ -521,7 +525,11 @@ func (s *SEC) DownloadXbrlFileContent(files []XbrlFile, config config.Config, cu
 	}
 
 	downloader := download.NewDownloader(s.Config)
-	downloader.RateLimitDuration = 100 * time.Millisecond
+
+	rateLimit, err := time.ParseDuration(fmt.Sprintf("%vms", s.Config.Main.RateLimit))
+	if err != nil {
+		return err
+	}
 
 	for _, v := range files {
 		not_download, err := downloader.FileInCache(v.URL)
@@ -534,7 +542,7 @@ func (s *SEC) DownloadXbrlFileContent(files []XbrlFile, config config.Config, cu
 			if err != nil {
 				return err
 			}
-			time.Sleep(downloader.RateLimitDuration)
+			time.Sleep(rateLimit)
 		}
 
 		*current_count++
@@ -545,7 +553,7 @@ func (s *SEC) DownloadXbrlFileContent(files []XbrlFile, config config.Config, cu
 		if s.Verbose {
 			fmt.Printf("[%d/%d] %s downloaded...\n", *current_count, total_count, time.Now().Format("2006-01-02 03:04:05"))
 		}
-		time.Sleep(1 * time.Second)
+		time.Sleep(rateLimit)
 	}
 
 	return nil
@@ -557,12 +565,12 @@ func CheckRSSAvailability(year int, month int) (err error) {
 		return err
 	}
 
-	if year == XMLStartYear && month < XMLStartMonth {
+	if year == XMLStartYear && month > 0 && month < XMLStartMonth {
 		err = fmt.Errorf("the earliest available XML is %d/%d", XMLStartYear, XMLStartMonth)
 		return err
 	}
 
-	if year > time.Now().Year() || month < 0 || month > 12 || month > int(time.Now().Month()) {
+	if year > time.Now().Year() || month < 0 || month > 12 || (year == time.Now().Year() && month > int(time.Now().Month())) {
 		err = fmt.Errorf("the latest available XML is %d/%d", time.Now().Year(), time.Now().Month())
 		return err
 	}
