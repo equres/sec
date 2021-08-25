@@ -88,7 +88,7 @@ to quickly create a Cobra application.`,
 			}
 
 			for _, v1 := range rssFile.Channel.Item {
-				err = s.DownloadXbrlFileContent(v1.XbrlFiling.XbrlFiles.XbrlFile, s.Config, &current_count, total_count)
+				err = s.DownloadXbrlFileContent(db, v1.XbrlFiling.XbrlFiles.XbrlFile, s.Config, &current_count, total_count)
 				if err != nil {
 					return err
 				}

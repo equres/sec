@@ -13,7 +13,6 @@ import (
 	"time"
 
 	"github.com/equres/sec/pkg/config"
-	"github.com/equres/sec/pkg/database"
 	"github.com/jmoiron/sqlx"
 )
 
@@ -34,7 +33,7 @@ func NewDownloader(cfg config.Config) *Downloader {
 	}
 }
 
-func (d Downloader) FileInCache(fullurl string) (bool, error) {
+func (d Downloader) FileInCache(db *sqlx.DB, fullurl string) (bool, error) {
 	parsed_url, err := url.Parse(fullurl)
 	if err != nil {
 		return false, nil
@@ -45,11 +44,6 @@ func (d Downloader) FileInCache(fullurl string) (bool, error) {
 	filestat, err := os.Stat(filePath)
 	if err != nil {
 		return false, nil
-	}
-
-	db, err := database.ConnectDB(d.Config)
-	if err != nil {
-		return false, err
 	}
 
 	is_consistent, err := d.FileConsistent(db, filestat, fullurl)
