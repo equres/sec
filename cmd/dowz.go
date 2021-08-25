@@ -64,7 +64,7 @@ var dowzCmd = &cobra.Command{
 			total_count := len(rssFile.Channel.Item)
 			var current_count int
 			downloader := download.NewDownloader(s.Config)
-			downloader.RateLimitDuration = 100 * time.Millisecond
+			downloader.RateLimitDuration = 1 * time.Second
 
 			for _, v1 := range rssFile.Channel.Item {
 				not_download, err := downloader.FileInCache(v1.Enclosure.URL)

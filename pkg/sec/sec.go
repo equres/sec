@@ -308,7 +308,7 @@ func (s *SEC) DownloadIndex() error {
 	}
 
 	downloader := download.NewDownloader(s.Config)
-	downloader.RateLimitDuration = 100 * time.Millisecond
+	downloader.RateLimitDuration = 1 * time.Second
 
 	for _, v := range worklist {
 		date, err := time.Parse("2006-1", fmt.Sprintf("%d-%d", v.Year, v.Month))
@@ -521,7 +521,7 @@ func (s *SEC) DownloadXbrlFileContent(files []XbrlFile, config config.Config, cu
 	}
 
 	downloader := download.NewDownloader(s.Config)
-	downloader.RateLimitDuration = 100 * time.Millisecond
+	downloader.RateLimitDuration = 1 * time.Second
 
 	for _, v := range files {
 		not_download, err := downloader.FileInCache(v.URL)
