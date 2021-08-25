@@ -42,12 +42,12 @@ var dowzCmd = &cobra.Command{
 		if s.Verbose {
 			fmt.Println("Checking/Downloading index files...")
 		}
-		err = s.DownloadIndex()
+		err = s.DownloadIndex(db)
 		if err != nil {
 			return err
 		}
 
-		rateLimit, err := time.ParseDuration(fmt.Sprintf("%vms", s.Config.Main.RateLimit))
+		rateLimit, err := time.ParseDuration(fmt.Sprintf("%vms", s.Config.Main.RateLimitMs))
 		if err != nil {
 			return err
 		}
@@ -71,7 +71,7 @@ var dowzCmd = &cobra.Command{
 			downloader := download.NewDownloader(s.Config)
 
 			for _, v1 := range rssFile.Channel.Item {
-				not_download, err := downloader.FileInCache(v1.Enclosure.URL)
+				not_download, err := downloader.FileInCache(db, v1.Enclosure.URL)
 				if err != nil {
 					return err
 				}

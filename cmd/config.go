@@ -5,6 +5,7 @@ import (
 	"bufio"
 	"fmt"
 	"os"
+	"os/user"
 	"path/filepath"
 	"strings"
 
@@ -26,9 +27,14 @@ var configCmd = &cobra.Command{
 func GenerateConfig() error {
 	reader := bufio.NewReader(os.Stdin)
 
+	user, err := user.Current()
+	if err != nil {
+		return err
+	}
+
 	url := "https://www.sec.gov"
 	fmt.Printf("URL [default: '%v']: ", url)
-	err := AcceptInput(reader, &url)
+	err = AcceptInput(reader, &url)
 	if err != nil {
 		return err
 	}
@@ -40,7 +46,7 @@ func GenerateConfig() error {
 		return err
 	}
 
-	db_user := "postgres"
+	db_user := user.Username
 	fmt.Println("Database Config:")
 	fmt.Printf("User [default: '%v']: ", db_user)
 	err = AcceptInput(reader, &db_user)
@@ -62,7 +68,7 @@ func GenerateConfig() error {
 		return err
 	}
 
-	db_name := "sec_project"
+	db_name := user.Username
 	fmt.Printf("DB Name [default: '%v']: ", db_name)
 	err = AcceptInput(reader, &db_name)
 	if err != nil {
@@ -90,9 +96,9 @@ func GenerateConfig() error {
 	cfg.SetConfigName("config")
 
 	cfg.SetDefault("main", config.MainConfig{
-		BaseURL:   url,
-		CacheDir:  "./cache",
-		RateLimit: rateLimit,
+		BaseURL:     url,
+		CacheDir:    "./cache",
+		RateLimitMs: rateLimit,
 	})
 
 	cfg.SetDefault("database", config.DatabaseConfig{

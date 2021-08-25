@@ -1,10 +1,5 @@
-for Year in {2006..2021}
+for Year in {2005..2021}
 do
-    ./sec dd $Year
-    for Month in {1..12}
-    do
-        echo trying $Year/$Month
-        ./sec de $Year/$Month
-    done
+    ./sec de $Year
 done
 ./sec dest

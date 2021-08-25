@@ -36,7 +36,7 @@ var destzCmd = &cobra.Command{
 			return err
 		}
 
-		err = s.DownloadIndex()
+		err = s.DownloadIndex(db)
 		if err != nil {
 			return err
 		}

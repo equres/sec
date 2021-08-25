@@ -19,7 +19,6 @@ import (
 	"time"
 
 	"github.com/equres/sec/pkg/config"
-	"github.com/equres/sec/pkg/database"
 	"github.com/equres/sec/pkg/download"
 	"github.com/jmoiron/sqlx"
 	"golang.org/x/net/html/charset"
@@ -296,12 +295,7 @@ func (s *SEC) ParseRSSGoXML(path string) (RSSFile, error) {
 	return rssFile, err
 }
 
-func (s *SEC) DownloadIndex() error {
-	db, err := database.ConnectDB(s.Config)
-	if err != nil {
-		return err
-	}
-
+func (s *SEC) DownloadIndex(db *sqlx.DB) error {
 	worklist, err := WorklistWillDownloadGet(db)
 	if err != nil {
 		return err
@@ -309,7 +303,7 @@ func (s *SEC) DownloadIndex() error {
 
 	downloader := download.NewDownloader(s.Config)
 
-	rateLimit, err := time.ParseDuration(fmt.Sprintf("%vms", s.Config.Main.RateLimit))
+	rateLimit, err := time.ParseDuration(fmt.Sprintf("%vms", s.Config.Main.RateLimitMs))
 	if err != nil {
 		return err
 	}
@@ -326,7 +320,7 @@ func (s *SEC) DownloadIndex() error {
 		if s.Verbose {
 			fmt.Printf("Checking file 'xbrlrss-%v.xml' in disk: ", formatted)
 		}
-		not_download, err := downloader.FileInCache(fileURL)
+		not_download, err := downloader.FileInCache(db, fileURL)
 		if err != nil {
 			return err
 		}
@@ -518,21 +512,16 @@ func (s *SEC) TotalXbrlFileCountGet(worklist []Worklist, cache_dir string) (int,
 	return total_count, nil
 }
 
-func (s *SEC) DownloadXbrlFileContent(files []XbrlFile, config config.Config, current_count *int, total_count int) error {
-	db, err := database.ConnectDB(s.Config)
-	if err != nil {
-		return err
-	}
-
+func (s *SEC) DownloadXbrlFileContent(db *sqlx.DB, files []XbrlFile, config config.Config, current_count *int, total_count int) error {
 	downloader := download.NewDownloader(s.Config)
 
-	rateLimit, err := time.ParseDuration(fmt.Sprintf("%vms", s.Config.Main.RateLimit))
+	rateLimit, err := time.ParseDuration(fmt.Sprintf("%vms", s.Config.Main.RateLimitMs))
 	if err != nil {
 		return err
 	}
 
 	for _, v := range files {
-		not_download, err := downloader.FileInCache(v.URL)
+		not_download, err := downloader.FileInCache(db, v.URL)
 		if err != nil {
 			return err
 		}
@@ -578,11 +567,8 @@ func CheckRSSAvailability(year int, month int) (err error) {
 	return nil
 }
 
-func (s *SEC) Downloadability(year int, month int, will_download bool) error {
-	db, err := database.ConnectDB(s.Config)
-	if err != nil {
-		return err
-	}
+func (s *SEC) Downloadability(db *sqlx.DB, year int, month int, will_download bool) error {
+	var err error
 
 	if month != 0 {
 		err = SaveWorklist(year, month, will_download, db)
