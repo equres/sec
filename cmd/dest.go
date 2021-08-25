@@ -69,13 +69,16 @@ var destCmd = &cobra.Command{
 
 			for _, item := range rssFile.Channel.Item {
 				for _, xbrlFile := range item.XbrlFiling.XbrlFiles.XbrlFile {
-					if xbrlFile.Size != "" {
-						val, err := strconv.ParseFloat(xbrlFile.Size, 64)
-						if err != nil {
-							return err
-						}
-						file_size += val
+					if xbrlFile.Size == "" {
+						fmt.Printf("File %s size is ZERO!\n", xbrlFile.File)
+						continue
 					}
+
+					val, err := strconv.ParseFloat(xbrlFile.Size, 64)
+					if err != nil {
+						return err
+					}
+					file_size += val
 				}
 			}
 			if s.Verbose {
