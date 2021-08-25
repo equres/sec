@@ -47,6 +47,11 @@ var dowzCmd = &cobra.Command{
 			return err
 		}
 
+		rateLimit, err := time.ParseDuration(fmt.Sprintf("%vms", s.Config.Main.RateLimit))
+		if err != nil {
+			return err
+		}
+
 		for _, v := range worklist {
 			date, err := time.Parse("2006-1", fmt.Sprintf("%d-%d", v.Year, v.Month))
 			if err != nil {
@@ -64,7 +69,6 @@ var dowzCmd = &cobra.Command{
 			total_count := len(rssFile.Channel.Item)
 			var current_count int
 			downloader := download.NewDownloader(s.Config)
-			downloader.RateLimitDuration = 1 * time.Second
 
 			for _, v1 := range rssFile.Channel.Item {
 				not_download, err := downloader.FileInCache(v1.Enclosure.URL)
@@ -77,7 +81,7 @@ var dowzCmd = &cobra.Command{
 					if err != nil {
 						return err
 					}
-					time.Sleep(downloader.RateLimitDuration)
+					time.Sleep(rateLimit)
 				}
 
 				current_count++

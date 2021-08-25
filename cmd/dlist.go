@@ -52,7 +52,6 @@ to quickly create a Cobra application.`,
 			formatted := date.Format("2006-01")
 			worklistMap[formatted] = v
 			years[v.Year] = struct{}{}
-			// fmt.Println(v.Year, v.Month, v.Will_download)
 		}
 
 		for k := range years {

@@ -5,6 +5,6 @@ do
     do
         echo trying $Year/$Month
         ./sec de $Year/$Month
-        ./sec dest
     done
 done
+./sec dest
