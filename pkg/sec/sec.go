@@ -557,7 +557,7 @@ func CheckRSSAvailability(year int, month int) (err error) {
 		return err
 	}
 
-	if year == XMLStartYear && month < XMLStartMonth {
+	if year == XMLStartYear && month > 0 && month < XMLStartMonth {
 		err = fmt.Errorf("the earliest available XML is %d/%d", XMLStartYear, XMLStartMonth)
 		return err
 	}
