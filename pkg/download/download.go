@@ -7,6 +7,7 @@ import (
 	"io/fs"
 	"io/ioutil"
 	"net/http"
+	"net/http/httputil"
 	"net/url"
 	"os"
 	"path/filepath"
@@ -110,9 +111,12 @@ func (d Downloader) FileConsistent(db *sqlx.DB, file fs.FileInfo, fullurl string
 		etag = resp.Header.Get("eTag")
 
 		if d.Debug {
-			for k, v := range resp.Header {
-				fmt.Println(k, ":", v)
+			fmt.Println()
+			headers, err := httputil.DumpResponse(resp, false)
+			if err != nil {
+				return false, err
 			}
+			fmt.Print(string(headers))
 		}
 
 		if etag != "" {
@@ -183,9 +187,11 @@ func (d Downloader) DownloadFile(db *sqlx.DB, fullurl string) error {
 
 		if d.Debug {
 			fmt.Println()
-			for k, v := range resp.Header {
-				fmt.Println(k, ":", v)
+			headers, err := httputil.DumpResponse(resp, false)
+			if err != nil {
+				return err
 			}
+			fmt.Println(string(headers))
 		}
 
 		if etag != "" {
