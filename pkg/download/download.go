@@ -110,14 +110,11 @@ func (d Downloader) FileConsistent(db *sqlx.DB, file fs.FileInfo, fullurl string
 		if etag != "" {
 			break
 		}
-		if d.Verbose {
-			fmt.Printf("HEAD Request failed, retries '%v': ", retryCount)
-		}
 		time.Sleep(rateLimit)
 	}
 
 	if retryCount == 0 && etag == "" {
-		return false, fmt.Errorf("retried to download file and failed %v times", d.Config.Main.RetryLimit)
+		return false, fmt.Errorf("retried to retrieve headers and failed %v times", d.Config.Main.RetryLimit)
 	}
 
 	var download Download
