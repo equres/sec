@@ -2,6 +2,7 @@ package download
 
 import (
 	"bytes"
+	"fmt"
 	"io"
 	"io/fs"
 	"io/ioutil"
@@ -9,6 +10,7 @@ import (
 	"net/url"
 	"os"
 	"path/filepath"
+	"strconv"
 	"strings"
 	"time"
 
@@ -19,6 +21,7 @@ import (
 type Downloader struct {
 	RateLimitDuration time.Duration
 	Config            config.Config
+	Verbose           bool
 }
 
 type Download struct {
@@ -40,9 +43,15 @@ func (d Downloader) FileInCache(db *sqlx.DB, fullurl string) (bool, error) {
 	}
 
 	filePath := filepath.Join(d.Config.Main.CacheDir, parsed_url.Path)
+	if d.Verbose {
+		fmt.Printf("Checking if file `%v` is in cache: ", parsed_url.Path)
+	}
 
 	filestat, err := os.Stat(filePath)
 	if err != nil {
+		if d.Verbose {
+			fmt.Println("File is not in cache: ")
+		}
 		return false, nil
 	}
 
@@ -52,6 +61,9 @@ func (d Downloader) FileInCache(db *sqlx.DB, fullurl string) (bool, error) {
 	}
 
 	if filestat != nil && !is_consistent {
+		if d.Verbose {
+			fmt.Println("File in cache not consistent: ")
+		}
 		return false, err
 	}
 
@@ -60,8 +72,18 @@ func (d Downloader) FileInCache(db *sqlx.DB, fullurl string) (bool, error) {
 
 func (d Downloader) FileConsistent(db *sqlx.DB, file fs.FileInfo, fullurl string) (bool, error) {
 	var downloads []Download
+	retryCountStr := d.Config.Main.RetryLimit
+	retryCount, err := strconv.Atoi(retryCountStr)
+	if err != nil {
+		return false, err
+	}
 
-	err := db.Select(&downloads, "SELECT url, etag, size FROM sec.downloads WHERE url = $1", fullurl)
+	rateLimit, err := time.ParseDuration(d.Config.Main.RateLimitMs + "ms")
+	if err != nil {
+		return false, err
+	}
+
+	err = db.Select(&downloads, "SELECT url, etag, size FROM sec.downloads WHERE url = $1", fullurl)
 	if err != nil {
 		return false, err
 	}
@@ -70,20 +92,35 @@ func (d Downloader) FileConsistent(db *sqlx.DB, file fs.FileInfo, fullurl string
 		return false, nil
 	}
 
-	req, err := http.NewRequest("HEAD", fullurl, nil)
-	if err != nil {
-		return false, err
-	}
-	req.Header.Set("User-Agent", "Mozilla/5.0 (Windows NT 6.1; Win64; x64; rv:47.0)")
+	var req *http.Request
+	var resp *http.Response
+	var etag string
 
-	resp, err := new(http.Client).Do(req)
-	if err != nil {
-		return false, err
+	for retryCount > 0 {
+		retryCount--
+		req, err = http.NewRequest("HEAD", fullurl, nil)
+		if err != nil {
+			return false, err
+		}
+		req.Header.Set("User-Agent", "Equres LLC wojciech@koszek.com")
+
+		resp, err = new(http.Client).Do(req)
+		if err != nil {
+			return false, err
+		}
+		etag = resp.Header.Get("eTag")
+
+		if etag != "" {
+			continue
+		}
+		if d.Verbose {
+			fmt.Printf("HEAD Request failed, retries '%v': ", retryCount)
+		}
+		time.Sleep(rateLimit)
 	}
 
-	etag := resp.Header.Get("eTag")
-	if err != nil {
-		return false, err
+	if retryCount == 0 && etag == "" {
+		return false, fmt.Errorf("retried to download file and failed %v times", d.Config.Main.RetryLimit)
 	}
 
 	var download Download
@@ -99,28 +136,56 @@ func (d Downloader) FileConsistent(db *sqlx.DB, file fs.FileInfo, fullurl string
 }
 
 func (d Downloader) DownloadFile(db *sqlx.DB, fullurl string) error {
+	retryCountStr := d.Config.Main.RetryLimit
+	retryCount, err := strconv.Atoi(retryCountStr)
+	if err != nil {
+		return err
+	}
+
 	fileUrl, err := url.Parse(fullurl)
 	if err != nil {
 		return err
 	}
 	cachePath := filepath.Join(d.Config.Main.CacheDir, fileUrl.Path)
 
+	rateLimit, err := time.ParseDuration(d.Config.Main.RateLimitMs + "ms")
+	if err != nil {
+		return err
+	}
+
 	client := &http.Client{}
 
-	req, err := http.NewRequest("GET", fullurl, nil)
-	if err != nil {
-		return err
+	var req *http.Request
+	var resp *http.Response
+	var etag string
+
+	for retryCount > 0 {
+		retryCount--
+		req, err = http.NewRequest("GET", fullurl, nil)
+		if err != nil {
+			return err
+		}
+		req.Header.Set("User-Agent", "Mozilla/5.0 (Windows NT 6.1; Win64; x64; rv:47.0)")
+
+		resp, err = client.Do(req)
+		if err != nil {
+			return err
+		}
+
+		defer resp.Body.Close()
+
+		etag = resp.Header.Get("eTag")
+
+		if etag != "" {
+			break
+		}
+
+		time.Sleep(rateLimit)
 	}
-	req.Header.Set("User-Agent", "Mozilla/5.0 (Windows NT 6.1; Win64; x64; rv:47.0)")
 
-	resp, err := client.Do(req)
-	if err != nil {
-		return err
+	if retryCount == 0 && etag == "" {
+		return fmt.Errorf("retried to download file and fail %v times", d.Config.Main.RetryLimit)
 	}
-
-	defer resp.Body.Close()
-
-	etag := resp.Header.Get("eTag")
 
 	responseBody, err := ioutil.ReadAll(resp.Body)
 	if err != nil {

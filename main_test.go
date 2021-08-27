@@ -6,7 +6,6 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"testing"
-	"time"
 
 	"github.com/equres/sec/pkg/config"
 	"github.com/equres/sec/pkg/database"
@@ -41,7 +40,6 @@ func TestHTTPDownloadFile(t *testing.T) {
 	}
 
 	downloader := download.NewDownloader(cfg)
-	downloader.RateLimitDuration = 1 * time.Second
 
 	not_download, err := downloader.FileInCache(db, fmt.Sprintf("%v/%v", s.BaseURL, "xbrlrss-2021-04.xml"))
 	if err != nil {
