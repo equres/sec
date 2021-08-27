@@ -110,6 +110,9 @@ func (d Downloader) FileConsistent(db *sqlx.DB, file fs.FileInfo, fullurl string
 		if etag != "" {
 			break
 		}
+		if d.Verbose {
+			fmt.Print("HEAD Request failed, retrying...: ")
+		}
 		time.Sleep(rateLimit)
 	}
 
