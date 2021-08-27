@@ -15,6 +15,7 @@ import (
 	"time"
 
 	"github.com/equres/sec/pkg/config"
+	"github.com/equres/sec/pkg/secreq"
 	"github.com/jmoiron/sqlx"
 )
 
@@ -43,14 +44,11 @@ func (d Downloader) FileInCache(db *sqlx.DB, fullurl string) (bool, error) {
 	}
 
 	filePath := filepath.Join(d.Config.Main.CacheDir, parsed_url.Path)
-	if d.Verbose {
-		fmt.Printf("Checking if file `%v` is in cache: ", parsed_url.Path)
-	}
 
 	filestat, err := os.Stat(filePath)
 	if err != nil {
 		if d.Verbose {
-			fmt.Println("File is not in cache: ")
+			fmt.Print("File is not in cache: ")
 		}
 		return false, nil
 	}
@@ -62,7 +60,7 @@ func (d Downloader) FileInCache(db *sqlx.DB, fullurl string) (bool, error) {
 
 	if filestat != nil && !is_consistent {
 		if d.Verbose {
-			fmt.Println("File in cache not consistent: ")
+			fmt.Print("File in cache not consistent: ")
 		}
 		return false, err
 	}
@@ -98,11 +96,10 @@ func (d Downloader) FileConsistent(db *sqlx.DB, file fs.FileInfo, fullurl string
 
 	for retryCount > 0 {
 		retryCount--
-		req, err = http.NewRequest("HEAD", fullurl, nil)
+		req, err = secreq.NewSECReqHEAD(fullurl)
 		if err != nil {
 			return false, err
 		}
-		req.Header.Set("User-Agent", "Equres LLC wojciech@koszek.com")
 
 		resp, err = new(http.Client).Do(req)
 		if err != nil {
@@ -111,7 +108,7 @@ func (d Downloader) FileConsistent(db *sqlx.DB, file fs.FileInfo, fullurl string
 		etag = resp.Header.Get("eTag")
 
 		if etag != "" {
-			continue
+			break
 		}
 		if d.Verbose {
 			fmt.Printf("HEAD Request failed, retries '%v': ", retryCount)
@@ -161,11 +158,10 @@ func (d Downloader) DownloadFile(db *sqlx.DB, fullurl string) error {
 
 	for retryCount > 0 {
 		retryCount--
-		req, err = http.NewRequest("GET", fullurl, nil)
+		req, err = secreq.NewSECReqGET(fullurl)
 		if err != nil {
 			return err
 		}
-		req.Header.Set("User-Agent", "Mozilla/5.0 (Windows NT 6.1; Win64; x64; rv:47.0)")
 
 		resp, err = client.Do(req)
 		if err != nil {

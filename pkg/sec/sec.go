@@ -331,7 +331,7 @@ func (s *SEC) DownloadIndex(db *sqlx.DB) error {
 
 		if !not_download {
 			if s.Verbose {
-				fmt.Printf("File 'xbrlrss-%v.xml' is not in disk. Downloading file...: ", formatted)
+				fmt.Print("Downloading file...: ")
 			}
 			err = downloader.DownloadFile(db, fileURL)
 			if err != nil {
