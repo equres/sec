@@ -44,6 +44,7 @@ func init() {
 	// Cobra supports persistent flags, which, if defined here,
 	// will be global for your application.
 	rootCmd.PersistentFlags().Bool("verbose", false, "Display the summarized version of progress")
+	rootCmd.PersistentFlags().Bool("debug", false, "Display additional details for debugging")
 	rootCmd.PersistentFlags().StringVar(&cfgFile, "config", defaultCfgPath, fmt.Sprintf("config file (default is %v)", defaultCfgPath))
 
 	// Cobra also supports local flags, which will only run

@@ -44,6 +44,11 @@ to quickly create a Cobra application.`,
 			return err
 		}
 
+		s.Debug, err = cmd.Flags().GetBool("debug")
+		if err != nil {
+			return err
+		}
+
 		if s.Verbose {
 			fmt.Println("Checking/Downloading index files...")
 		}

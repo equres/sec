@@ -31,6 +31,11 @@ var destzCmd = &cobra.Command{
 			return err
 		}
 
+		s.Debug, err = cmd.Flags().GetBool("debug")
+		if err != nil {
+			return err
+		}
+
 		worklist, err := sec.WorklistWillDownloadGet(db)
 		if err != nil {
 			return err

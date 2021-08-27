@@ -23,6 +23,7 @@ type Downloader struct {
 	RateLimitDuration time.Duration
 	Config            config.Config
 	Verbose           bool
+	Debug             bool
 }
 
 type Download struct {
@@ -108,10 +109,16 @@ func (d Downloader) FileConsistent(db *sqlx.DB, file fs.FileInfo, fullurl string
 		}
 		etag = resp.Header.Get("eTag")
 
+		if d.Debug {
+			for k, v := range resp.Header {
+				fmt.Println(k, ":", v)
+			}
+		}
+
 		if etag != "" {
 			break
 		}
-		if d.Verbose && currentRetryCount == retryCount-1 {
+		if d.Debug && currentRetryCount == retryCount-1 {
 			fmt.Print("HEAD Request failed, retrying...: ")
 		}
 		time.Sleep(rateLimit)
@@ -173,6 +180,13 @@ func (d Downloader) DownloadFile(db *sqlx.DB, fullurl string) error {
 		defer resp.Body.Close()
 
 		etag = resp.Header.Get("eTag")
+
+		if d.Debug {
+			fmt.Println()
+			for k, v := range resp.Header {
+				fmt.Println(k, ":", v)
+			}
+		}
 
 		if etag != "" {
 			break

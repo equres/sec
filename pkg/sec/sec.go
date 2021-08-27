@@ -129,6 +129,7 @@ type SEC struct {
 	Tickers []SecTicker
 	Verbose bool
 	Config  config.Config
+	Debug   bool
 }
 
 func (t SecTicker) String() string {
@@ -303,6 +304,7 @@ func (s *SEC) DownloadIndex(db *sqlx.DB) error {
 
 	downloader := download.NewDownloader(s.Config)
 	downloader.Verbose = s.Verbose
+	downloader.Debug = s.Debug
 
 	rateLimit, err := time.ParseDuration(fmt.Sprintf("%vms", s.Config.Main.RateLimitMs))
 	if err != nil {
@@ -516,6 +518,7 @@ func (s *SEC) TotalXbrlFileCountGet(worklist []Worklist, cache_dir string) (int,
 func (s *SEC) DownloadXbrlFileContent(db *sqlx.DB, files []XbrlFile, config config.Config, current_count *int, total_count int) error {
 	downloader := download.NewDownloader(s.Config)
 	downloader.Verbose = s.Verbose
+	downloader.Debug = s.Debug
 
 	rateLimit, err := time.ParseDuration(fmt.Sprintf("%vms", s.Config.Main.RateLimitMs))
 	if err != nil {

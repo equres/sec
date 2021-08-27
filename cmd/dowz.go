@@ -34,6 +34,11 @@ var dowzCmd = &cobra.Command{
 			return err
 		}
 
+		s.Debug, err = cmd.Flags().GetBool("debug")
+		if err != nil {
+			return err
+		}
+
 		worklist, err := sec.WorklistWillDownloadGet(db)
 		if err != nil {
 			return err
@@ -52,6 +57,10 @@ var dowzCmd = &cobra.Command{
 			return err
 		}
 
+		downloader := download.NewDownloader(s.Config)
+		downloader.Verbose = s.Verbose
+		downloader.Debug = s.Debug
+
 		for _, v := range worklist {
 			date, err := time.Parse("2006-1", fmt.Sprintf("%d-%d", v.Year, v.Month))
 			if err != nil {
@@ -68,8 +77,6 @@ var dowzCmd = &cobra.Command{
 
 			total_count := len(rssFile.Channel.Item)
 			var current_count int
-			downloader := download.NewDownloader(s.Config)
-			downloader.Verbose = s.Verbose
 
 			for _, v1 := range rssFile.Channel.Item {
 				not_download, err := downloader.FileInCache(db, v1.Enclosure.URL)

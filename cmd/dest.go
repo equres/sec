@@ -32,6 +32,11 @@ var destCmd = &cobra.Command{
 			return err
 		}
 
+		s.Debug, err = cmd.Flags().GetBool("debug")
+		if err != nil {
+			return err
+		}
+
 		db, err := database.ConnectDB(RootConfig)
 		if err != nil {
 			return err
