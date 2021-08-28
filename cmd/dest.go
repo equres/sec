@@ -22,32 +22,12 @@ var destCmd = &cobra.Command{
 	RunE: func(cmd *cobra.Command, args []string) error {
 		var total_size float64
 
-		s, err := sec.NewSEC(RootConfig)
+		worklist, err := sec.WorklistWillDownloadGet(DB)
 		if err != nil {
 			return err
 		}
 
-		s.Verbose, err = cmd.Flags().GetBool("verbose")
-		if err != nil {
-			return err
-		}
-
-		s.Debug, err = cmd.Flags().GetBool("debug")
-		if err != nil {
-			return err
-		}
-
-		db, err := database.ConnectDB(RootConfig)
-		if err != nil {
-			return err
-		}
-
-		worklist, err := sec.WorklistWillDownloadGet(db)
-		if err != nil {
-			return err
-		}
-
-		err = s.DownloadIndex(db)
+		err = S.DownloadIndex(DB)
 		if err != nil {
 			return err
 		}
@@ -61,13 +41,13 @@ var destCmd = &cobra.Command{
 			}
 			formatted := date.Format("2006-01")
 
-			fileURL := fmt.Sprintf("%v/Archives/edgar/monthly/xbrlrss-%v.xml", s.Config.Main.CacheDir, formatted)
+			fileURL := fmt.Sprintf("%v/Archives/edgar/monthly/xbrlrss-%v.xml", S.Config.Main.CacheDir, formatted)
 
-			if s.Verbose {
+			if S.Verbose {
 				fmt.Printf("Calculating space needed for file %v: ", fmt.Sprintf("xbrlrss-%v.xml", formatted))
 			}
 
-			rssFile, err := s.ParseRSSGoXML(fileURL)
+			rssFile, err := S.ParseRSSGoXML(fileURL)
 			if err != nil {
 				return err
 			}
@@ -83,7 +63,7 @@ var destCmd = &cobra.Command{
 					}
 				}
 			}
-			if s.Verbose {
+			if S.Verbose {
 				fmt.Println(parseSize(file_size))
 			}
 

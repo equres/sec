@@ -36,17 +36,7 @@ var ddCmd = &cobra.Command{
 			return err
 		}
 
-		s, err := sec.NewSEC(RootConfig)
-		if err != nil {
-			return err
-		}
-
-		db, err := database.ConnectDB(RootConfig)
-		if err != nil {
-			return err
-		}
-
-		err = s.Downloadability(db, year, month, false)
+		err = S.Downloadability(DB, year, month, false)
 		if err != nil {
 			return err
 		}

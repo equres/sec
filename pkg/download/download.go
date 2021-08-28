@@ -72,12 +72,11 @@ func (d Downloader) FileInCache(db *sqlx.DB, fullurl string) (bool, error) {
 
 func (d Downloader) FileConsistent(db *sqlx.DB, file fs.FileInfo, fullurl string) (bool, error) {
 	var downloads []Download
-	retryCountStr := d.Config.Main.RetryLimit
-	retryCount, err := strconv.Atoi(retryCountStr)
+	retryLimit, err := strconv.Atoi(d.Config.Main.RetryLimit)
 	if err != nil {
 		return false, err
 	}
-	currentRetryCount := retryCount
+	currentRetryLimit := retryLimit
 
 	rateLimit, err := time.ParseDuration(d.Config.Main.RateLimitMs + "ms")
 	if err != nil {
@@ -93,22 +92,20 @@ func (d Downloader) FileConsistent(db *sqlx.DB, file fs.FileInfo, fullurl string
 		return false, nil
 	}
 
-	var req *http.Request
-	var resp *http.Response
+	// Declared here to use outside for loop
 	var etag string
 
-	for currentRetryCount > 0 {
-		currentRetryCount--
-		req, err = secreq.NewSECReqHEAD(fullurl)
+	for currentRetryLimit > 0 {
+		currentRetryLimit--
+		req, err := secreq.NewSECReqHEAD(fullurl)
 		if err != nil {
 			return false, err
 		}
 
-		resp, err = new(http.Client).Do(req)
+		resp, err := new(http.Client).Do(req)
 		if err != nil {
 			return false, err
 		}
-		etag = resp.Header.Get("eTag")
 
 		if d.Debug {
 			fmt.Println()
@@ -119,16 +116,17 @@ func (d Downloader) FileConsistent(db *sqlx.DB, file fs.FileInfo, fullurl string
 			fmt.Print(string(headers))
 		}
 
+		etag = resp.Header.Get("eTag")
 		if etag != "" {
 			break
 		}
-		if d.Debug && currentRetryCount == retryCount-1 {
+		if d.Debug && currentRetryLimit == retryLimit-1 {
 			fmt.Print("HEAD Request failed, retrying...: ")
 		}
 		time.Sleep(rateLimit)
 	}
 
-	if currentRetryCount == 0 && etag == "" {
+	if currentRetryLimit == 0 && etag == "" {
 		return false, fmt.Errorf("retried to retrieve headers and failed %v times", d.Config.Main.RetryLimit)
 	}
 
@@ -145,12 +143,11 @@ func (d Downloader) FileConsistent(db *sqlx.DB, file fs.FileInfo, fullurl string
 }
 
 func (d Downloader) DownloadFile(db *sqlx.DB, fullurl string) error {
-	retryCountStr := d.Config.Main.RetryLimit
-	retryCount, err := strconv.Atoi(retryCountStr)
+	retryLimit, err := strconv.Atoi(d.Config.Main.RetryLimit)
 	if err != nil {
 		return err
 	}
-	currentRetryCount := retryCount
+	currentRetryLimit := retryLimit
 
 	fileUrl, err := url.Parse(fullurl)
 	if err != nil {
@@ -169,8 +166,8 @@ func (d Downloader) DownloadFile(db *sqlx.DB, fullurl string) error {
 	var resp *http.Response
 	var etag string
 
-	for currentRetryCount > 0 {
-		currentRetryCount--
+	for currentRetryLimit > 0 {
+		currentRetryLimit--
 		req, err = secreq.NewSECReqGET(fullurl)
 		if err != nil {
 			return err
@@ -201,7 +198,7 @@ func (d Downloader) DownloadFile(db *sqlx.DB, fullurl string) error {
 		time.Sleep(rateLimit)
 	}
 
-	if currentRetryCount == 0 && etag == "" {
+	if currentRetryLimit == 0 && etag == "" {
 		return fmt.Errorf("retried to download file and fail %v times", d.Config.Main.RetryLimit)
 	}
 

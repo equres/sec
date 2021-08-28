@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/equres/sec/pkg/database"
 	"github.com/equres/sec/pkg/download"
 	"github.com/equres/sec/pkg/sec"
 	"github.com/spf13/cobra"
@@ -19,47 +18,28 @@ var dowzCmd = &cobra.Command{
 	Short: "download all of the referenced file from XBRL index as ZIP files",
 	Long:  `download all of the referenced file from XBRL index as ZIP files`,
 	RunE: func(cmd *cobra.Command, args []string) error {
-		db, err := database.ConnectDB(RootConfig)
+
+		worklist, err := sec.WorklistWillDownloadGet(DB)
 		if err != nil {
 			return err
 		}
 
-		s, err := sec.NewSEC(RootConfig)
-		if err != nil {
-			return err
-		}
-
-		s.Verbose, err = cmd.Flags().GetBool("verbose")
-		if err != nil {
-			return err
-		}
-
-		s.Debug, err = cmd.Flags().GetBool("debug")
-		if err != nil {
-			return err
-		}
-
-		worklist, err := sec.WorklistWillDownloadGet(db)
-		if err != nil {
-			return err
-		}
-
-		if s.Verbose {
+		if S.Verbose {
 			fmt.Println("Checking/Downloading index files...")
 		}
-		err = s.DownloadIndex(db)
+		err = S.DownloadIndex(DB)
 		if err != nil {
 			return err
 		}
 
-		rateLimit, err := time.ParseDuration(fmt.Sprintf("%vms", s.Config.Main.RateLimitMs))
+		rateLimit, err := time.ParseDuration(fmt.Sprintf("%vms", S.Config.Main.RateLimitMs))
 		if err != nil {
 			return err
 		}
 
-		downloader := download.NewDownloader(s.Config)
-		downloader.Verbose = s.Verbose
-		downloader.Debug = s.Debug
+		downloader := download.NewDownloader(S.Config)
+		downloader.Verbose = S.Verbose
+		downloader.Debug = S.Debug
 
 		for _, v := range worklist {
 			date, err := time.Parse("2006-1", fmt.Sprintf("%d-%d", v.Year, v.Month))
@@ -68,9 +48,9 @@ var dowzCmd = &cobra.Command{
 			}
 			formatted := date.Format("2006-01")
 
-			fileURL := fmt.Sprintf("%v/Archives/edgar/monthly/xbrlrss-%v.xml", s.Config.Main.CacheDir, formatted)
+			fileURL := fmt.Sprintf("%v/Archives/edgar/monthly/xbrlrss-%v.xml", S.Config.Main.CacheDir, formatted)
 
-			rssFile, err := s.ParseRSSGoXML(fileURL)
+			rssFile, err := S.ParseRSSGoXML(fileURL)
 			if err != nil {
 				return err
 			}
@@ -79,13 +59,13 @@ var dowzCmd = &cobra.Command{
 			var current_count int
 
 			for _, v1 := range rssFile.Channel.Item {
-				not_download, err := downloader.FileInCache(db, v1.Enclosure.URL)
+				not_download, err := downloader.FileInCache(DB, v1.Enclosure.URL)
 				if err != nil {
 					return err
 				}
 
 				if !not_download {
-					err = downloader.DownloadFile(db, v1.Enclosure.URL)
+					err = downloader.DownloadFile(DB, v1.Enclosure.URL)
 					if err != nil {
 						return err
 					}
@@ -93,11 +73,11 @@ var dowzCmd = &cobra.Command{
 				}
 
 				current_count++
-				if !s.Verbose {
+				if !S.Verbose {
 					fmt.Printf("\r[%d/%d files already downloaded]. Will download %d remaining files. Pass --verbose to see progress report", current_count, total_count, (total_count - current_count))
 				}
 
-				if s.Verbose {
+				if S.Verbose {
 					fmt.Printf("[%d/%d] %s downloaded...\n", current_count, total_count, time.Now().Format("2006-01-02 03:04:05"))
 				}
 			}
