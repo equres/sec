@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/equres/sec/pkg/database"
 	"github.com/equres/sec/pkg/sec"
 	"github.com/spf13/cobra"
 )
@@ -16,27 +15,13 @@ var destzCmd = &cobra.Command{
 	Short: "Displaying disk space needed for all worklist ZIPs that will be downloaded",
 	Long:  `Displaying disk space needed for all worklist ZIPs that will be downloaded`,
 	RunE: func(cmd *cobra.Command, args []string) error {
-		db, err := database.ConnectDB(RootConfig)
+
+		worklist, err := sec.WorklistWillDownloadGet(DB)
 		if err != nil {
 			return err
 		}
 
-		s, err := sec.NewSEC(RootConfig)
-		if err != nil {
-			return err
-		}
-
-		s.Verbose, err = cmd.Flags().GetBool("verbose")
-		if err != nil {
-			return err
-		}
-
-		worklist, err := sec.WorklistWillDownloadGet(db)
-		if err != nil {
-			return err
-		}
-
-		err = s.DownloadIndex(db)
+		err = S.DownloadIndex(DB)
 		if err != nil {
 			return err
 		}
@@ -49,23 +34,23 @@ var destzCmd = &cobra.Command{
 			}
 			formatted := date.Format("2006-01")
 
-			fileURL := fmt.Sprintf("%v/Archives/edgar/monthly/xbrlrss-%v.xml", s.Config.Main.CacheDir, formatted)
+			fileURL := fmt.Sprintf("%v/Archives/edgar/monthly/xbrlrss-%v.xml", S.Config.Main.CacheDir, formatted)
 
-			if s.Verbose {
+			if S.Verbose {
 				fmt.Printf("Calculating space needed for file %v: ", fmt.Sprintf("xbrlrss-%v.xml", formatted))
 			}
 
-			rssFile, err := s.ParseRSSGoXML(fileURL)
+			rssFile, err := S.ParseRSSGoXML(fileURL)
 			if err != nil {
 				return err
 			}
 
-			val, err := s.CalculateRSSFilesZIP(rssFile)
+			val, err := S.CalculateRSSFilesZIP(rssFile)
 			if err != nil {
 				return err
 			}
 
-			if s.Verbose {
+			if S.Verbose {
 				fmt.Println(parseSize(float64(val)))
 			}
 

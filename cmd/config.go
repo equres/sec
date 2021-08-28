@@ -46,6 +46,13 @@ func GenerateConfig() error {
 		return err
 	}
 
+	retrylimit := "3"
+	fmt.Printf("Rate Limit [default: '%v']: ", retrylimit)
+	err = AcceptInput(reader, &retrylimit)
+	if err != nil {
+		return err
+	}
+
 	db_user := user.Username
 	fmt.Println("Database Config:")
 	fmt.Printf("User [default: '%v']: ", db_user)
@@ -99,6 +106,7 @@ func GenerateConfig() error {
 		BaseURL:     url,
 		CacheDir:    "./cache",
 		RateLimitMs: rateLimit,
+		RetryLimit:  retrylimit,
 	})
 
 	cfg.SetDefault("database", config.DatabaseConfig{

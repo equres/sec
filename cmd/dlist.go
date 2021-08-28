@@ -26,12 +26,8 @@ to quickly create a Cobra application.`,
 	},
 	RunE: func(cmd *cobra.Command, args []string) error {
 		fmt.Println("Year/Month that will be downloaded:")
-		db, err := database.ConnectDB(RootConfig)
-		if err != nil {
-			return err
-		}
 
-		worklist, err := sec.WorklistWillDownloadGet(db)
+		worklist, err := sec.WorklistWillDownloadGet(DB)
 		if err != nil {
 			return err
 		}

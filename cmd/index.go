@@ -19,17 +19,8 @@ var indexCmd = &cobra.Command{
 		return database.CheckMigration(RootConfig)
 	},
 	RunE: func(cmd *cobra.Command, args []string) (err error) {
-		db, err := database.ConnectDB(RootConfig)
-		if err != nil {
-			return err
-		}
 
-		s, err := sec.NewSEC(RootConfig)
-		if err != nil {
-			return err
-		}
-
-		worklist, err := sec.WorklistWillDownloadGet(db)
+		worklist, err := sec.WorklistWillDownloadGet(DB)
 		if err != nil {
 			return err
 		}
@@ -41,16 +32,16 @@ var indexCmd = &cobra.Command{
 			}
 			formatted := date.Format("2006-01")
 
-			fileURL := fmt.Sprintf("%v/Archives/edgar/monthly/xbrlrss-%v.xml", s.Config.Main.CacheDir, formatted)
+			fileURL := fmt.Sprintf("%v/Archives/edgar/monthly/xbrlrss-%v.xml", S.Config.Main.CacheDir, formatted)
 
-			rssFile, err := s.ParseRSSGoXML(fileURL)
+			rssFile, err := S.ParseRSSGoXML(fileURL)
 			if err != nil {
 				err = fmt.Errorf("you did not download any files yet. Run sec dow data to download the files, then run sec index to save their information to the database")
 				return err
 			}
 
 			for _, v1 := range rssFile.Channel.Item {
-				err = s.SecItemFileUpsert(db, v1)
+				err = S.SecItemFileUpsert(DB, v1)
 				if err != nil {
 					return err
 				}

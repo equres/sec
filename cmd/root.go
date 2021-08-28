@@ -5,9 +5,13 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"time"
 
 	"github.com/adrg/xdg"
 	"github.com/equres/sec/pkg/config"
+	"github.com/equres/sec/pkg/database"
+	"github.com/equres/sec/pkg/sec"
+	"github.com/jmoiron/sqlx"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 )
@@ -15,6 +19,11 @@ import (
 var cfgFile string
 var RootConfig config.Config
 var defaultCfgPath string
+var RateLimit time.Duration
+var Verbose bool
+var Debug bool
+var DB *sqlx.DB
+var S *sec.SEC
 
 // rootCmd represents the base command when called without any subcommands
 var rootCmd = &cobra.Command{
@@ -43,7 +52,8 @@ func init() {
 	// Here you will define your flags and configuration settings.
 	// Cobra supports persistent flags, which, if defined here,
 	// will be global for your application.
-	rootCmd.PersistentFlags().Bool("verbose", false, "Display the summarized version of progress")
+	rootCmd.PersistentFlags().BoolVar(&Verbose, "verbose", false, "Display the summarized version of progress")
+	rootCmd.PersistentFlags().BoolVar(&Debug, "debug", false, "Display additional details for debugging")
 	rootCmd.PersistentFlags().StringVar(&cfgFile, "config", defaultCfgPath, fmt.Sprintf("config file (default is %v)", defaultCfgPath))
 
 	// Cobra also supports local flags, which will only run
@@ -85,4 +95,19 @@ func initConfig() {
 		cobra.CheckErr(err)
 	}
 	RootConfig = cfg
+	RateLimit, err = time.ParseDuration(fmt.Sprintf("%vms", RootConfig.Main.RateLimitMs))
+	if err != nil {
+		cobra.CheckErr(err)
+	}
+
+	DB, err = database.ConnectDB(RootConfig)
+	if err != nil {
+		cobra.CheckErr(err)
+	}
+	S, err = sec.NewSEC(RootConfig)
+	if err != nil {
+		cobra.CheckErr(err)
+	}
+	S.Verbose = Verbose
+	S.Debug = Debug
 }

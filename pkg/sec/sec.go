@@ -129,6 +129,7 @@ type SEC struct {
 	Tickers []SecTicker
 	Verbose bool
 	Config  config.Config
+	Debug   bool
 }
 
 func (t SecTicker) String() string {
@@ -302,6 +303,8 @@ func (s *SEC) DownloadIndex(db *sqlx.DB) error {
 	}
 
 	downloader := download.NewDownloader(s.Config)
+	downloader.Verbose = s.Verbose
+	downloader.Debug = s.Debug
 
 	rateLimit, err := time.ParseDuration(fmt.Sprintf("%vms", s.Config.Main.RateLimitMs))
 	if err != nil {
@@ -330,7 +333,7 @@ func (s *SEC) DownloadIndex(db *sqlx.DB) error {
 
 		if !not_download {
 			if s.Verbose {
-				fmt.Printf("File 'xbrlrss-%v.xml' is not in disk. Downloading file...: ", formatted)
+				fmt.Print("Downloading file...: ")
 			}
 			err = downloader.DownloadFile(db, fileURL)
 			if err != nil {
@@ -514,6 +517,8 @@ func (s *SEC) TotalXbrlFileCountGet(worklist []Worklist, cache_dir string) (int,
 
 func (s *SEC) DownloadXbrlFileContent(db *sqlx.DB, files []XbrlFile, config config.Config, current_count *int, total_count int) error {
 	downloader := download.NewDownloader(s.Config)
+	downloader.Verbose = s.Verbose
+	downloader.Debug = s.Debug
 
 	rateLimit, err := time.ParseDuration(fmt.Sprintf("%vms", s.Config.Main.RateLimitMs))
 	if err != nil {
@@ -601,7 +606,7 @@ func WorklistWillDownloadGet(db *sqlx.DB) ([]Worklist, error) {
 	// Retrieve from DB
 	var worklist []Worklist
 
-	err := db.Select(&worklist, "SELECT year, month, will_download FROM sec.worklist WHERE will_download = true")
+	err := db.Select(&worklist, "SELECT year, month, will_download FROM sec.worklist WHERE will_download = true ORDER BY year, month ASC")
 	if err != nil {
 		return nil, err
 	}
