@@ -1,9 +1,8 @@
 main:
   baseurl: https://www.sec.gov
   cachedir: ./cache
-  ratelimitms: 100 
-	retrylimit: 3
-
+  ratelimitms: 100
+  retrylimit: 3
 database:
   driver: postgres
   host: localhost
