@@ -8,7 +8,10 @@ require (
 	github.com/jmoiron/sqlx v1.3.4
 	github.com/johejo/golang-migrate-extra v0.0.0-20210217013041-51a992e50d16
 	github.com/lib/pq v1.10.2
+	github.com/olekukonko/tablewriter v0.0.5 // indirect
 	github.com/spf13/cobra v1.2.1
 	github.com/spf13/viper v1.8.1
+	github.com/ssor/bom v0.0.0-20170718123548-6386211fdfcf // indirect
 	golang.org/x/net v0.0.0-20210805182204-aaa1db679c0d
+	jaytaylor.com/html2text v0.0.0-20200412013138-3577fbdbcff7 // indirect
 )
