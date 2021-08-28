@@ -1,27 +1,58 @@
 package secreq
 
-import "net/http"
+import (
+	"fmt"
+	"net/http"
+	"time"
+)
 
 type SECReq struct {
-	UserAgent string
+	UserAgent   string
+	RequestType string
 }
 
-func NewSECReqHEAD(fullurl string) (*http.Request, error) {
-	req, err := http.NewRequest("HEAD", fullurl, nil)
-	if err != nil {
-		return nil, err
-	}
-	req.Header.Set("User-Agent", "Equres LLC wojciech@koszek.com")
+func (sr *SECReq) SendRequest(retryLimit int, rateLimit time.Duration, fullurl string) (*http.Response, error) {
+	var resp *http.Response
+	var etag string
 
-	return req, nil
+	currentRetryLimit := retryLimit
+	for currentRetryLimit > 0 {
+		currentRetryLimit--
+		req, err := http.NewRequest(sr.RequestType, fullurl, nil)
+		if err != nil {
+			return nil, err
+		}
+		req.Header.Set("User-Agent", sr.UserAgent)
+
+		resp, err = new(http.Client).Do(req)
+		if err != nil {
+			return nil, err
+		}
+
+		etag = resp.Header.Get("eTag")
+		if etag != "" {
+			break
+		}
+		time.Sleep(rateLimit)
+	}
+
+	if currentRetryLimit == 0 && etag == "" {
+		return nil, fmt.Errorf("retried %v request %v times and failed", sr.RequestType, retryLimit)
+	}
+
+	return resp, nil
 }
 
-func NewSECReqGET(fullurl string) (*http.Request, error) {
-	req, err := http.NewRequest("GET", fullurl, nil)
-	if err != nil {
-		return nil, err
+func NewSECReqHEAD() *SECReq {
+	return &SECReq{
+		UserAgent:   "Equres LLC wojciech@koszek.com",
+		RequestType: http.MethodHead,
 	}
-	req.Header.Set("User-Agent", "Mozilla/5.0 (Windows NT 6.1; Win64; x64; rv:47.0)")
+}
 
-	return req, nil
+func NewSECReqGET() *SECReq {
+	return &SECReq{
+		UserAgent:   "Mozilla/5.0 (Windows NT 6.1; Win64; x64; rv:47.0)",
+		RequestType: http.MethodGet,
+	}
 }

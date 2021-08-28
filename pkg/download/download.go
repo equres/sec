@@ -6,7 +6,6 @@ import (
 	"io"
 	"io/fs"
 	"io/ioutil"
-	"net/http"
 	"net/http/httputil"
 	"net/url"
 	"os"
@@ -76,7 +75,6 @@ func (d Downloader) FileConsistent(db *sqlx.DB, file fs.FileInfo, fullurl string
 	if err != nil {
 		return false, err
 	}
-	currentRetryLimit := retryLimit
 
 	rateLimit, err := time.ParseDuration(d.Config.Main.RateLimitMs + "ms")
 	if err != nil {
@@ -92,48 +90,28 @@ func (d Downloader) FileConsistent(db *sqlx.DB, file fs.FileInfo, fullurl string
 		return false, nil
 	}
 
-	// Declared here to use outside for loop
-	var etag string
-
-	for currentRetryLimit > 0 {
-		currentRetryLimit--
-		req, err := secreq.NewSECReqHEAD(fullurl)
-		if err != nil {
-			return false, err
-		}
-
-		resp, err := new(http.Client).Do(req)
-		if err != nil {
-			return false, err
-		}
-
-		if d.Debug {
-			fmt.Println()
-			headers, err := httputil.DumpResponse(resp, false)
-			if err != nil {
-				return false, err
-			}
-			fmt.Print(string(headers))
-		}
-
-		etag = resp.Header.Get("eTag")
-		if etag != "" {
-			break
-		}
-		if d.Debug && currentRetryLimit == retryLimit-1 {
-			fmt.Print("HEAD Request failed, retrying...: ")
-		}
-		time.Sleep(rateLimit)
-	}
-
-	if currentRetryLimit == 0 && etag == "" {
-		return false, fmt.Errorf("retried to retrieve headers and failed %v times", d.Config.Main.RetryLimit)
-	}
-
 	var download Download
 	if len(downloads) > 0 {
 		download = downloads[0]
 	}
+
+	req := secreq.NewSECReqHEAD()
+
+	resp, err := req.SendRequest(retryLimit, rateLimit, fullurl)
+	if err != nil {
+		return false, err
+	}
+
+	if d.Debug {
+		fmt.Println()
+		headers, err := httputil.DumpResponse(resp, false)
+		if err != nil {
+			return false, err
+		}
+		fmt.Print(string(headers))
+	}
+
+	etag := resp.Header.Get("eTag")
 
 	if download.Etag != etag {
 		return false, nil
@@ -147,7 +125,6 @@ func (d Downloader) DownloadFile(db *sqlx.DB, fullurl string) error {
 	if err != nil {
 		return err
 	}
-	currentRetryLimit := retryLimit
 
 	fileUrl, err := url.Parse(fullurl)
 	if err != nil {
@@ -160,46 +137,20 @@ func (d Downloader) DownloadFile(db *sqlx.DB, fullurl string) error {
 		return err
 	}
 
-	client := &http.Client{}
+	req := secreq.NewSECReqGET()
 
-	var req *http.Request
-	var resp *http.Response
-	var etag string
-
-	for currentRetryLimit > 0 {
-		currentRetryLimit--
-		req, err = secreq.NewSECReqGET(fullurl)
-		if err != nil {
-			return err
-		}
-
-		resp, err = client.Do(req)
-		if err != nil {
-			return err
-		}
-
-		defer resp.Body.Close()
-
-		etag = resp.Header.Get("eTag")
-
-		if d.Debug {
-			fmt.Println()
-			headers, err := httputil.DumpResponse(resp, false)
-			if err != nil {
-				return err
-			}
-			fmt.Println(string(headers))
-		}
-
-		if etag != "" {
-			break
-		}
-
-		time.Sleep(rateLimit)
+	resp, err := req.SendRequest(retryLimit, rateLimit, fullurl)
+	if err != nil {
+		return err
 	}
 
-	if currentRetryLimit == 0 && etag == "" {
-		return fmt.Errorf("retried to download file and fail %v times", d.Config.Main.RetryLimit)
+	if d.Debug {
+		fmt.Println()
+		headers, err := httputil.DumpResponse(resp, false)
+		if err != nil {
+			return err
+		}
+		fmt.Print(string(headers))
 	}
 
 	responseBody, err := ioutil.ReadAll(resp.Body)
@@ -231,6 +182,7 @@ func (d Downloader) DownloadFile(db *sqlx.DB, fullurl string) error {
 		return err
 	}
 
+	etag := resp.Header.Get("eTag")
 	_, err = db.Exec(`
 	INSERT INTO sec.downloads (url, etag, size, created_at, updated_at) 
 	VALUES ($1, $2, $3, NOW(), NOW()) 

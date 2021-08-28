@@ -52,8 +52,8 @@ func init() {
 	// Here you will define your flags and configuration settings.
 	// Cobra supports persistent flags, which, if defined here,
 	// will be global for your application.
-	rootCmd.PersistentFlags().BoolVar(&S.Verbose, "verbose", false, "Display the summarized version of progress")
-	rootCmd.PersistentFlags().BoolVar(&S.Debug, "debug", false, "Display additional details for debugging")
+	rootCmd.PersistentFlags().BoolVar(&Verbose, "verbose", false, "Display the summarized version of progress")
+	rootCmd.PersistentFlags().BoolVar(&Debug, "debug", false, "Display additional details for debugging")
 	rootCmd.PersistentFlags().StringVar(&cfgFile, "config", defaultCfgPath, fmt.Sprintf("config file (default is %v)", defaultCfgPath))
 
 	// Cobra also supports local flags, which will only run
@@ -108,4 +108,6 @@ func initConfig() {
 	if err != nil {
 		cobra.CheckErr(err)
 	}
+	S.Verbose = Verbose
+	S.Debug = Debug
 }
