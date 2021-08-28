@@ -40,6 +40,10 @@ var indexCmd = &cobra.Command{
 				return err
 			}
 
+			if S.Verbose {
+				fmt.Printf("Insert data from xbrlrss-%v.xml\n", formatted)
+			}
+
 			for _, v1 := range rssFile.Channel.Item {
 				err = S.SecItemFileUpsert(DB, v1)
 				if err != nil {

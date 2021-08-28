@@ -15,7 +15,6 @@ import (
 	"os"
 	"path/filepath"
 	"strconv"
-	"strings"
 	"time"
 
 	"github.com/equres/sec/pkg/config"
@@ -427,8 +426,12 @@ func (s *SEC) SecItemFileUpsert(db *sqlx.DB, item Item) error {
 			}
 		}
 
-		filePath := strings.ReplaceAll(v.URL, s.BaseURL, s.Config.Main.CacheDir)
+		fileUrl, err := url.Parse(v.URL)
+		if err != nil {
+			return err
+		}
 
+		filePath := filepath.Join(s.Config.Main.CacheDir, fileUrl.Path)
 		_, err = os.Stat(filePath)
 		if err != nil {
 			return fmt.Errorf("inserted into database all downloaded files, run sec dow data then run sec index again to insert all enabled months/years")
