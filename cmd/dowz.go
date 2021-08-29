@@ -54,17 +54,17 @@ var dowzCmd = &cobra.Command{
 				return err
 			}
 
-			var current_count int
-			total_count := len(rssFile.Channel.Item)
+			var currentCount int
+			totalCount := len(rssFile.Channel.Item)
 			for _, v1 := range rssFile.Channel.Item {
 				if v1.Enclosure.URL != "" {
 
-					not_download, err := downloader.FileCorrect(DB, v1.Enclosure.URL)
+					isFileCorrect, err := downloader.FileCorrect(DB, v1.Enclosure.URL)
 					if err != nil {
 						return err
 					}
 
-					if !not_download {
+					if !isFileCorrect {
 						err = downloader.DownloadFile(DB, v1.Enclosure.URL)
 						if err != nil {
 							return err
@@ -72,13 +72,13 @@ var dowzCmd = &cobra.Command{
 						time.Sleep(rateLimit)
 					}
 
-					current_count++
+					currentCount++
 					if !S.Verbose {
-						fmt.Printf("\r[%d/%d files already downloaded]. Will download %d remaining files. Pass --verbose to see progress report", current_count, total_count, (total_count - current_count))
+						fmt.Printf("\r[%d/%d files already downloaded]. Will download %d remaining files. Pass --verbose to see progress report", currentCount, totalCount, (totalCount - currentCount))
 					}
 
 					if S.Verbose {
-						fmt.Printf("[%d/%d] %s downloaded...\n", current_count, total_count, time.Now().Format("2006-01-02 03:04:05"))
+						fmt.Printf("[%d/%d] %s downloaded...\n", currentCount, totalCount, time.Now().Format("2006-01-02 03:04:05"))
 					}
 				}
 			}

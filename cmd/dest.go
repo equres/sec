@@ -23,8 +23,8 @@ var destCmd = &cobra.Command{
 		return database.CheckMigration(RootConfig)
 	},
 	RunE: func(cmd *cobra.Command, args []string) error {
-		var total_size float64
-		var total_size_zip int
+		var totalSize float64
+		var totalSizeZIP int
 
 		worklist, err := sec.WorklistWillDownloadGet(DB)
 		if err != nil {
@@ -37,7 +37,7 @@ var destCmd = &cobra.Command{
 		tabWriter := tabwriter.NewWriter(os.Stdout, 12, 0, 2, ' ', 0)
 
 		if S.Verbose {
-			fmt.Fprint(tabWriter, "File Name", "\t\t", "Uncompressed Sized", "\t\t", "ZIP Sizes", "\n")
+			fmt.Fprint(tabWriter, "File Name", "\t", "Uncompressed Sized", "\t", "ZIP Sizes", "\n")
 		}
 		for _, v := range worklist {
 			var file_size float64
@@ -58,6 +58,10 @@ var destCmd = &cobra.Command{
 
 			if S.Verbose {
 				fmt.Fprint(tabWriter, fmt.Sprintf("xbrlrss-%v.xml", formatted), "\t\t")
+				err = tabWriter.Flush()
+				if err != nil {
+					return err
+				}
 			}
 
 			rssFile, err := S.ParseRSSGoXML(filePath)
@@ -92,11 +96,16 @@ var destCmd = &cobra.Command{
 				fmt.Fprint(tabWriter, parseSize(float64(file_size_zip)), "\t\t", "\n")
 			}
 
-			total_size += file_size
-			total_size_zip += file_size_zip
+			err = tabWriter.Flush()
+			if err != nil {
+				return err
+			}
+
+			totalSize += file_size
+			totalSizeZIP += file_size_zip
 		}
 
-		fmt.Fprint(tabWriter, "Total Size", "\t\t", parseSize(total_size), "\t\t", parseSize(float64(total_size_zip)), "\n")
+		fmt.Fprint(tabWriter, "Total Size", "\t\t", parseSize(totalSize), "\t\t", parseSize(float64(totalSizeZIP)), "\n")
 		err = tabWriter.Flush()
 		if err != nil {
 			return err
