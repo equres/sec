@@ -96,7 +96,7 @@ var destCmd = &cobra.Command{
 			total_size_zip += file_size_zip
 		}
 
-		fmt.Fprint(tabWriter, "Total Size", "\t\t", parseSize(total_size), "\t\t", parseSize(float64(total_size_zip)))
+		fmt.Fprint(tabWriter, "Total Size", "\t\t", parseSize(total_size), "\t\t", parseSize(float64(total_size_zip)), "\n")
 		err = tabWriter.Flush()
 		if err != nil {
 			return err
