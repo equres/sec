@@ -111,9 +111,9 @@ type ExchangesFile struct {
 }
 
 type Worklist struct {
-	Year          int
-	Month         int
-	Will_download bool
+	Year         int  `db:"year"`
+	Month        int  `db:"month"`
+	WillDownload bool `db:"will_download"`
 }
 
 // Ticker Struct Based on JSON
@@ -156,19 +156,18 @@ func (t SecTicker) Save(db *sqlx.DB) error {
 	return nil
 }
 
-func (s *SEC) FetchFile(url_var string) ([]byte, error) {
+func (s *SEC) FetchFile(urlVar string) ([]byte, error) {
 	// Retrieving JSON From URL
-	// main_url := path.Join(s.BaseURL, url_var)
-	parsed_url, err := url.Parse(s.BaseURL)
+	baseURL, err := url.Parse(s.BaseURL)
 	if err != nil {
 		return nil, err
 	}
-	other_url, err := url.Parse(url_var)
+	pathURL, err := url.Parse(urlVar)
 	if err != nil {
 		return nil, err
 	}
 
-	resp, err := http.Get(parsed_url.ResolveReference(other_url).String())
+	resp, err := http.Get(baseURL.ResolveReference(pathURL).String())
 	if err != nil {
 		return nil, err
 	}
@@ -323,15 +322,15 @@ func (s *SEC) DownloadIndex(db *sqlx.DB) error {
 		if s.Verbose {
 			fmt.Printf("Checking file 'xbrlrss-%v.xml' in disk: ", formatted)
 		}
-		not_download, err := downloader.FileInCache(db, fileURL)
+		isFileCorrect, err := downloader.FileCorrect(db, fileURL)
 		if err != nil {
 			return err
 		}
-		if s.Verbose && not_download {
+		if s.Verbose && isFileCorrect {
 			fmt.Println("\u2713")
 		}
 
-		if !not_download {
+		if !isFileCorrect {
 			if s.Verbose {
 				fmt.Print("Downloading file...: ")
 			}
@@ -349,26 +348,26 @@ func (s *SEC) DownloadIndex(db *sqlx.DB) error {
 }
 
 func (s *SEC) CalculateRSSFilesZIP(rssFile RSSFile) (int, error) {
-	var total_size int
+	var totalSize int
 	for _, v := range rssFile.Channel.Item {
 		if v.Enclosure.Length != "" {
 			val, err := strconv.Atoi(v.Enclosure.Length)
 			if err != nil {
 				return 0, err
 			}
-			total_size += val
+			totalSize += val
 		}
 	}
-	return total_size, nil
+	return totalSize, nil
 }
 
-func SaveWorklist(year int, month int, will_download bool, db *sqlx.DB) error {
+func SaveWorklist(year int, month int, willDownload bool, db *sqlx.DB) error {
 	_, err := db.Exec(`
 	INSERT INTO sec.worklist (year, month, will_download, created_at, updated_at) 
 	VALUES ($1, $2, $3, NOW(), NOW()) 
 	ON CONFLICT (month, year) 
 	DO UPDATE SET will_download=EXCLUDED.will_download, updated_at=NOW() 
-	WHERE worklist.year=EXCLUDED.year AND worklist.month=EXCLUDED.month ;`, year, month, will_download)
+	WHERE worklist.year=EXCLUDED.year AND worklist.month=EXCLUDED.month ;`, year, month, willDownload)
 	if err != nil {
 		return err
 	}
@@ -478,23 +477,23 @@ func (s *SEC) SecItemFileUpsert(db *sqlx.DB, item Item) error {
 	return nil
 }
 
-func ParseYearMonth(year_month string) (year int, month int, err error) {
-	switch len(year_month) {
+func ParseYearMonth(yearMonth string) (year int, month int, err error) {
+	switch len(yearMonth) {
 	case 4:
-		date, err := time.Parse("2006", year_month)
+		date, err := time.Parse("2006", yearMonth)
 		if err != nil {
 			return 0, 0, err
 		}
 		year = date.Year()
 	case 6:
-		date, err := time.Parse("2006/1", year_month)
+		date, err := time.Parse("2006/1", yearMonth)
 		if err != nil {
 			return 0, 0, err
 		}
 		year = date.Year()
 		month = int(date.Month())
 	case 7:
-		date, err := time.Parse("2006/01", year_month)
+		date, err := time.Parse("2006/01", yearMonth)
 		if err != nil {
 			return 0, 0, err
 		}
@@ -507,8 +506,8 @@ func ParseYearMonth(year_month string) (year int, month int, err error) {
 	return year, month, nil
 }
 
-func (s *SEC) TotalXbrlFileCountGet(worklist []Worklist, cache_dir string) (int, error) {
-	var total_count int
+func (s *SEC) TotalXbrlFileCountGet(worklist []Worklist, cacheDir string) (int, error) {
+	var totalCount int
 	for _, v := range worklist {
 		date, err := time.Parse("2006-1", fmt.Sprintf("%d-%d", v.Year, v.Month))
 		if err != nil {
@@ -516,20 +515,20 @@ func (s *SEC) TotalXbrlFileCountGet(worklist []Worklist, cache_dir string) (int,
 		}
 		formatted := date.Format("2006-01")
 
-		filepath := fmt.Sprintf("%v/Archives/edgar/monthly/xbrlrss-%v.xml", cache_dir, formatted)
+		filepath := fmt.Sprintf("%v/Archives/edgar/monthly/xbrlrss-%v.xml", cacheDir, formatted)
 		rssFile, err := s.ParseRSSGoXML(filepath)
 		if err != nil {
 			return 0, err
 		}
 
 		for _, v1 := range rssFile.Channel.Item {
-			total_count += len(v1.XbrlFiling.XbrlFiles.XbrlFile)
+			totalCount += len(v1.XbrlFiling.XbrlFiles.XbrlFile)
 		}
 	}
-	return total_count, nil
+	return totalCount, nil
 }
 
-func (s *SEC) DownloadXbrlFileContent(db *sqlx.DB, files []XbrlFile, config config.Config, current_count *int, total_count int) error {
+func (s *SEC) DownloadXbrlFileContent(db *sqlx.DB, files []XbrlFile, config config.Config, currentCount *int, totalCount int) error {
 	downloader := download.NewDownloader(s.Config)
 	downloader.Verbose = s.Verbose
 	downloader.Debug = s.Debug
@@ -540,12 +539,12 @@ func (s *SEC) DownloadXbrlFileContent(db *sqlx.DB, files []XbrlFile, config conf
 	}
 
 	for _, v := range files {
-		not_download, err := downloader.FileInCache(db, v.URL)
+		isFileCorrect, err := downloader.FileCorrect(db, v.URL)
 		if err != nil {
 			return err
 		}
 
-		if !not_download {
+		if !isFileCorrect {
 			err = downloader.DownloadFile(db, v.URL)
 			if err != nil {
 				return err
@@ -553,13 +552,13 @@ func (s *SEC) DownloadXbrlFileContent(db *sqlx.DB, files []XbrlFile, config conf
 			time.Sleep(rateLimit)
 		}
 
-		*current_count++
+		*currentCount++
 		if !s.Verbose {
-			fmt.Printf("\r[%d/%d files already downloaded]. Will download %d remaining files. Pass --verbose to see progress report", *current_count, total_count, (total_count - *current_count))
+			fmt.Printf("\r[%d/%d files already downloaded]. Will download %d remaining files. Pass --verbose to see progress report", *currentCount, totalCount, (totalCount - *currentCount))
 		}
 
 		if s.Verbose {
-			fmt.Printf("[%d/%d] %s downloaded...\n", *current_count, total_count, time.Now().Format("2006-01-02 03:04:05"))
+			fmt.Printf("[%d/%d] %s downloaded...\n", *currentCount, totalCount, time.Now().Format("2006-01-02 03:04:05"))
 		}
 		time.Sleep(rateLimit)
 	}
@@ -586,11 +585,11 @@ func CheckRSSAvailability(year int, month int) (err error) {
 	return nil
 }
 
-func (s *SEC) Downloadability(db *sqlx.DB, year int, month int, will_download bool) error {
+func (s *SEC) Downloadability(db *sqlx.DB, year int, month int, willDownload bool) error {
 	var err error
 
 	if month != 0 {
-		err = SaveWorklist(year, month, will_download, db)
+		err = SaveWorklist(year, month, willDownload, db)
 		if err != nil {
 			return err
 		}
@@ -608,7 +607,7 @@ func (s *SEC) Downloadability(db *sqlx.DB, year int, month int, will_download bo
 	}
 
 	for i := firstMonthAvailable; i <= lastMonthAvailable; i++ {
-		err = SaveWorklist(year, i, will_download, db)
+		err = SaveWorklist(year, i, willDownload, db)
 		if err != nil {
 			return err
 		}
