@@ -450,17 +450,17 @@ func (s *SEC) SecItemFileUpsert(db *sqlx.DB, item Item) error {
 		fileExtension := filepath.Ext(filePath)
 		var fileBody string
 
+		// Skip saving image body in DB
+		if fileExtension != ".jpg" && fileExtension != ".jpeg" && fileExtension != ".gif" && fileExtension != ".png" {
+			fileBody = string(data)
+		}
+
 		// Convert HTML to TEXT
 		if fileExtension == ".html" || fileExtension == ".htm" {
-			fileBody, err = html2text.FromString(string(data))
+			fileBody, err = html2text.FromString(fileBody)
 			if err != nil {
 				return err
 			}
-		}
-
-		// Skip saving image body in DB
-		if fileExtension == ".jpg" || fileExtension == ".jpeg" {
-			fileBody = ""
 		}
 
 		_, err = db.Exec(`
