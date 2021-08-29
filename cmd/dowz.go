@@ -18,7 +18,6 @@ var dowzCmd = &cobra.Command{
 	Short: "download all of the referenced file from XBRL index as ZIP files",
 	Long:  `download all of the referenced file from XBRL index as ZIP files`,
 	RunE: func(cmd *cobra.Command, args []string) error {
-
 		worklist, err := sec.WorklistWillDownloadGet(DB)
 		if err != nil {
 			return err
@@ -55,30 +54,32 @@ var dowzCmd = &cobra.Command{
 				return err
 			}
 
-			total_count := len(rssFile.Channel.Item)
 			var current_count int
-
+			total_count := len(rssFile.Channel.Item)
 			for _, v1 := range rssFile.Channel.Item {
-				not_download, err := downloader.FileInCache(DB, v1.Enclosure.URL)
-				if err != nil {
-					return err
-				}
+				if v1.Enclosure.URL != "" {
 
-				if !not_download {
-					err = downloader.DownloadFile(DB, v1.Enclosure.URL)
+					not_download, err := downloader.FileCorrect(DB, v1.Enclosure.URL)
 					if err != nil {
 						return err
 					}
-					time.Sleep(rateLimit)
-				}
 
-				current_count++
-				if !S.Verbose {
-					fmt.Printf("\r[%d/%d files already downloaded]. Will download %d remaining files. Pass --verbose to see progress report", current_count, total_count, (total_count - current_count))
-				}
+					if !not_download {
+						err = downloader.DownloadFile(DB, v1.Enclosure.URL)
+						if err != nil {
+							return err
+						}
+						time.Sleep(rateLimit)
+					}
 
-				if S.Verbose {
-					fmt.Printf("[%d/%d] %s downloaded...\n", current_count, total_count, time.Now().Format("2006-01-02 03:04:05"))
+					current_count++
+					if !S.Verbose {
+						fmt.Printf("\r[%d/%d files already downloaded]. Will download %d remaining files. Pass --verbose to see progress report", current_count, total_count, (total_count - current_count))
+					}
+
+					if S.Verbose {
+						fmt.Printf("[%d/%d] %s downloaded...\n", current_count, total_count, time.Now().Format("2006-01-02 03:04:05"))
+					}
 				}
 			}
 		}

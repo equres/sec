@@ -323,7 +323,7 @@ func (s *SEC) DownloadIndex(db *sqlx.DB) error {
 		if s.Verbose {
 			fmt.Printf("Checking file 'xbrlrss-%v.xml' in disk: ", formatted)
 		}
-		not_download, err := downloader.FileInCache(db, fileURL)
+		not_download, err := downloader.FileCorrect(db, fileURL)
 		if err != nil {
 			return err
 		}
@@ -540,7 +540,7 @@ func (s *SEC) DownloadXbrlFileContent(db *sqlx.DB, files []XbrlFile, config conf
 	}
 
 	for _, v := range files {
-		not_download, err := downloader.FileInCache(db, v.URL)
+		not_download, err := downloader.FileCorrect(db, v.URL)
 		if err != nil {
 			return err
 		}

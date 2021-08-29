@@ -38,15 +38,15 @@ func NewDownloader(cfg config.Config) *Downloader {
 	}
 }
 
-func (d Downloader) FileInCache(db *sqlx.DB, fullurl string) (bool, error) {
+func (d Downloader) FileCorrect(db *sqlx.DB, fullurl string) (bool, error) {
 	parsed_url, err := url.Parse(fullurl)
 	if err != nil {
-		return false, nil
+		return false, err
 	}
 
 	filePath := filepath.Join(d.Config.Main.CacheDir, parsed_url.Path)
 
-	filestat, err := os.Stat(filePath)
+	filestat, err := d.FileInCache(filePath)
 	if err != nil {
 		if d.Verbose {
 			fmt.Print("File is not in cache: ")
@@ -67,6 +67,14 @@ func (d Downloader) FileInCache(db *sqlx.DB, fullurl string) (bool, error) {
 	}
 
 	return true, nil
+}
+
+func (d Downloader) FileInCache(path string) (fs.FileInfo, error) {
+	filestat, err := os.Stat(path)
+	if err != nil {
+		return nil, err
+	}
+	return filestat, nil
 }
 
 func (d Downloader) FileConsistent(db *sqlx.DB, file fs.FileInfo, fullurl string) (bool, error) {
