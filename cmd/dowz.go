@@ -54,8 +54,8 @@ var dowzCmd = &cobra.Command{
 				return err
 			}
 
-			var currentCount int
 			totalCount := len(rssFile.Channel.Item)
+			currentCount := 0
 			for _, v1 := range rssFile.Channel.Item {
 				if v1.Enclosure.URL != "" {
 

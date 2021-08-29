@@ -59,7 +59,7 @@ to quickly create a Cobra application.`,
 				}
 				formatted := date.Format("2006-01")
 
-				if _, ok := worklistMap[formatted]; ok && worklistMap[formatted].Will_download {
+				if _, ok := worklistMap[formatted]; ok && worklistMap[formatted].WillDownload {
 					fmt.Printf("+%d ", i)
 					continue
 				}

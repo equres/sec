@@ -40,8 +40,8 @@ var destCmd = &cobra.Command{
 			fmt.Fprint(tabWriter, "File Name", "\t", "Uncompressed Sized", "\t", "ZIP Sizes", "\n")
 		}
 		for _, v := range worklist {
-			var file_size float64
-			var file_size_zip int
+			var fileSize float64
+			var fileSizeZIP int
 
 			date, err := time.Parse("2006-1", fmt.Sprintf("%d-%d", v.Year, v.Month))
 			if err != nil {
@@ -80,20 +80,20 @@ var destCmd = &cobra.Command{
 					if err != nil {
 						return err
 					}
-					file_size += val
+					fileSize += val
 				}
 			}
 			if S.Verbose {
-				fmt.Fprint(tabWriter, parseSize(file_size), "\t\t")
+				fmt.Fprint(tabWriter, parseSize(fileSize), "\t\t")
 			}
 
-			file_size_zip, err = S.CalculateRSSFilesZIP(rssFile)
+			fileSizeZIP, err = S.CalculateRSSFilesZIP(rssFile)
 			if err != nil {
 				return err
 			}
 
 			if S.Verbose {
-				fmt.Fprint(tabWriter, parseSize(float64(file_size_zip)), "\t\t", "\n")
+				fmt.Fprint(tabWriter, parseSize(float64(fileSizeZIP)), "\t\t", "\n")
 			}
 
 			err = tabWriter.Flush()
@@ -101,8 +101,8 @@ var destCmd = &cobra.Command{
 				return err
 			}
 
-			totalSize += file_size
-			totalSizeZIP += file_size_zip
+			totalSize += fileSize
+			totalSizeZIP += fileSizeZIP
 		}
 
 		fmt.Fprint(tabWriter, "Total Size", "\t\t", parseSize(totalSize), "\t\t", parseSize(float64(totalSizeZIP)), "\n")
