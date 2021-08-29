@@ -15,13 +15,13 @@ import (
 	"os"
 	"path/filepath"
 	"strconv"
-	"strings"
 	"time"
 
 	"github.com/equres/sec/pkg/config"
 	"github.com/equres/sec/pkg/download"
 	"github.com/jmoiron/sqlx"
 	"golang.org/x/net/html/charset"
+	"jaytaylor.com/html2text"
 )
 
 const (
@@ -129,6 +129,7 @@ type SEC struct {
 	Tickers []SecTicker
 	Verbose bool
 	Config  config.Config
+	Debug   bool
 }
 
 func (t SecTicker) String() string {
@@ -302,6 +303,8 @@ func (s *SEC) DownloadIndex(db *sqlx.DB) error {
 	}
 
 	downloader := download.NewDownloader(s.Config)
+	downloader.Verbose = s.Verbose
+	downloader.Debug = s.Debug
 
 	rateLimit, err := time.ParseDuration(fmt.Sprintf("%vms", s.Config.Main.RateLimitMs))
 	if err != nil {
@@ -330,7 +333,7 @@ func (s *SEC) DownloadIndex(db *sqlx.DB) error {
 
 		if !not_download {
 			if s.Verbose {
-				fmt.Printf("File 'xbrlrss-%v.xml' is not in disk. Downloading file...: ", formatted)
+				fmt.Print("Downloading file...: ")
 			}
 			err = downloader.DownloadFile(db, fileURL)
 			if err != nil {
@@ -423,11 +426,15 @@ func (s *SEC) SecItemFileUpsert(db *sqlx.DB, item Item) error {
 			}
 		}
 
-		filePath := strings.ReplaceAll(v.URL, s.BaseURL, s.Config.Main.CacheDir)
+		fileUrl, err := url.Parse(v.URL)
+		if err != nil {
+			return err
+		}
 
+		filePath := filepath.Join(s.Config.Main.CacheDir, fileUrl.Path)
 		_, err = os.Stat(filePath)
 		if err != nil {
-			return fmt.Errorf("successfully inserted into database all downloaded files")
+			return fmt.Errorf("inserted into database all downloaded files, run sec dow data then run sec index again to insert all enabled months/years")
 		}
 
 		xbrlFile, err := os.Open(filePath)
@@ -435,15 +442,25 @@ func (s *SEC) SecItemFileUpsert(db *sqlx.DB, item Item) error {
 			return err
 		}
 
-		fileBody, err := ioutil.ReadAll(xbrlFile)
+		data, err := ioutil.ReadAll(xbrlFile)
 		if err != nil {
 			return err
 		}
 
-		// Skip saving image body in DB
 		fileExtension := filepath.Ext(filePath)
+		var fileBody string
+
+		// Convert HTML to TEXT
+		if fileExtension == ".html" || fileExtension == ".htm" {
+			fileBody, err = html2text.FromString(string(data))
+			if err != nil {
+				return err
+			}
+		}
+
+		// Skip saving image body in DB
 		if fileExtension == ".jpg" || fileExtension == ".jpeg" {
-			fileBody = []byte{}
+			fileBody = ""
 		}
 
 		_, err = db.Exec(`
@@ -453,7 +470,7 @@ func (s *SEC) SecItemFileUpsert(db *sqlx.DB, item Item) error {
 		ON CONFLICT (xbrlsequence, xbrlfile, xbrltype, xbrlsize, xbrldescription, xbrlinlinexbrl, xbrlurl)
 		DO UPDATE SET title=EXCLUDED.title, link=EXCLUDED.link, guid=EXCLUDED.guid, enclosure_url=EXCLUDED.enclosure_url, enclosure_length=EXCLUDED.enclosure_length, enclosure_type=EXCLUDED.enclosure_type, description=EXCLUDED.description, pubdate=EXCLUDED.pubdate, companyname=EXCLUDED.companyname, formtype=EXCLUDED.formtype, fillingdate=EXCLUDED.fillingdate, ciknumber=EXCLUDED.ciknumber, accessionnumber=EXCLUDED.accessionnumber, filenumber=EXCLUDED.filenumber, acceptancedatetime=EXCLUDED.acceptancedatetime, period=EXCLUDED.period, assistantdirector=EXCLUDED.assistantdirector, assignedsic=EXCLUDED.assignedsic, fiscalyearend=EXCLUDED.fiscalyearend, xbrlsequence=EXCLUDED.xbrlsequence, xbrlfile=EXCLUDED.xbrlfile, xbrltype=EXCLUDED.xbrltype, xbrlsize=EXCLUDED.xbrlsize, xbrldescription=EXCLUDED.xbrldescription, xbrlinlinexbrl=EXCLUDED.xbrlinlinexbrl, xbrlurl=EXCLUDED.xbrlurl, updated_at=NOW()
 		WHERE secItemFile.xbrlsequence=EXCLUDED.xbrlsequence AND secItemFile.xbrlfile=EXCLUDED.xbrlfile AND secItemFile.xbrltype=EXCLUDED.xbrltype AND secItemFile.xbrlsize=EXCLUDED.xbrlsize AND secItemFile.xbrldescription=EXCLUDED.xbrldescription AND secItemFile.xbrlinlinexbrl=EXCLUDED.xbrlinlinexbrl AND secItemFile.xbrlurl=EXCLUDED.xbrlurl AND secItemFile.xbrlbody=EXCLUDED.xbrlbody;`,
-			item.Title, item.Link, item.Guid, item.Enclosure.URL, enclosureLength, item.Enclosure.Type, item.Description, item.PubDate, item.XbrlFiling.CompanyName, item.XbrlFiling.FormType, item.XbrlFiling.FilingDate, item.XbrlFiling.CikNumber, item.XbrlFiling.AccessionNumber, item.XbrlFiling.FileNumber, item.XbrlFiling.AcceptanceDatetime, item.XbrlFiling.Period, item.XbrlFiling.AssistantDirector, assignedSic, fiscalYearEnd, xbrlSequence, v.File, v.Type, xbrlSize, v.Description, xbrlInline, v.URL, string(fileBody))
+			item.Title, item.Link, item.Guid, item.Enclosure.URL, enclosureLength, item.Enclosure.Type, item.Description, item.PubDate, item.XbrlFiling.CompanyName, item.XbrlFiling.FormType, item.XbrlFiling.FilingDate, item.XbrlFiling.CikNumber, item.XbrlFiling.AccessionNumber, item.XbrlFiling.FileNumber, item.XbrlFiling.AcceptanceDatetime, item.XbrlFiling.Period, item.XbrlFiling.AssistantDirector, assignedSic, fiscalYearEnd, xbrlSequence, v.File, v.Type, xbrlSize, v.Description, xbrlInline, v.URL, fileBody)
 		if err != nil {
 			return err
 		}
@@ -514,6 +531,8 @@ func (s *SEC) TotalXbrlFileCountGet(worklist []Worklist, cache_dir string) (int,
 
 func (s *SEC) DownloadXbrlFileContent(db *sqlx.DB, files []XbrlFile, config config.Config, current_count *int, total_count int) error {
 	downloader := download.NewDownloader(s.Config)
+	downloader.Verbose = s.Verbose
+	downloader.Debug = s.Debug
 
 	rateLimit, err := time.ParseDuration(fmt.Sprintf("%vms", s.Config.Main.RateLimitMs))
 	if err != nil {
@@ -601,7 +620,7 @@ func WorklistWillDownloadGet(db *sqlx.DB) ([]Worklist, error) {
 	// Retrieve from DB
 	var worklist []Worklist
 
-	err := db.Select(&worklist, "SELECT year, month, will_download FROM sec.worklist WHERE will_download = true")
+	err := db.Select(&worklist, "SELECT year, month, will_download FROM sec.worklist WHERE will_download = true ORDER BY year, month ASC")
 	if err != nil {
 		return nil, err
 	}

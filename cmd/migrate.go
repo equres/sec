@@ -18,26 +18,21 @@ var migrateCmd = &cobra.Command{
 	Use:   "migrate",
 	Short: "function to migrate the db up or down",
 	Long:  `function to migrate the db up or down`,
-	RunE: func(cmd *cobra.Command, args []string) error {
+	RunE: func(cmd *cobra.Command, args []string) (err error) {
 		if len(args) == 0 {
 			err := errors.New("please type 'up' to migrate up and 'down' to migrate down (e.g. sec migrate up)")
 			return err
 		}
 
-		db, err := database.ConnectDB(RootConfig)
-		if err != nil {
-			return err
-		}
-
 		switch args[0] {
 		case "up":
-			err = database.MigrateUp(db, GlobalMigrationsFS, RootConfig)
+			err = database.MigrateUp(DB, GlobalMigrationsFS, RootConfig)
 			if err != nil {
 				return err
 			}
 			fmt.Println("Successfully migrated the DB UP")
 		case "down":
-			err = database.MigrateDown(db, GlobalMigrationsFS, RootConfig)
+			err = database.MigrateDown(DB, GlobalMigrationsFS, RootConfig)
 			if err != nil {
 				return err
 			}

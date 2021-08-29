@@ -4,8 +4,6 @@ package cmd
 import (
 	"fmt"
 
-	"github.com/equres/sec/pkg/database"
-	"github.com/equres/sec/pkg/sec"
 	"github.com/spf13/cobra"
 )
 
@@ -15,26 +13,11 @@ var dowIndexCmd = &cobra.Command{
 	Short: "Download only index (RSS/XML) files into the local disk",
 	Long:  ``,
 	RunE: func(cmd *cobra.Command, args []string) (err error) {
-		db, err := database.ConnectDB(RootConfig)
-		if err != nil {
-			return err
-		}
-
-		s, err := sec.NewSEC(RootConfig)
-		if err != nil {
-			return err
-		}
-
-		s.Verbose, err = cmd.Flags().GetBool("verbose")
-		if err != nil {
-			return err
-		}
-
-		if s.Verbose {
+		if S.Verbose {
 			fmt.Println("Checking/Downloading index files...")
 		}
 
-		err = s.DownloadIndex(db)
+		err = S.DownloadIndex(DB)
 		if err != nil {
 			return err
 		}

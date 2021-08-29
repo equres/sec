@@ -26,6 +26,7 @@ type MainConfig struct {
 	BaseURL     string `mapstructure:"baseurl"`
 	CacheDir    string `mapstructure:"cachedir"`
 	RateLimitMs string `mapstructure:"ratelimitms"`
+	RetryLimit  string `mapstructure:"retrylimit"`
 }
 
 func LoadConfig(path string) (config Config, err error) {

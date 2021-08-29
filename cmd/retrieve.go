@@ -4,7 +4,6 @@ import (
 	"fmt"
 
 	"github.com/equres/sec/pkg/database"
-	"github.com/equres/sec/pkg/sec"
 	"github.com/spf13/cobra"
 )
 
@@ -18,17 +17,7 @@ var retrieveCmd = &cobra.Command{
 	},
 	RunE: func(cmd *cobra.Command, args []string) error {
 		// Retrieving all SecTickers
-		s, err := sec.NewSEC(RootConfig)
-		if err != nil {
-			return err
-		}
-
-		db, err := database.ConnectDB(RootConfig)
-		if err != nil {
-			return err
-		}
-
-		tickers, err := s.TickersGetAll(db)
+		tickers, err := S.TickersGetAll(DB)
 		if err != nil {
 			return err
 		}

@@ -2,23 +2,28 @@ package download
 
 import (
 	"bytes"
+	"fmt"
 	"io"
 	"io/fs"
 	"io/ioutil"
-	"net/http"
+	"net/http/httputil"
 	"net/url"
 	"os"
 	"path/filepath"
+	"strconv"
 	"strings"
 	"time"
 
 	"github.com/equres/sec/pkg/config"
+	"github.com/equres/sec/pkg/secreq"
 	"github.com/jmoiron/sqlx"
 )
 
 type Downloader struct {
 	RateLimitDuration time.Duration
 	Config            config.Config
+	Verbose           bool
+	Debug             bool
 }
 
 type Download struct {
@@ -43,6 +48,9 @@ func (d Downloader) FileInCache(db *sqlx.DB, fullurl string) (bool, error) {
 
 	filestat, err := os.Stat(filePath)
 	if err != nil {
+		if d.Verbose {
+			fmt.Print("File is not in cache: ")
+		}
 		return false, nil
 	}
 
@@ -52,6 +60,9 @@ func (d Downloader) FileInCache(db *sqlx.DB, fullurl string) (bool, error) {
 	}
 
 	if filestat != nil && !is_consistent {
+		if d.Verbose {
+			fmt.Print("File in cache not consistent: ")
+		}
 		return false, err
 	}
 
@@ -60,8 +71,17 @@ func (d Downloader) FileInCache(db *sqlx.DB, fullurl string) (bool, error) {
 
 func (d Downloader) FileConsistent(db *sqlx.DB, file fs.FileInfo, fullurl string) (bool, error) {
 	var downloads []Download
+	retryLimit, err := strconv.Atoi(d.Config.Main.RetryLimit)
+	if err != nil {
+		return false, err
+	}
 
-	err := db.Select(&downloads, "SELECT url, etag, size FROM sec.downloads WHERE url = $1", fullurl)
+	rateLimit, err := time.ParseDuration(d.Config.Main.RateLimitMs + "ms")
+	if err != nil {
+		return false, err
+	}
+
+	err = db.Select(&downloads, "SELECT url, etag, size FROM sec.downloads WHERE url = $1", fullurl)
 	if err != nil {
 		return false, err
 	}
@@ -70,26 +90,28 @@ func (d Downloader) FileConsistent(db *sqlx.DB, file fs.FileInfo, fullurl string
 		return false, nil
 	}
 
-	req, err := http.NewRequest("HEAD", fullurl, nil)
-	if err != nil {
-		return false, err
-	}
-	req.Header.Set("User-Agent", "Mozilla/5.0 (Windows NT 6.1; Win64; x64; rv:47.0)")
-
-	resp, err := new(http.Client).Do(req)
-	if err != nil {
-		return false, err
-	}
-
-	etag := resp.Header.Get("eTag")
-	if err != nil {
-		return false, err
-	}
-
 	var download Download
 	if len(downloads) > 0 {
 		download = downloads[0]
 	}
+
+	req := secreq.NewSECReqHEAD()
+
+	resp, err := req.SendRequest(retryLimit, rateLimit, fullurl)
+	if err != nil {
+		return false, err
+	}
+
+	if d.Debug {
+		fmt.Println()
+		headers, err := httputil.DumpResponse(resp, false)
+		if err != nil {
+			return false, err
+		}
+		fmt.Print(string(headers))
+	}
+
+	etag := resp.Header.Get("eTag")
 
 	if download.Etag != etag {
 		return false, nil
@@ -99,28 +121,37 @@ func (d Downloader) FileConsistent(db *sqlx.DB, file fs.FileInfo, fullurl string
 }
 
 func (d Downloader) DownloadFile(db *sqlx.DB, fullurl string) error {
+	retryLimit, err := strconv.Atoi(d.Config.Main.RetryLimit)
+	if err != nil {
+		return err
+	}
+
 	fileUrl, err := url.Parse(fullurl)
 	if err != nil {
 		return err
 	}
 	cachePath := filepath.Join(d.Config.Main.CacheDir, fileUrl.Path)
 
-	client := &http.Client{}
-
-	req, err := http.NewRequest("GET", fullurl, nil)
-	if err != nil {
-		return err
-	}
-	req.Header.Set("User-Agent", "Mozilla/5.0 (Windows NT 6.1; Win64; x64; rv:47.0)")
-
-	resp, err := client.Do(req)
+	rateLimit, err := time.ParseDuration(d.Config.Main.RateLimitMs + "ms")
 	if err != nil {
 		return err
 	}
 
-	defer resp.Body.Close()
+	req := secreq.NewSECReqGET()
 
-	etag := resp.Header.Get("eTag")
+	resp, err := req.SendRequest(retryLimit, rateLimit, fullurl)
+	if err != nil {
+		return err
+	}
+
+	if d.Debug {
+		fmt.Println()
+		headers, err := httputil.DumpResponse(resp, false)
+		if err != nil {
+			return err
+		}
+		fmt.Print(string(headers))
+	}
 
 	responseBody, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
@@ -151,6 +182,7 @@ func (d Downloader) DownloadFile(db *sqlx.DB, fullurl string) error {
 		return err
 	}
 
+	etag := resp.Header.Get("eTag")
 	_, err = db.Exec(`
 	INSERT INTO sec.downloads (url, etag, size, created_at, updated_at) 
 	VALUES ($1, $2, $3, NOW(), NOW()) 

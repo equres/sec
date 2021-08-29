@@ -24,30 +24,16 @@ to quickly create a Cobra application.`,
 		return database.CheckMigration(RootConfig)
 	},
 	RunE: func(cmd *cobra.Command, args []string) error {
-		db, err := database.ConnectDB(RootConfig)
+
+		worklist, err := sec.WorklistWillDownloadGet(DB)
 		if err != nil {
 			return err
 		}
 
-		worklist, err := sec.WorklistWillDownloadGet(db)
-		if err != nil {
-			return err
-		}
-
-		s, err := sec.NewSEC(RootConfig)
-		if err != nil {
-			return err
-		}
-
-		s.Verbose, err = cmd.Flags().GetBool("verbose")
-		if err != nil {
-			return err
-		}
-
-		if s.Verbose {
+		if S.Verbose {
 			fmt.Println("Checking/Downloading index files...")
 		}
-		err = s.DownloadIndex(db)
+		err = S.DownloadIndex(DB)
 		if err != nil {
 			return err
 		}
@@ -56,16 +42,16 @@ to quickly create a Cobra application.`,
 		var total_count int
 		var current_count int
 
-		if s.Verbose {
+		if S.Verbose {
 			fmt.Print("Calculating number of XBRL Files in the index files: ")
 		}
 
-		total_count, err = s.TotalXbrlFileCountGet(worklist, s.Config.Main.CacheDir)
+		total_count, err = S.TotalXbrlFileCountGet(worklist, S.Config.Main.CacheDir)
 		if err != nil {
 			return err
 		}
 
-		if s.Verbose {
+		if S.Verbose {
 			fmt.Println(total_count)
 		}
 
@@ -76,19 +62,19 @@ to quickly create a Cobra application.`,
 			}
 			formatted := date.Format("2006-01")
 
-			fileURL := fmt.Sprintf("%v/Archives/edgar/monthly/xbrlrss-%v.xml", s.Config.Main.CacheDir, formatted)
+			fileURL := fmt.Sprintf("%v/Archives/edgar/monthly/xbrlrss-%v.xml", S.Config.Main.CacheDir, formatted)
 
-			rssFile, err := s.ParseRSSGoXML(fileURL)
+			rssFile, err := S.ParseRSSGoXML(fileURL)
 			if err != nil {
 				return err
 			}
 
-			if s.Verbose {
+			if S.Verbose {
 				fmt.Println("Checking/Downloading XBRL files listed in index files...")
 			}
 
 			for _, v1 := range rssFile.Channel.Item {
-				err = s.DownloadXbrlFileContent(db, v1.XbrlFiling.XbrlFiles.XbrlFile, s.Config, &current_count, total_count)
+				err = S.DownloadXbrlFileContent(DB, v1.XbrlFiling.XbrlFiles.XbrlFile, S.Config, &current_count, total_count)
 				if err != nil {
 					return err
 				}
