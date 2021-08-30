@@ -447,16 +447,13 @@ func (s *SEC) SecItemFileUpsert(db *sqlx.DB, item Item) error {
 			return err
 		}
 
-		fileExtension := filepath.Ext(filePath)
 		var fileBody string
 
-		// Skip saving image body in DB
-		if fileExtension != ".jpg" && fileExtension != ".jpeg" && fileExtension != ".gif" && fileExtension != ".png" {
+		if ok := s.IsFileIndexable(filePath); ok {
 			fileBody = string(data)
 		}
 
-		// Convert HTML to TEXT
-		if fileExtension == ".html" || fileExtension == ".htm" {
+		if ok := s.IsHTMLType(filePath); ok {
 			fileBody, err = html2text.FromString(fileBody)
 			if err != nil {
 				return err
@@ -476,6 +473,24 @@ func (s *SEC) SecItemFileUpsert(db *sqlx.DB, item Item) error {
 		}
 	}
 	return nil
+}
+
+func (s *SEC) IsFileIndexable(filename string) bool {
+	fileExtension := filepath.Ext(filename)
+
+	if fileExtension != ".jpg" && fileExtension != ".jpeg" && fileExtension != ".gif" && fileExtension != ".png" {
+		return true
+	}
+	return false
+}
+
+func (s *SEC) IsHTMLType(filename string) bool {
+	fileExtension := filepath.Ext(filename)
+
+	if fileExtension == ".htm" || fileExtension == ".html" {
+		return true
+	}
+	return false
 }
 
 func ParseYearMonth(year_month string) (year int, month int, err error) {
