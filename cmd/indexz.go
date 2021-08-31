@@ -69,6 +69,7 @@ var indexzCmd = &cobra.Command{
 				if err != nil {
 					return err
 				}
+				currentCount++
 
 				if S.Verbose {
 					fmt.Printf("[%d/%d] %s downloaded for current file...\n", currentCount, totalCount, time.Now().Format("2006-01-02 03:04:05"))
