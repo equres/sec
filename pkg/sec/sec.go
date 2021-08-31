@@ -642,6 +642,10 @@ func (s *SEC) ZIPContentUpsert(db *sqlx.DB, pathname string, files []*zip.File) 
 	// Spliting directories
 	dirs := strings.Split(dirsPath, "\\")
 
+	if len(dirs) == 1 {
+		dirs = strings.Split(dirsPath, "/")
+	}
+
 	// Keeping only CIK and Accession Number
 	dirs = dirs[len(dirs)-2:]
 
