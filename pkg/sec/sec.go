@@ -3,6 +3,7 @@
 package sec
 
 import (
+	"archive/zip"
 	"bytes"
 	"encoding/json"
 	"encoding/xml"
@@ -15,6 +16,7 @@ import (
 	"os"
 	"path/filepath"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/equres/sec/pkg/config"
@@ -399,6 +401,13 @@ func (s *SEC) SecItemFileUpsert(db *sqlx.DB, item Item) error {
 			return err
 		}
 	}
+	var cikNumber int
+	if item.XbrlFiling.CikNumber != "" {
+		cikNumber, err = strconv.Atoi(item.XbrlFiling.CikNumber)
+		if err != nil {
+			return err
+		}
+	}
 
 	for _, v := range item.XbrlFiling.XbrlFiles.XbrlFile {
 		var xbrlInline bool
@@ -469,7 +478,7 @@ func (s *SEC) SecItemFileUpsert(db *sqlx.DB, item Item) error {
 		ON CONFLICT (xbrlsequence, xbrlfile, xbrltype, xbrlsize, xbrldescription, xbrlinlinexbrl, xbrlurl)
 		DO UPDATE SET title=EXCLUDED.title, link=EXCLUDED.link, guid=EXCLUDED.guid, enclosure_url=EXCLUDED.enclosure_url, enclosure_length=EXCLUDED.enclosure_length, enclosure_type=EXCLUDED.enclosure_type, description=EXCLUDED.description, pubdate=EXCLUDED.pubdate, companyname=EXCLUDED.companyname, formtype=EXCLUDED.formtype, fillingdate=EXCLUDED.fillingdate, ciknumber=EXCLUDED.ciknumber, accessionnumber=EXCLUDED.accessionnumber, filenumber=EXCLUDED.filenumber, acceptancedatetime=EXCLUDED.acceptancedatetime, period=EXCLUDED.period, assistantdirector=EXCLUDED.assistantdirector, assignedsic=EXCLUDED.assignedsic, fiscalyearend=EXCLUDED.fiscalyearend, xbrlsequence=EXCLUDED.xbrlsequence, xbrlfile=EXCLUDED.xbrlfile, xbrltype=EXCLUDED.xbrltype, xbrlsize=EXCLUDED.xbrlsize, xbrldescription=EXCLUDED.xbrldescription, xbrlinlinexbrl=EXCLUDED.xbrlinlinexbrl, xbrlurl=EXCLUDED.xbrlurl, updated_at=NOW()
 		WHERE secItemFile.xbrlsequence=EXCLUDED.xbrlsequence AND secItemFile.xbrlfile=EXCLUDED.xbrlfile AND secItemFile.xbrltype=EXCLUDED.xbrltype AND secItemFile.xbrlsize=EXCLUDED.xbrlsize AND secItemFile.xbrldescription=EXCLUDED.xbrldescription AND secItemFile.xbrlinlinexbrl=EXCLUDED.xbrlinlinexbrl AND secItemFile.xbrlurl=EXCLUDED.xbrlurl AND secItemFile.xbrlbody=EXCLUDED.xbrlbody;`,
-			item.Title, item.Link, item.Guid, item.Enclosure.URL, enclosureLength, item.Enclosure.Type, item.Description, item.PubDate, item.XbrlFiling.CompanyName, item.XbrlFiling.FormType, item.XbrlFiling.FilingDate, item.XbrlFiling.CikNumber, item.XbrlFiling.AccessionNumber, item.XbrlFiling.FileNumber, item.XbrlFiling.AcceptanceDatetime, item.XbrlFiling.Period, item.XbrlFiling.AssistantDirector, assignedSic, fiscalYearEnd, xbrlSequence, v.File, v.Type, xbrlSize, v.Description, xbrlInline, v.URL, fileBody)
+			item.Title, item.Link, item.Guid, item.Enclosure.URL, enclosureLength, item.Enclosure.Type, item.Description, item.PubDate, item.XbrlFiling.CompanyName, item.XbrlFiling.FormType, item.XbrlFiling.FilingDate, cikNumber, item.XbrlFiling.AccessionNumber, item.XbrlFiling.FileNumber, item.XbrlFiling.AcceptanceDatetime, item.XbrlFiling.Period, item.XbrlFiling.AssistantDirector, assignedSic, fiscalYearEnd, xbrlSequence, v.File, v.Type, xbrlSize, v.Description, xbrlInline, v.URL, fileBody)
 		if err != nil {
 			return err
 		}
@@ -624,4 +633,43 @@ func WorklistWillDownloadGet(db *sqlx.DB) ([]Worklist, error) {
 		return nil, err
 	}
 	return worklist, nil
+}
+
+func (s *SEC) ZIPContentUpsert(db *sqlx.DB, pathname string, files []*zip.File) error {
+	// Keeping only directories
+	dirsPath := filepath.Dir(pathname)
+
+	// Spliting directories
+	dirs := strings.Split(dirsPath, "\\")
+
+	// Keeping only CIK and Accession Number
+	dirs = dirs[len(dirs)-2:]
+
+	cik := dirs[0]
+	accession := dirs[1]
+
+	for _, file := range files {
+		reader, err := file.Open()
+		if err != nil {
+			return err
+		}
+
+		buf := bytes.Buffer{}
+		_, err = buf.ReadFrom(reader)
+		if err != nil {
+			return err
+		}
+		xbrlBody := buf.String()
+
+		_, err = db.Exec(`
+		INSERT INTO sec.secItemFile (ciknumber, accessionnumber, xbrlfile, xbrlsize, xbrlbody, created_at, updated_at)
+		VALUES ($1, $2, $3, $4, $5, NOW(), NOW()) 
+
+		ON CONFLICT (cikNumber, accessionNumber, xbrlFile, xbrlSize)
+		DO NOTHING;`, cik, accession, file.Name, int(file.FileInfo().Size()), xbrlBody)
+		if err != nil {
+			return err
+		}
+	}
+	return nil
 }
