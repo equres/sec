@@ -15,6 +15,7 @@ import (
 	"os"
 	"path/filepath"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/equres/sec/pkg/config"
@@ -446,20 +447,12 @@ func (s *SEC) SecItemFileUpsert(db *sqlx.DB, item Item) error {
 			return err
 		}
 
-		fileExtension := filepath.Ext(filePath)
 		var fileBody string
-
-		// Convert HTML to TEXT
-		if fileExtension == ".html" || fileExtension == ".htm" {
+		if ok := s.IsFileIndexable(filePath); ok {
 			fileBody, err = html2text.FromString(string(data))
 			if err != nil {
 				return err
 			}
-		}
-
-		// Skip saving image body in DB
-		if fileExtension == ".jpg" || fileExtension == ".jpeg" {
-			fileBody = ""
 		}
 
 		_, err = db.Exec(`
@@ -475,6 +468,15 @@ func (s *SEC) SecItemFileUpsert(db *sqlx.DB, item Item) error {
 		}
 	}
 	return nil
+}
+
+func (s *SEC) IsFileIndexable(filename string) bool {
+	fileExtension := strings.ToLower(filepath.Ext(filename))
+
+	if fileExtension == ".html" || fileExtension == ".htm" {
+		return true
+	}
+	return false
 }
 
 func ParseYearMonth(yearMonth string) (year int, month int, err error) {
