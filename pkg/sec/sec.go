@@ -456,7 +456,7 @@ func (s *SEC) SecItemFileUpsert(db *sqlx.DB, item Item) error {
 		}
 
 		var fileBody string
-		if ok := s.IsFileIndexable(filePath); ok {
+		if s.IsFileIndexable(filePath) {
 			fileBody, err = html2text.FromString(string(data))
 			if err != nil {
 				return err
@@ -664,7 +664,11 @@ func (s *SEC) ZIPContentUpsert(db *sqlx.DB, pathname string, files []*zip.File) 
 		if err != nil {
 			return err
 		}
-		xbrlBody := buf.String()
+		var xbrlBody string
+
+		if s.IsFileIndexable(file.FileInfo().Name()) {
+			xbrlBody = buf.String()
+		}
 
 		_, err = db.Exec(`
 		INSERT INTO sec.secItemFile (ciknumber, accessionnumber, xbrlfile, xbrlsize, xbrlbody, created_at, updated_at)
