@@ -9,19 +9,15 @@ import (
 	"path/filepath"
 	"time"
 
-	"github.com/equres/sec/pkg/database"
 	"github.com/equres/sec/pkg/sec"
 	"github.com/spf13/cobra"
 )
 
-// indexzCmd represents the indexz command
-var indexzCmd = &cobra.Command{
-	Use:   "indexz",
-	Short: "Loops through ZIP files and inserts in DB",
-	Long:  `Loops through ZIP files and inserts in DB`,
-	PreRunE: func(cmd *cobra.Command, args []string) error {
-		return database.CheckMigration(RootConfig)
-	},
+// unzipCmd represents the unzip command
+var unzipCmd = &cobra.Command{
+	Use:   "unzip",
+	Short: "extracts ZIP files to the cache unpacked directory",
+	Long:  `extracts ZIP files to the cache unpacked directory`,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		worklist, err := sec.WorklistWillDownloadGet(DB)
 		if err != nil {
@@ -39,12 +35,12 @@ var indexzCmd = &cobra.Command{
 
 			rssFile, err := S.ParseRSSGoXML(fileURL)
 			if err != nil {
-				err = fmt.Errorf("you did not download any files yet. Run sec dow data to download the files, then run sec index to save their information to the database")
+				err = fmt.Errorf("you did not download any files yet. Run sec dowz to download the ZIP files, then run sec unzip to unzip them")
 				return err
 			}
 
 			if S.Verbose {
-				fmt.Printf("Inserting ZIP file data from xbrlrss-%v.xml\n", formatted)
+				fmt.Printf("Downloading files in file xbrlrss-%v.xml...\n", formatted)
 			}
 
 			totalCount := len(rssFile.Channel.Item)
@@ -69,14 +65,14 @@ var indexzCmd = &cobra.Command{
 
 				defer reader.Close()
 
-				err = S.ZIPContentUpsert(DB, zipPath, reader.File)
+				err = S.CreateFilesFromZIP(zipPath, reader.File)
 				if err != nil {
 					return err
 				}
-				currentCount++
 
+				currentCount++
 				if S.Verbose {
-					fmt.Printf("[%d/%d] %s downloaded for current file...\n", currentCount, totalCount, time.Now().Format("2006-01-02 03:04:05"))
+					fmt.Printf("[%d/%d] %s unpacked...\n", currentCount, totalCount, time.Now().Format("2006-01-02 03:04:05"))
 				}
 			}
 		}
@@ -85,15 +81,15 @@ var indexzCmd = &cobra.Command{
 }
 
 func init() {
-	rootCmd.AddCommand(indexzCmd)
+	rootCmd.AddCommand(unzipCmd)
 
 	// Here you will define your flags and configuration settings.
 
 	// Cobra supports Persistent Flags which will work for this command
 	// and all subcommands, e.g.:
-	// indexzCmd.PersistentFlags().String("foo", "", "A help for foo")
+	// unzipCmd.PersistentFlags().String("foo", "", "A help for foo")
 
 	// Cobra supports local flags which will only run when this command
 	// is called directly, e.g.:
-	// indexzCmd.Flags().BoolP("toggle", "t", false, "Help message for toggle")
+	// unzipCmd.Flags().BoolP("toggle", "t", false, "Help message for toggle")
 }
