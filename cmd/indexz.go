@@ -4,9 +4,9 @@ package cmd
 import (
 	"archive/zip"
 	"fmt"
+	"net/url"
 	"os"
 	"path/filepath"
-	"strings"
 	"time"
 
 	"github.com/equres/sec/pkg/database"
@@ -50,10 +50,14 @@ var indexzCmd = &cobra.Command{
 			totalCount := len(rssFile.Channel.Item)
 			currentCount := 0
 			for _, v1 := range rssFile.Channel.Item {
-				zipPath := strings.ReplaceAll(v1.Enclosure.URL, S.BaseURL, "")
+				parsedURL, err := url.Parse(v1.Enclosure.URL)
+				if err != nil {
+					return err
+				}
+				zipPath := parsedURL.Path
 
 				zipCachePath := filepath.Join(RootConfig.Main.CacheDir, zipPath)
-				_, err := os.Stat(zipCachePath)
+				_, err = os.Stat(zipCachePath)
 				if err != nil {
 					return fmt.Errorf("please run sec dowz to download all ZIP files then run sec indexz again to index them")
 				}
