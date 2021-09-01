@@ -15,6 +15,7 @@
 # vendor/
 app.env
 cache
+unzipped_cache
 
 # executable
 .sec

@@ -103,10 +103,11 @@ func GenerateConfig() error {
 	cfg.SetConfigName("config")
 
 	cfg.SetDefault("main", config.MainConfig{
-		BaseURL:     url,
-		CacheDir:    "./cache",
-		RateLimitMs: rateLimit,
-		RetryLimit:  retrylimit,
+		BaseURL:          url,
+		CacheDir:         "./cache",
+		RateLimitMs:      rateLimit,
+		RetryLimit:       retrylimit,
+		CacheDirUnpacked: "./unzipped_cache",
 	})
 
 	cfg.SetDefault("database", config.DatabaseConfig{

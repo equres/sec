@@ -23,10 +23,11 @@ type DatabaseConfig struct {
 }
 
 type MainConfig struct {
-	BaseURL     string `mapstructure:"baseurl"`
-	CacheDir    string `mapstructure:"cachedir"`
-	RateLimitMs string `mapstructure:"ratelimitms"`
-	RetryLimit  string `mapstructure:"retrylimit"`
+	BaseURL          string `mapstructure:"baseurl"`
+	CacheDir         string `mapstructure:"cachedir"`
+	RateLimitMs      string `mapstructure:"ratelimitms"`
+	RetryLimit       string `mapstructure:"retrylimit"`
+	CacheDirUnpacked string `mapstructure:"cachedirunpacked"`
 }
 
 func LoadConfig(path string) (config Config, err error) {
