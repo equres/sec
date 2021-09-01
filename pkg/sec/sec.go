@@ -118,6 +118,37 @@ type Worklist struct {
 	WillDownload bool `db:"will_download"`
 }
 
+type SECItemFile struct {
+	ID                 int       `db:"id"`
+	Title              string    `db:"title"`
+	Link               string    `db:"link"`
+	Guid               string    `db:"guid"`
+	EnclosureURL       string    `db:"enclosure_url"`
+	EnclosureLength    int       `db:"enclosure_length"`
+	EnclosureType      string    `db:"enclosure_type"`
+	Description        string    `db:"description"`
+	PubDate            time.Time `db:"pubdate"`
+	CompanyName        string    `db:"companyname"`
+	FormType           string    `db:"formtype"`
+	FillingDate        time.Time `db:"fillingdate"`
+	CIKNumber          string    `db:"ciknumber"`
+	AccessionNumber    string    `db:"accessionnumber"`
+	FileNumber         string    `db:"filenumber"`
+	AcceptanceDatetime string    `db:"acceptancedatetime"`
+	Period             string    `db:"period"`
+	AssistantDirector  string    `db:"assistantdirector"`
+	AssignedSic        int       `db:"assignedsic"`
+	FiscalYearEnd      int       `db:"fiscalyearend"`
+	XbrlSequence       string    `db:"xbrlsequence"`
+	XbrlFile           string    `db:"xbrlfile"`
+	XbrlType           string    `db:"xbrltype"`
+	XbrlSize           int       `db:"xbrlsize"`
+	XbrlDescription    string    `db:"xbrldescription"`
+	XbrlInlineXbrl     bool      `db:"xbrlinlinexbrl"`
+	XbrlURL            string    `db:"xbrlurl"`
+	XbrlBody           string    `db:"xbrlbody"`
+}
+
 // Ticker Struct Based on JSON
 type SecTicker struct {
 	Cik      int    `json:"cik_str"`
@@ -681,6 +712,15 @@ func (s *SEC) ZIPContentUpsert(db *sqlx.DB, pathname string, files []*zip.File) 
 		}
 	}
 	return nil
+}
+
+func (s *SEC) SearchByFillingDate(db *sqlx.DB, date string) ([]SECItemFile, error) {
+	secItemFiles := []SECItemFile{}
+	err := db.Select(&secItemFiles, "SELECT title, companyname, ciknumber, accessionnumber, xbrlfile FROM sec.secItemFile WHERE DATE(fillingdate) = $1", date)
+	if err != nil {
+		return nil, err
+	}
+	return secItemFiles, nil
 }
 
 func (s *SEC) CreateFilesFromZIP(zipPath string, files []*zip.File) error {
