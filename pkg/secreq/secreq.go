@@ -40,6 +40,9 @@ func (sr *SECReq) SendRequest(retryLimit int, rateLimit time.Duration, fullurl s
 		return nil, fmt.Errorf("retried %v request %v times and failed", sr.RequestType, retryLimit)
 	}
 
+	// Sleep before starting any other HTTP request
+	time.Sleep(rateLimit)
+
 	return resp, nil
 }
 
