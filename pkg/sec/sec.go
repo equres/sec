@@ -682,3 +682,45 @@ func (s *SEC) ZIPContentUpsert(db *sqlx.DB, pathname string, files []*zip.File) 
 	}
 	return nil
 }
+
+func (s *SEC) CreateFilesFromZIP(zipPath string, files []*zip.File) error {
+	unpackedCachePath := filepath.Dir(filepath.Join(s.Config.Main.CacheDirUnpacked, zipPath))
+	for _, file := range files {
+		filePath := filepath.Join(unpackedCachePath, file.Name)
+
+		isFileExists, err := os.Stat(filePath)
+		if err != nil {
+			if _, err = os.Stat(unpackedCachePath); err != nil {
+				err = os.MkdirAll(unpackedCachePath, 0755)
+				if err != nil {
+					return err
+				}
+			}
+		}
+
+		if isFileExists == nil || (isFileExists != nil && isFileExists.Size() != file.FileInfo().Size()) {
+			out, err := os.Create(filePath)
+			if err != nil {
+				return err
+			}
+			defer out.Close()
+
+			reader, err := file.Open()
+			if err != nil {
+				return err
+			}
+
+			buf := bytes.Buffer{}
+			_, err = buf.ReadFrom(reader)
+			if err != nil {
+				return err
+			}
+
+			_, err = io.Copy(out, &buf)
+			if err != nil {
+				return err
+			}
+		}
+	}
+	return nil
+}
