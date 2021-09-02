@@ -4,9 +4,9 @@ package cmd
 import (
 	"fmt"
 	"os"
+	"path/filepath"
 	"strconv"
 	"text/tabwriter"
-	"time"
 
 	"github.com/equres/sec/pkg/database"
 	"github.com/equres/sec/pkg/download"
@@ -43,13 +43,10 @@ var destCmd = &cobra.Command{
 			var fileSize float64
 			var fileSizeZIP int
 
-			date, err := time.Parse("2006-1", fmt.Sprintf("%d-%d", v.Year, v.Month))
+			filePath, err := S.FormatFilePathDate(S.Config.Main.CacheDir, v.Year, v.Month)
 			if err != nil {
 				return err
 			}
-			formatted := date.Format("2006-01")
-
-			filePath := fmt.Sprintf("%v/Archives/edgar/monthly/xbrlrss-%v.xml", S.Config.Main.CacheDir, formatted)
 
 			_, err = downloader.FileInCache(filePath)
 			if err != nil {
@@ -57,7 +54,7 @@ var destCmd = &cobra.Command{
 			}
 
 			if S.Verbose {
-				fmt.Fprint(tabWriter, fmt.Sprintf("xbrlrss-%v.xml", formatted), "\t\t")
+				fmt.Fprint(tabWriter, fmt.Sprintf("%v", filepath.Base(filePath)), "\t\t")
 				err = tabWriter.Flush()
 				if err != nil {
 					return err

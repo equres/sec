@@ -3,10 +3,8 @@ package cmd
 
 import (
 	"fmt"
-	"time"
 
 	"github.com/equres/sec/pkg/database"
-	"github.com/equres/sec/pkg/sec"
 	"github.com/spf13/cobra"
 )
 
@@ -25,61 +23,20 @@ to quickly create a Cobra application.`,
 	},
 	RunE: func(cmd *cobra.Command, args []string) error {
 
-		worklist, err := sec.WorklistWillDownloadGet(DB)
-		if err != nil {
-			return err
-		}
-
 		if S.Verbose {
 			fmt.Println("Checking/Downloading index files...")
 		}
-		err = S.DownloadIndex(DB)
+
+		err := S.DownloadIndex(DB)
 		if err != nil {
 			return err
 		}
 
-		// Get Count of Items in RSSFile
-		var total_count int
-		var current_count int
-
-		if S.Verbose {
-			fmt.Print("Calculating number of XBRL Files in the index files: ")
-		}
-
-		total_count, err = S.TotalXbrlFileCountGet(worklist, S.Config.Main.CacheDir)
+		err = S.ForEachWorklist(DB, S.DownloadAllItemFiles, "Checking/Downloading XBRL files listed in index files...")
 		if err != nil {
 			return err
 		}
 
-		if S.Verbose {
-			fmt.Println(total_count)
-		}
-
-		for _, v := range worklist {
-			date, err := time.Parse("2006-1", fmt.Sprintf("%d-%d", v.Year, v.Month))
-			if err != nil {
-				return err
-			}
-			formatted := date.Format("2006-01")
-
-			fileURL := fmt.Sprintf("%v/Archives/edgar/monthly/xbrlrss-%v.xml", S.Config.Main.CacheDir, formatted)
-
-			rssFile, err := S.ParseRSSGoXML(fileURL)
-			if err != nil {
-				return err
-			}
-
-			if S.Verbose {
-				fmt.Println("Checking/Downloading XBRL files listed in index files...")
-			}
-
-			for _, v1 := range rssFile.Channel.Item {
-				err = S.DownloadXbrlFileContent(DB, v1.XbrlFiling.XbrlFiles.XbrlFile, S.Config, &current_count, total_count)
-				if err != nil {
-					return err
-				}
-			}
-		}
 		return nil
 	},
 }
