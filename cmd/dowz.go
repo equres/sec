@@ -41,13 +41,10 @@ var dowzCmd = &cobra.Command{
 		downloader.Debug = S.Debug
 
 		for _, v := range worklist {
-			date, err := time.Parse("2006-1", fmt.Sprintf("%d-%d", v.Year, v.Month))
+			fileURL, err := S.FormatFilePathDate(S.Config.Main.CacheDir, v.Year, v.Month)
 			if err != nil {
 				return err
 			}
-			formatted := date.Format("2006-01")
-
-			fileURL := fmt.Sprintf("%v/Archives/edgar/monthly/xbrlrss-%v.xml", S.Config.Main.CacheDir, formatted)
 
 			rssFile, err := S.ParseRSSGoXML(fileURL)
 			if err != nil {

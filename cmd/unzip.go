@@ -25,13 +25,10 @@ var unzipCmd = &cobra.Command{
 		}
 
 		for _, v := range worklist {
-			date, err := time.Parse("2006-1", fmt.Sprintf("%d-%d", v.Year, v.Month))
+			fileURL, err := S.FormatFilePathDate(S.Config.Main.CacheDir, v.Year, v.Month)
 			if err != nil {
 				return err
 			}
-			formatted := date.Format("2006-01")
-
-			fileURL := fmt.Sprintf("%v/Archives/edgar/monthly/xbrlrss-%v.xml", S.Config.Main.CacheDir, formatted)
 
 			rssFile, err := S.ParseRSSGoXML(fileURL)
 			if err != nil {
@@ -40,7 +37,7 @@ var unzipCmd = &cobra.Command{
 			}
 
 			if S.Verbose {
-				fmt.Printf("Downloading files in file xbrlrss-%v.xml...\n", formatted)
+				fmt.Printf("Downloading files in file %v...\n", filepath.Base(fileURL))
 			}
 
 			totalCount := len(rssFile.Channel.Item)

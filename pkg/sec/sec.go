@@ -344,16 +344,13 @@ func (s *SEC) DownloadIndex(db *sqlx.DB) error {
 	}
 
 	for _, v := range worklist {
-		date, err := time.Parse("2006-1", fmt.Sprintf("%d-%d", v.Year, v.Month))
+		fileURL, err := s.FormatFilePathDate(s.BaseURL, v.Year, v.Month)
 		if err != nil {
 			return err
 		}
-		formatted := date.Format("2006-01")
-
-		fileURL := fmt.Sprintf("%v/Archives/edgar/monthly/xbrlrss-%v.xml", s.BaseURL, formatted)
 
 		if s.Verbose {
-			fmt.Printf("Checking file 'xbrlrss-%v.xml' in disk: ", formatted)
+			fmt.Printf("Checking file '%v' in disk: ", filepath.Base(fileURL))
 		}
 		isFileCorrect, err := downloader.FileCorrect(db, fileURL)
 		if err != nil {
@@ -550,13 +547,11 @@ func ParseYearMonth(yearMonth string) (year int, month int, err error) {
 func (s *SEC) TotalXbrlFileCountGet(worklist []Worklist, cacheDir string) (int, error) {
 	var totalCount int
 	for _, v := range worklist {
-		date, err := time.Parse("2006-1", fmt.Sprintf("%d-%d", v.Year, v.Month))
+		filepath, err := s.FormatFilePathDate(cacheDir, v.Year, v.Month)
 		if err != nil {
 			return 0, err
 		}
-		formatted := date.Format("2006-01")
 
-		filepath := fmt.Sprintf("%v/Archives/edgar/monthly/xbrlrss-%v.xml", cacheDir, formatted)
 		rssFile, err := s.ParseRSSGoXML(filepath)
 		if err != nil {
 			return 0, err
@@ -763,4 +758,15 @@ func (s *SEC) CreateFilesFromZIP(zipPath string, files []*zip.File) error {
 		}
 	}
 	return nil
+}
+
+func (s *SEC) FormatFilePathDate(basepath string, year int, month int) (string, error) {
+	date, err := time.Parse("2006-1", fmt.Sprintf("%d-%d", year, month))
+	if err != nil {
+		return "", err
+	}
+	formatted := date.Format("2006-01")
+
+	filePath := fmt.Sprintf("%v/Archives/edgar/monthly/xbrlrss-%v.xml", s.Config.Main.CacheDir, formatted)
+	return filePath, nil
 }
