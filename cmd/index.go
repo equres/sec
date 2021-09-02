@@ -2,11 +2,7 @@
 package cmd
 
 import (
-	"fmt"
-	"path/filepath"
-
 	"github.com/equres/sec/pkg/database"
-	"github.com/equres/sec/pkg/sec"
 	"github.com/spf13/cobra"
 )
 
@@ -19,36 +15,7 @@ var indexCmd = &cobra.Command{
 		return database.CheckMigration(RootConfig)
 	},
 	RunE: func(cmd *cobra.Command, args []string) (err error) {
-
-		worklist, err := sec.WorklistWillDownloadGet(DB)
-		if err != nil {
-			return err
-		}
-
-		for _, v := range worklist {
-			fileURL, err := S.FormatFilePathDate(S.Config.Main.CacheDir, v.Year, v.Month)
-			if err != nil {
-				return err
-			}
-
-			rssFile, err := S.ParseRSSGoXML(fileURL)
-			if err != nil {
-				err = fmt.Errorf("you did not download any files yet. Run sec dow data to download the files, then run sec index to save their information to the database")
-				return err
-			}
-
-			if S.Verbose {
-				fmt.Printf("Insert data from %v\n", filepath.Base(fileURL))
-			}
-
-			for _, v1 := range rssFile.Channel.Item {
-				err = S.SecItemFileUpsert(DB, v1)
-				if err != nil {
-					return err
-				}
-			}
-		}
-		return nil
+		return S.ForEachWorklist(DB, S.InsertAllSecItemFile, "")
 	},
 }
 

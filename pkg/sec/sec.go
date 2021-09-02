@@ -822,3 +822,132 @@ func (s *SEC) ForEachWorklist(db *sqlx.DB, implementFunc func(*sqlx.DB, RSSFile,
 	}
 	return nil
 }
+
+func (s *SEC) DownloadZIPFiles(db *sqlx.DB, rssFile RSSFile, worklist []Worklist) error {
+	downloader := download.NewDownloader(s.Config)
+	downloader.Verbose = s.Verbose
+	downloader.Debug = s.Debug
+
+	rateLimit, err := time.ParseDuration(fmt.Sprintf("%vms", s.Config.Main.RateLimitMs))
+	if err != nil {
+		return err
+	}
+
+	totalCount := len(rssFile.Channel.Item)
+	currentCount := 0
+	for _, v1 := range rssFile.Channel.Item {
+		if v1.Enclosure.URL != "" {
+
+			isFileCorrect, err := downloader.FileCorrect(db, v1.Enclosure.URL)
+			if err != nil {
+				return err
+			}
+
+			if !isFileCorrect {
+				err = downloader.DownloadFile(db, v1.Enclosure.URL)
+				if err != nil {
+					return err
+				}
+				time.Sleep(rateLimit)
+			}
+
+			currentCount++
+			if !s.Verbose {
+				fmt.Printf("\r[%d/%d files already downloaded]. Will download %d remaining files. Pass --verbose to see progress report", currentCount, totalCount, (totalCount - currentCount))
+			}
+
+			if s.Verbose {
+				fmt.Printf("[%d/%d] %s downloaded...\n", currentCount, totalCount, time.Now().Format("2006-01-02 03:04:05"))
+			}
+		}
+	}
+	return nil
+}
+
+func (s *SEC) IndexZIPFileContent(db *sqlx.DB, rssFile RSSFile, worklist []Worklist) error {
+	totalCount := len(rssFile.Channel.Item)
+	currentCount := 0
+	for _, v1 := range rssFile.Channel.Item {
+		parsedURL, err := url.Parse(v1.Enclosure.URL)
+		if err != nil {
+			return err
+		}
+		zipPath := parsedURL.Path
+
+		zipCachePath := filepath.Join(s.Config.Main.CacheDir, zipPath)
+		_, err = os.Stat(zipCachePath)
+		if err != nil {
+			return fmt.Errorf("please run sec dowz to download all ZIP files then run sec indexz again to index them")
+		}
+
+		reader, err := zip.OpenReader(zipCachePath)
+		if err != nil {
+			return err
+		}
+
+		defer reader.Close()
+
+		err = s.ZIPContentUpsert(db, zipPath, reader.File)
+		if err != nil {
+			return err
+		}
+		currentCount++
+
+		if s.Verbose {
+			fmt.Printf("[%d/%d] %s inserted for current file...\n", currentCount, totalCount, time.Now().Format("2006-01-02 03:04:05"))
+		}
+	}
+	return nil
+}
+
+func (s *SEC) UnzipFiles(db *sqlx.DB, rssFile RSSFile, worklist []Worklist) error {
+	totalCount := len(rssFile.Channel.Item)
+	currentCount := 0
+	for _, v1 := range rssFile.Channel.Item {
+		parsedURL, err := url.Parse(v1.Enclosure.URL)
+		if err != nil {
+			return err
+		}
+		zipPath := parsedURL.Path
+
+		zipCachePath := filepath.Join(s.Config.Main.CacheDir, zipPath)
+		_, err = os.Stat(zipCachePath)
+		if err != nil {
+			return fmt.Errorf("please run sec dowz to download all ZIP files then run sec indexz again to index them")
+		}
+
+		reader, err := zip.OpenReader(zipCachePath)
+		if err != nil {
+			return err
+		}
+
+		defer reader.Close()
+
+		err = s.CreateFilesFromZIP(zipPath, reader.File)
+		if err != nil {
+			return err
+		}
+
+		currentCount++
+		if s.Verbose {
+			fmt.Printf("[%d/%d] %s unpacked...\n", currentCount, totalCount, time.Now().Format("2006-01-02 03:04:05"))
+		}
+	}
+	return nil
+}
+
+func (s *SEC) InsertAllSecItemFile(db *sqlx.DB, rssFile RSSFile, worklist []Worklist) error {
+	totalCount := len(rssFile.Channel.Item)
+	currentCount := 0
+	for _, v1 := range rssFile.Channel.Item {
+		err := s.SecItemFileUpsert(db, v1)
+		if err != nil {
+			return err
+		}
+		currentCount++
+		if s.Verbose {
+			fmt.Printf("[%d/%d] %s inserted for current file...\n", currentCount, totalCount, time.Now().Format("2006-01-02 03:04:05"))
+		}
+	}
+	return nil
+}

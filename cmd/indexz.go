@@ -2,15 +2,7 @@
 package cmd
 
 import (
-	"archive/zip"
-	"fmt"
-	"net/url"
-	"os"
-	"path/filepath"
-	"time"
-
 	"github.com/equres/sec/pkg/database"
-	"github.com/equres/sec/pkg/sec"
 	"github.com/spf13/cobra"
 )
 
@@ -23,61 +15,7 @@ var indexzCmd = &cobra.Command{
 		return database.CheckMigration(RootConfig)
 	},
 	RunE: func(cmd *cobra.Command, args []string) error {
-		worklist, err := sec.WorklistWillDownloadGet(DB)
-		if err != nil {
-			return err
-		}
-
-		for _, v := range worklist {
-			fileURL, err := S.FormatFilePathDate(S.Config.Main.CacheDir, v.Year, v.Month)
-			if err != nil {
-				return err
-			}
-
-			rssFile, err := S.ParseRSSGoXML(fileURL)
-			if err != nil {
-				err = fmt.Errorf("you did not download any files yet. Run sec dow data to download the files, then run sec index to save their information to the database")
-				return err
-			}
-
-			if S.Verbose {
-				fmt.Printf("Inserting ZIP file data from %v\n", filepath.Base(fileURL))
-			}
-
-			totalCount := len(rssFile.Channel.Item)
-			currentCount := 0
-			for _, v1 := range rssFile.Channel.Item {
-				parsedURL, err := url.Parse(v1.Enclosure.URL)
-				if err != nil {
-					return err
-				}
-				zipPath := parsedURL.Path
-
-				zipCachePath := filepath.Join(RootConfig.Main.CacheDir, zipPath)
-				_, err = os.Stat(zipCachePath)
-				if err != nil {
-					return fmt.Errorf("please run sec dowz to download all ZIP files then run sec indexz again to index them")
-				}
-
-				reader, err := zip.OpenReader(zipCachePath)
-				if err != nil {
-					return err
-				}
-
-				defer reader.Close()
-
-				err = S.ZIPContentUpsert(DB, zipPath, reader.File)
-				if err != nil {
-					return err
-				}
-				currentCount++
-
-				if S.Verbose {
-					fmt.Printf("[%d/%d] %s downloaded for current file...\n", currentCount, totalCount, time.Now().Format("2006-01-02 03:04:05"))
-				}
-			}
-		}
-		return nil
+		return S.ForEachWorklist(DB, S.IndexZIPFileContent, "")
 	},
 }
 
