@@ -767,6 +767,58 @@ func (s *SEC) FormatFilePathDate(basepath string, year int, month int) (string, 
 	}
 	formatted := date.Format("2006-01")
 
-	filePath := fmt.Sprintf("%v/Archives/edgar/monthly/xbrlrss-%v.xml", s.Config.Main.CacheDir, formatted)
+	filePath := fmt.Sprintf("%v/Archives/edgar/monthly/xbrlrss-%v.xml", basepath, formatted)
 	return filePath, nil
+}
+
+func (s *SEC) DownloadAllItemFiles(db *sqlx.DB, rssFile RSSFile, worklist []Worklist) error {
+	if s.Verbose {
+		fmt.Print("Calculating number of XBRL Files in the index files: ")
+	}
+
+	totalCount, err := s.TotalXbrlFileCountGet(worklist, s.Config.Main.CacheDir)
+	if err != nil {
+		return err
+	}
+	if s.Verbose {
+		fmt.Println(totalCount)
+	}
+
+	currentCount := 0
+	for _, v1 := range rssFile.Channel.Item {
+		err := s.DownloadXbrlFileContent(db, v1.XbrlFiling.XbrlFiles.XbrlFile, s.Config, &currentCount, totalCount)
+		if err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func (s *SEC) ForEachWorklist(db *sqlx.DB, implementFunc func(*sqlx.DB, RSSFile, []Worklist) error, verboseMessage string) error {
+	worklist, err := WorklistWillDownloadGet(db)
+	if err != nil {
+		return err
+	}
+	for _, v := range worklist {
+		fileURL, err := s.FormatFilePathDate(s.Config.Main.CacheDir, v.Year, v.Month)
+		if err != nil {
+			return err
+		}
+
+		rssFile, err := s.ParseRSSGoXML(fileURL)
+		if err != nil {
+			return err
+		}
+
+		if s.Verbose {
+			fmt.Println(verboseMessage)
+		}
+
+		err = implementFunc(db, rssFile, worklist)
+		if err != nil {
+			return err
+		}
+
+	}
+	return nil
 }
