@@ -11,7 +11,7 @@ CREATE TABLE sec.secItemFile (
     companyName text,
     formType text,
     fillingDate timestamp with time zone,
-    cikNumber text,
+    cikNumber integer,
     accessionNumber text,
     fileNumber text,
     acceptanceDatetime text,
@@ -30,5 +30,6 @@ CREATE TABLE sec.secItemFile (
     created_at timestamp with time zone,
     updated_at timestamp with time zone,
     deleted_at timestamp with time zone,
-    CONSTRAINT xbrl_file UNIQUE (xbrlSequence, xbrlFile, xbrlType, xbrlSize, xbrlDescription, xbrlInlineXBRL, xbrlUrl)
+    CONSTRAINT xbrl_file UNIQUE (xbrlSequence, xbrlFile, xbrlType, xbrlSize, xbrlDescription, xbrlInlineXBRL, xbrlUrl),
+    CONSTRAINT fk_cik FOREIGN KEY (cikNumber) REFERENCES sec.ciks(cik)
 );
