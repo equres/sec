@@ -445,16 +445,13 @@ func (s *SEC) DownloadIndex(db *sqlx.DB) error {
 	}
 
 	for _, v := range worklist {
-		date, err := time.Parse("2006-1", fmt.Sprintf("%d-%d", v.Year, v.Month))
+		fileURL, err := s.FormatFilePathDate(s.BaseURL, v.Year, v.Month)
 		if err != nil {
 			return err
 		}
-		formatted := date.Format("2006-01")
-
-		fileURL := fmt.Sprintf("%v/Archives/edgar/monthly/xbrlrss-%v.xml", s.BaseURL, formatted)
 
 		if s.Verbose {
-			fmt.Printf("Checking file 'xbrlrss-%v.xml' in disk: ", formatted)
+			fmt.Printf("Checking file '%v' in disk: ", filepath.Base(fileURL))
 		}
 		isFileCorrect, err := downloader.FileCorrect(db, fileURL)
 		if err != nil {
@@ -651,13 +648,11 @@ func ParseYearMonth(yearMonth string) (year int, month int, err error) {
 func (s *SEC) TotalXbrlFileCountGet(worklist []Worklist, cacheDir string) (int, error) {
 	var totalCount int
 	for _, v := range worklist {
-		date, err := time.Parse("2006-1", fmt.Sprintf("%d-%d", v.Year, v.Month))
+		filepath, err := s.FormatFilePathDate(cacheDir, v.Year, v.Month)
 		if err != nil {
 			return 0, err
 		}
-		formatted := date.Format("2006-01")
 
-		filepath := fmt.Sprintf("%v/Archives/edgar/monthly/xbrlrss-%v.xml", cacheDir, formatted)
 		rssFile, err := s.ParseRSSGoXML(filepath)
 		if err != nil {
 			return 0, err
@@ -861,6 +856,198 @@ func (s *SEC) CreateFilesFromZIP(zipPath string, files []*zip.File) error {
 			if err != nil {
 				return err
 			}
+		}
+	}
+	return nil
+}
+
+func (s *SEC) FormatFilePathDate(basepath string, year int, month int) (string, error) {
+	date, err := time.Parse("2006-1", fmt.Sprintf("%d-%d", year, month))
+	if err != nil {
+		return "", err
+	}
+	formatted := date.Format("2006-01")
+
+	filePath := fmt.Sprintf("%v/Archives/edgar/monthly/xbrlrss-%v.xml", basepath, formatted)
+	return filePath, nil
+}
+
+func (s *SEC) DownloadAllItemFiles(db *sqlx.DB, rssFile RSSFile, worklist []Worklist) error {
+	if s.Verbose {
+		fmt.Print("Calculating number of XBRL Files in the index files: ")
+	}
+
+	totalCount, err := s.TotalXbrlFileCountGet(worklist, s.Config.Main.CacheDir)
+	if err != nil {
+		return err
+	}
+	if s.Verbose {
+		fmt.Println(totalCount)
+	}
+
+	currentCount := 0
+	for _, v1 := range rssFile.Channel.Item {
+		err := s.DownloadXbrlFileContent(db, v1.XbrlFiling.XbrlFiles.XbrlFile, s.Config, &currentCount, totalCount)
+		if err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func (s *SEC) ForEachWorklist(db *sqlx.DB, implementFunc func(*sqlx.DB, RSSFile, []Worklist) error, verboseMessage string) error {
+	worklist, err := WorklistWillDownloadGet(db)
+	if err != nil {
+		return err
+	}
+	for _, v := range worklist {
+		fileURL, err := s.FormatFilePathDate(s.Config.Main.CacheDir, v.Year, v.Month)
+		if err != nil {
+			return err
+		}
+
+		rssFile, err := s.ParseRSSGoXML(fileURL)
+		if err != nil {
+			return err
+		}
+
+		if s.Verbose {
+			fmt.Println(verboseMessage)
+		}
+
+		err = implementFunc(db, rssFile, worklist)
+		if err != nil {
+			return err
+		}
+
+	}
+	return nil
+}
+
+func (s *SEC) DownloadZIPFiles(db *sqlx.DB, rssFile RSSFile, worklist []Worklist) error {
+	downloader := download.NewDownloader(s.Config)
+	downloader.Verbose = s.Verbose
+	downloader.Debug = s.Debug
+
+	rateLimit, err := time.ParseDuration(fmt.Sprintf("%vms", s.Config.Main.RateLimitMs))
+	if err != nil {
+		return err
+	}
+
+	totalCount := len(rssFile.Channel.Item)
+	currentCount := 0
+	for _, v1 := range rssFile.Channel.Item {
+		if v1.Enclosure.URL != "" {
+
+			isFileCorrect, err := downloader.FileCorrect(db, v1.Enclosure.URL)
+			if err != nil {
+				return err
+			}
+
+			if !isFileCorrect {
+				err = downloader.DownloadFile(db, v1.Enclosure.URL)
+				if err != nil {
+					return err
+				}
+				time.Sleep(rateLimit)
+			}
+
+			currentCount++
+			if !s.Verbose {
+				fmt.Printf("\r[%d/%d files already downloaded]. Will download %d remaining files. Pass --verbose to see progress report", currentCount, totalCount, (totalCount - currentCount))
+			}
+
+			if s.Verbose {
+				fmt.Printf("[%d/%d] %s downloaded...\n", currentCount, totalCount, time.Now().Format("2006-01-02 03:04:05"))
+			}
+		}
+	}
+	return nil
+}
+
+func (s *SEC) IndexZIPFileContent(db *sqlx.DB, rssFile RSSFile, worklist []Worklist) error {
+	totalCount := len(rssFile.Channel.Item)
+	currentCount := 0
+	for _, v1 := range rssFile.Channel.Item {
+		parsedURL, err := url.Parse(v1.Enclosure.URL)
+		if err != nil {
+			return err
+		}
+		zipPath := parsedURL.Path
+
+		zipCachePath := filepath.Join(s.Config.Main.CacheDir, zipPath)
+		_, err = os.Stat(zipCachePath)
+		if err != nil {
+			return fmt.Errorf("please run sec dowz to download all ZIP files then run sec indexz again to index them")
+		}
+
+		reader, err := zip.OpenReader(zipCachePath)
+		if err != nil {
+			return err
+		}
+
+		defer reader.Close()
+
+		err = s.ZIPContentUpsert(db, zipPath, reader.File)
+		if err != nil {
+			return err
+		}
+		currentCount++
+
+		if s.Verbose {
+			fmt.Printf("[%d/%d] %s inserted for current file...\n", currentCount, totalCount, time.Now().Format("2006-01-02 03:04:05"))
+		}
+	}
+	return nil
+}
+
+func (s *SEC) UnzipFiles(db *sqlx.DB, rssFile RSSFile, worklist []Worklist) error {
+	totalCount := len(rssFile.Channel.Item)
+	currentCount := 0
+	for _, v1 := range rssFile.Channel.Item {
+		parsedURL, err := url.Parse(v1.Enclosure.URL)
+		if err != nil {
+			return err
+		}
+		zipPath := parsedURL.Path
+
+		zipCachePath := filepath.Join(s.Config.Main.CacheDir, zipPath)
+		_, err = os.Stat(zipCachePath)
+		if err != nil {
+			return fmt.Errorf("please run sec dowz to download all ZIP files then run sec indexz again to index them")
+		}
+
+		reader, err := zip.OpenReader(zipCachePath)
+		if err != nil {
+			return err
+		}
+
+		defer reader.Close()
+
+		err = s.CreateFilesFromZIP(zipPath, reader.File)
+		if err != nil {
+			return err
+		}
+
+		currentCount++
+		if s.Verbose {
+			fmt.Printf("[%d/%d] %s unpacked...\n", currentCount, totalCount, time.Now().Format("2006-01-02 03:04:05"))
+		}
+	}
+	return nil
+}
+
+func (s *SEC) InsertAllSecItemFile(db *sqlx.DB, rssFile RSSFile, worklist []Worklist) error {
+	totalCount := len(rssFile.Channel.Item)
+	currentCount := 0
+	for _, v1 := range rssFile.Channel.Item {
+		err := s.SecItemFileUpsert(db, v1)
+		if err != nil {
+			return err
+		}
+		currentCount++
+		if s.Verbose {
+			fmt.Printf("[%d/%d] %s inserted for current file...\n", currentCount, totalCount, time.Now().Format("2006-01-02 03:04:05"))
 		}
 	}
 	return nil

@@ -2,10 +2,7 @@ package cmd
 
 import (
 	"fmt"
-	"time"
 
-	"github.com/equres/sec/pkg/download"
-	"github.com/equres/sec/pkg/sec"
 	"github.com/spf13/cobra"
 )
 
@@ -18,70 +15,18 @@ var dowzCmd = &cobra.Command{
 	Short: "download all of the referenced file from XBRL index as ZIP files",
 	Long:  `download all of the referenced file from XBRL index as ZIP files`,
 	RunE: func(cmd *cobra.Command, args []string) error {
-		worklist, err := sec.WorklistWillDownloadGet(DB)
-		if err != nil {
-			return err
-		}
-
 		if S.Verbose {
 			fmt.Println("Checking/Downloading index files...")
 		}
-		err = S.DownloadIndex(DB)
+
+		err := S.DownloadIndex(DB)
 		if err != nil {
 			return err
 		}
 
-		rateLimit, err := time.ParseDuration(fmt.Sprintf("%vms", S.Config.Main.RateLimitMs))
+		err = S.ForEachWorklist(DB, S.DownloadZIPFiles, "")
 		if err != nil {
 			return err
-		}
-
-		downloader := download.NewDownloader(S.Config)
-		downloader.Verbose = S.Verbose
-		downloader.Debug = S.Debug
-
-		for _, v := range worklist {
-			date, err := time.Parse("2006-1", fmt.Sprintf("%d-%d", v.Year, v.Month))
-			if err != nil {
-				return err
-			}
-			formatted := date.Format("2006-01")
-
-			fileURL := fmt.Sprintf("%v/Archives/edgar/monthly/xbrlrss-%v.xml", S.Config.Main.CacheDir, formatted)
-
-			rssFile, err := S.ParseRSSGoXML(fileURL)
-			if err != nil {
-				return err
-			}
-
-			totalCount := len(rssFile.Channel.Item)
-			currentCount := 0
-			for _, v1 := range rssFile.Channel.Item {
-				if v1.Enclosure.URL != "" {
-
-					isFileCorrect, err := downloader.FileCorrect(DB, v1.Enclosure.URL)
-					if err != nil {
-						return err
-					}
-
-					if !isFileCorrect {
-						err = downloader.DownloadFile(DB, v1.Enclosure.URL)
-						if err != nil {
-							return err
-						}
-						time.Sleep(rateLimit)
-					}
-
-					currentCount++
-					if !S.Verbose {
-						fmt.Printf("\r[%d/%d files already downloaded]. Will download %d remaining files. Pass --verbose to see progress report", currentCount, totalCount, (totalCount - currentCount))
-					}
-
-					if S.Verbose {
-						fmt.Printf("[%d/%d] %s downloaded...\n", currentCount, totalCount, time.Now().Format("2006-01-02 03:04:05"))
-					}
-				}
-			}
 		}
 		return nil
 	},
