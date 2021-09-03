@@ -12,7 +12,17 @@ var dowIndexCmd = &cobra.Command{
 	Use:   "index",
 	Short: "Download only index (RSS/XML) files into the local disk",
 	Long:  ``,
-	RunE: func(cmd *cobra.Command, args []string) (err error) {
+	RunE: func(cmd *cobra.Command, args []string) error {
+		err := S.DownloadTickerFile(DB, "files/company_tickers.json")
+		if err != nil {
+			return err
+		}
+
+		err = S.DownloadTickerFile(DB, "files/company_tickers_exchange.json")
+		if err != nil {
+			return err
+		}
+
 		if S.Verbose {
 			fmt.Println("Checking/Downloading index files...")
 		}

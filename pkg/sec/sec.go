@@ -189,6 +189,18 @@ func (t SecTicker) Save(db *sqlx.DB) error {
 	return nil
 }
 
+func SaveCIK(db *sqlx.DB, cik int) error {
+	_, err := db.Exec(`
+	INSERT INTO sec.ciks (cik, created_at, updated_at) 
+	VALUES ($1,NOW(), NOW()) 
+	ON CONFLICT (cik) 
+	DO NOTHING;`, cik)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
 func (s *SEC) FetchFile(urlVar string) ([]byte, error) {
 	// Retrieving JSON From URL
 	baseURL, err := url.Parse(s.BaseURL)
@@ -226,6 +238,55 @@ func (s *SEC) TickerUpdateAll(db *sqlx.DB) error {
 	return nil
 }
 
+func (s *SEC) DownloadTickerFile(db *sqlx.DB, path string) error {
+	downloader := download.NewDownloader(s.Config)
+	downloader.Verbose = s.Verbose
+	downloader.Debug = s.Debug
+
+	baseURL, err := url.Parse(s.BaseURL)
+	if err != nil {
+		return err
+	}
+	pathURL, err := url.Parse(path)
+	if err != nil {
+		return err
+	}
+
+	fullURL := baseURL.ResolveReference(pathURL).String()
+
+	if s.Verbose {
+		fmt.Printf("Checking for file %v: ", filepath.Base(pathURL.Path))
+	}
+
+	isFileCorrect, err := downloader.FileCorrect(db, fullURL)
+	if err != nil {
+		return err
+	}
+
+	rateLimit, err := time.ParseDuration(fmt.Sprintf("%vms", s.Config.Main.RateLimitMs))
+	if err != nil {
+		return err
+	}
+
+	if s.Verbose && isFileCorrect {
+		fmt.Println("\u2713")
+	}
+	if !isFileCorrect {
+		if s.Verbose {
+			fmt.Print("Downloading file...: ")
+		}
+		err = downloader.DownloadFile(db, fullURL)
+		if err != nil {
+			return err
+		}
+		if s.Verbose {
+			fmt.Println(time.Now().Format("2006-01-02 03:04:05"))
+		}
+		time.Sleep(rateLimit)
+	}
+	return nil
+}
+
 func (s *SEC) TickersGetAll(db *sqlx.DB) ([]SecTicker, error) {
 	// Retrieve from DB
 	tickers := []SecTicker{}
@@ -237,8 +298,14 @@ func (s *SEC) TickersGetAll(db *sqlx.DB) ([]SecTicker, error) {
 }
 
 func (s *SEC) NoExchangeTickersGet(db *sqlx.DB) error {
-	// Retrieving JSON data from URL
-	body, err := s.FetchFile("files/company_tickers.json")
+	filePath := filepath.Join(s.Config.Main.CacheDir, "files/company_tickers.json")
+
+	file, err := os.Open(filePath)
+	if err != nil {
+		return err
+	}
+
+	data, err := ioutil.ReadAll(file)
 	if err != nil {
 		return err
 	}
@@ -247,9 +314,19 @@ func (s *SEC) NoExchangeTickersGet(db *sqlx.DB) error {
 	allCompanyTickers := make(map[int]SecTicker)
 
 	// Converting JSON to Structs
-	err = json.Unmarshal(body, &allCompanyTickers)
+	err = json.Unmarshal(data, &allCompanyTickers)
 	if err != nil {
 		return err
+	}
+	if s.Verbose {
+		fmt.Print("Indexing file company_tickers.json: ")
+	}
+
+	for _, v := range allCompanyTickers {
+		err = SaveCIK(db, v.Cik)
+		if err != nil {
+			return err
+		}
 	}
 
 	for _, v := range allCompanyTickers {
@@ -264,21 +341,42 @@ func (s *SEC) NoExchangeTickersGet(db *sqlx.DB) error {
 			return err
 		}
 	}
+	if s.Verbose {
+		fmt.Println("\u2713")
+	}
 	return nil
 }
 
 func (s *SEC) ExchangeTickersGet(db *sqlx.DB) error {
 	// Retrieving JSON data from URL
-	body, err := s.FetchFile("files/company_tickers_exchange.json")
+	filePath := filepath.Join(s.Config.Main.CacheDir, "files/company_tickers_exchange.json")
+
+	file, err := os.Open(filePath)
+	if err != nil {
+		return err
+	}
+
+	data, err := ioutil.ReadAll(file)
 	if err != nil {
 		return err
 	}
 
 	fileExchange := ExchangesFile{}
 
-	err = json.Unmarshal(body, &fileExchange)
+	err = json.Unmarshal(data, &fileExchange)
 	if err != nil {
 		return err
+	}
+
+	if s.Verbose {
+		fmt.Print("Indexing file company_tickers_exchange.json: ")
+	}
+
+	for _, v := range fileExchange.Data {
+		err = SaveCIK(db, int(v[0].(float64)))
+		if err != nil {
+			return err
+		}
 	}
 
 	for _, v := range fileExchange.Data {
@@ -300,6 +398,9 @@ func (s *SEC) ExchangeTickersGet(db *sqlx.DB) error {
 		if err != nil {
 			return err
 		}
+	}
+	if s.Verbose {
+		fmt.Println("\u2713")
 	}
 	return nil
 }

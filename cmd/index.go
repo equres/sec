@@ -3,9 +3,11 @@ package cmd
 
 import (
 	"fmt"
+	"path/filepath"
 	"time"
 
 	"github.com/equres/sec/pkg/database"
+	"github.com/equres/sec/pkg/download"
 	"github.com/equres/sec/pkg/sec"
 	"github.com/spf13/cobra"
 )
@@ -19,6 +21,28 @@ var indexCmd = &cobra.Command{
 		return database.CheckMigration(RootConfig)
 	},
 	RunE: func(cmd *cobra.Command, args []string) (err error) {
+		downloader := download.NewDownloader(RootConfig)
+		downloader.Verbose = S.Verbose
+		downloader.Debug = S.Debug
+
+		// Check if ticker with no exchange json files are in cache
+		filePath := filepath.Join(S.Config.Main.CacheDir, "files/company_tickers_exchange.json")
+		_, err = downloader.FileInCache(filePath)
+		if err != nil {
+			return fmt.Errorf("please run sec dow index to download the necessary files")
+		}
+
+		// Check if ticker with exchange json files are in cache
+		filePath = filepath.Join(S.Config.Main.CacheDir, "files/company_tickers_exchange.json")
+		_, err = downloader.FileInCache(filePath)
+		if err != nil {
+			return fmt.Errorf("please run sec dow index to download the necessary files")
+		}
+
+		err = S.TickerUpdateAll(DB)
+		if err != nil {
+			return err
+		}
 
 		worklist, err := sec.WorklistWillDownloadGet(DB)
 		if err != nil {
