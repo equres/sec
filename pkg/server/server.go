@@ -81,7 +81,6 @@ func (s Server) Home(w http.ResponseWriter, r *http.Request) {
 		fmt.Fprint(w, err)
 		return
 	}
-	return
 }
 
 func (s Server) MonthsPage(w http.ResponseWriter, r *http.Request) {
@@ -117,7 +116,6 @@ func (s Server) MonthsPage(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		fmt.Fprint(w, err)
 	}
-	return
 }
 
 func (s Server) FillingsPage(w http.ResponseWriter, r *http.Request) {
@@ -174,7 +172,6 @@ func (s Server) FillingsPage(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		fmt.Fprint(w, err)
 	}
-	return
 }
 
 func (s Server) RenderTemplate(w http.ResponseWriter, tmpl string, data interface{}) error {
