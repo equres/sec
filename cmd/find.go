@@ -26,7 +26,7 @@ var findCmd = &cobra.Command{
 		}
 
 		formattedDate := fmt.Sprintf("%v-%v-%v", date.Year(), int(date.Month()), date.Day())
-		secitemfiles, err := S.SearchByFillingDate(DB, formattedDate)
+		secitemfiles, err := S.SearchByFillingDate(DB, formattedDate, formattedDate)
 		if err != nil {
 			return err
 		}

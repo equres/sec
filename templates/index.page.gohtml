@@ -1,0 +1,9 @@
+{{ template "base" .}}
+
+{{ define "content"}}
+    <ul>
+        {{ range .Years }}
+            <li><a href="{{ . }}">{{ . }}</a></li>
+        {{ end}}
+    </ul>
+{{ end }}

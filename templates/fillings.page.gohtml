@@ -1,0 +1,29 @@
+{{ template "base" .}}
+
+{{ define "content"}}
+    <h3>Year: {{ .Year }}</h3>
+    <h3>Month: {{ .Month }}</h3>
+    <table class="table">
+        <thead>
+            <tr>
+                <th>Title</th>
+                <th>Company Name</th>
+                <th>CIK</th>
+                <th>Accession Number</th>
+                <th>XBRLFile</th>
+            </tr>
+        </thead>
+        <tbody>
+            <!-- title, companyname, ciknumber, accessionnumber, xbrlfile -->
+            {{ range .Fillings }}
+                <tr>
+                    <td>{{ .Title }}</td>
+                    <td>{{ .CompanyName }}</td>
+                    <td>{{ .CIKNumber }}</td>
+                    <td>{{ .AccessionNumber }}</td>
+                    <td>{{ .XbrlFile }}</td>
+                </tr>
+            {{ end }}
+        </tbody>
+    </table>
+{{ end }}

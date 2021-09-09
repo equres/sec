@@ -120,6 +120,7 @@ type Worklist struct {
 
 type SECItemFile struct {
 	ID                 int       `db:"id"`
+	Ticker             string    `db:"ticker"`
 	Title              string    `db:"title"`
 	Link               string    `db:"link"`
 	Guid               string    `db:"guid"`
@@ -538,6 +539,16 @@ func (s *SEC) SecItemFileUpsert(db *sqlx.DB, item Item) error {
 		}
 	}
 
+	// Check if CIK here is in CIKs table
+	var ciks []int
+	err = db.Select(&ciks, "SELECT cik FROM sec.ciks WHERE cik = $1", cikNumber)
+	if err != nil {
+		return err
+	}
+	if len(ciks) == 0 {
+		return nil
+	}
+
 	for _, v := range item.XbrlFiling.XbrlFiles.XbrlFile {
 		var xbrlInline bool
 		if v.InlineXBRL != "" {
@@ -810,9 +821,15 @@ func (s *SEC) ZIPContentUpsert(db *sqlx.DB, pathname string, files []*zip.File) 
 	return nil
 }
 
-func (s *SEC) SearchByFillingDate(db *sqlx.DB, date string) ([]SECItemFile, error) {
+func (s *SEC) SearchByFillingDate(db *sqlx.DB, startdate string, enddate string) ([]SECItemFile, error) {
 	secItemFiles := []SECItemFile{}
-	err := db.Select(&secItemFiles, "SELECT title, companyname, ciknumber, accessionnumber, xbrlfile FROM sec.secItemFile WHERE DATE(fillingdate) = $1", date)
+	err := db.Select(&secItemFiles, `
+	SELECT sec.tickers.ticker, sec.secItemFile.title, sec.secItemFile.companyname, sec.secItemFile.ciknumber, sec.secItemFile. accessionnumber, sec.secItemFile.xbrlfile 
+	FROM sec.secItemFile 
+	LEFT JOIN sec.tickers
+	ON sec.secitemfile.ciknumber = sec.tickers.cik
+	WHERE DATE(fillingdate) between $1 AND $2
+	`, startdate, enddate)
 	if err != nil {
 		return nil, err
 	}
