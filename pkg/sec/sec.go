@@ -774,6 +774,28 @@ func WorklistWillDownloadGet(db *sqlx.DB) ([]Worklist, error) {
 	return worklist, nil
 }
 
+func UniqueYearsInWorklist(db *sqlx.DB) ([]int, error) {
+	// Retrieve from DB
+	var worklistYears []int
+
+	err := db.Select(&worklistYears, "SELECT year FROM sec.worklist WHERE will_download = true ORDER BY year ASC")
+	if err != nil {
+		return nil, err
+	}
+	return worklistYears, nil
+}
+
+func MonthsInYearInWorklist(db *sqlx.DB, year int) ([]int, error) {
+	// Retrieve from DB
+	var worklistMonths []int
+
+	err := db.Select(&worklistMonths, "SELECT month FROM sec.worklist WHERE will_download = true AND year = $1 ORDER BY year ASC", year)
+	if err != nil {
+		return nil, err
+	}
+	return worklistMonths, nil
+}
+
 func (s *SEC) ZIPContentUpsert(db *sqlx.DB, pathname string, files []*zip.File) error {
 	// Keeping only directories
 	dirsPath := filepath.Dir(pathname)
@@ -821,7 +843,7 @@ func (s *SEC) ZIPContentUpsert(db *sqlx.DB, pathname string, files []*zip.File) 
 	return nil
 }
 
-func (s *SEC) SearchByFillingDate(db *sqlx.DB, startdate string, enddate string) ([]SECItemFile, error) {
+func (s *SEC) SearchByFillingDate(db *sqlx.DB, startdate time.Time, enddate time.Time) ([]SECItemFile, error) {
 	secItemFiles := []SECItemFile{}
 	err := db.Select(&secItemFiles, `
 	SELECT sec.tickers.ticker, sec.secItemFile.title, sec.secItemFile.companyname, sec.secItemFile.ciknumber, sec.secItemFile. accessionnumber, sec.secItemFile.xbrlfile 
@@ -829,7 +851,7 @@ func (s *SEC) SearchByFillingDate(db *sqlx.DB, startdate string, enddate string)
 	LEFT JOIN sec.tickers
 	ON sec.secitemfile.ciknumber = sec.tickers.cik
 	WHERE DATE(fillingdate) between $1 AND $2
-	`, startdate, enddate)
+	`, startdate.Format("2006-01-02"), enddate.Format("2006-01-02"))
 	if err != nil {
 		return nil, err
 	}

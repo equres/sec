@@ -2,9 +2,13 @@
 package cmd
 
 import (
+	"embed"
+
 	"github.com/equres/sec/pkg/server"
 	"github.com/spf13/cobra"
 )
+
+var GlobalTemplatesFS embed.FS
 
 // serveCmd represents the serve command
 var serveCmd = &cobra.Command{
@@ -12,12 +16,10 @@ var serveCmd = &cobra.Command{
 	Short: "Start the HTTP server to serve files",
 	Long:  `Start the HTTP server to serve files`,
 	RunE: func(cmd *cobra.Command, args []string) error {
-		server, err := server.NewServer()
+		server, err := server.NewServer(DB, RootConfig, GlobalTemplatesFS)
 		if err != nil {
 			return err
 		}
-		server.DB = DB
-		server.Config = RootConfig
 
 		err = server.StartServer()
 		if err != nil {

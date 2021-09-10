@@ -39,6 +39,13 @@ func GenerateConfig() error {
 		return err
 	}
 
+	port := ":8000"
+	fmt.Printf("Server Port [default: '%v']: ", port)
+	err = AcceptInput(reader, &port)
+	if err != nil {
+		return err
+	}
+
 	rateLimit := "100"
 	fmt.Printf("Rate Limit [default: '%v' Milliseconds]: ", rateLimit)
 	err = AcceptInput(reader, &rateLimit)
@@ -108,6 +115,7 @@ func GenerateConfig() error {
 		RateLimitMs:      rateLimit,
 		RetryLimit:       retrylimit,
 		CacheDirUnpacked: "./unzipped_cache",
+		ServerPort:       port,
 	})
 
 	cfg.SetDefault("database", config.DatabaseConfig{

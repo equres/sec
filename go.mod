@@ -14,6 +14,7 @@ require (
 	github.com/spf13/viper v1.8.1
 	github.com/ssor/bom v0.0.0-20170718123548-6386211fdfcf // indirect
 	golang.org/x/net v0.0.0-20210805182204-aaa1db679c0d
+	golang.org/x/tools/gopls v0.7.2 // indirect
 	gopkg.in/check.v1 v1.0.0-20190902080502-41f04d3bba15 // indirect
 	jaytaylor.com/html2text v0.0.0-20200412013138-3577fbdbcff7
 )

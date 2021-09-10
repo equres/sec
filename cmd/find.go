@@ -25,8 +25,7 @@ var findCmd = &cobra.Command{
 			return err
 		}
 
-		formattedDate := fmt.Sprintf("%v-%v-%v", date.Year(), int(date.Month()), date.Day())
-		secitemfiles, err := S.SearchByFillingDate(DB, formattedDate, formattedDate)
+		secitemfiles, err := S.SearchByFillingDate(DB, date, date)
 		if err != nil {
 			return err
 		}
@@ -42,6 +41,7 @@ var findCmd = &cobra.Command{
 		}
 
 		if len(secitemfiles) == 0 {
+			formattedDate := fmt.Sprintf("%v-%v-%v", date.Year(), int(date.Month()), date.Day())
 			fmt.Println("There are no search results for the date provided -", formattedDate)
 		}
 
