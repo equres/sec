@@ -60,17 +60,17 @@ func GenerateConfig() error {
 		return err
 	}
 
-	db_user := user.Username
+	dbUser := user.Username
 	fmt.Println("Database Config:")
-	fmt.Printf("User [default: '%v']: ", db_user)
-	err = AcceptInput(reader, &db_user)
+	fmt.Printf("User [default: '%v']: ", dbUser)
+	err = AcceptInput(reader, &dbUser)
 	if err != nil {
 		return err
 	}
 
-	db_password := ""
-	fmt.Printf("Password [default: '%v']: ", db_password)
-	err = AcceptInput(reader, &db_password)
+	dbPassword := ""
+	fmt.Printf("Password [default: '%v']: ", dbPassword)
+	err = AcceptInput(reader, &dbPassword)
 	if err != nil {
 		return err
 	}
@@ -82,9 +82,9 @@ func GenerateConfig() error {
 		return err
 	}
 
-	db_name := user.Username
-	fmt.Printf("DB Name [default: '%v']: ", db_name)
-	err = AcceptInput(reader, &db_name)
+	dbName := user.Username
+	fmt.Printf("DB Name [default: '%v']: ", dbName)
+	err = AcceptInput(reader, &dbName)
 	if err != nil {
 		return err
 	}
@@ -122,9 +122,9 @@ func GenerateConfig() error {
 		Driver:   "postgres",
 		Host:     host,
 		Port:     5432,
-		Name:     db_name,
-		Password: db_password,
-		User:     db_user,
+		Name:     dbName,
+		Password: dbPassword,
+		User:     dbUser,
 	})
 
 	err = cfg.WriteConfig()
