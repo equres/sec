@@ -32,6 +32,7 @@ var destCmd = &cobra.Command{
 		}
 
 		downloader := download.NewDownloader(RootConfig)
+		downloader.IsEtag = true
 
 		// For organizing the output
 		tabWriter := tabwriter.NewWriter(os.Stdout, 12, 0, 2, ' ', 0)

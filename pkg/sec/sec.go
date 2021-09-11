@@ -4,6 +4,7 @@ package sec
 
 import (
 	"archive/zip"
+	"bufio"
 	"bytes"
 	"encoding/json"
 	"encoding/xml"
@@ -27,8 +28,10 @@ import (
 )
 
 const (
-	XMLStartYear  = 2005
-	XMLStartMonth = 04
+	XMLStartYear                           = 2005
+	XMLStartMonth                          = 04
+	FinancialStatementDataSetsStartYear    = 2009
+	FinancialStatementDataSetsStartQuarter = 1
 )
 
 type RSSFile struct {
@@ -241,6 +244,7 @@ func (s *SEC) TickerUpdateAll(db *sqlx.DB) error {
 
 func (s *SEC) DownloadTickerFile(db *sqlx.DB, path string) error {
 	downloader := download.NewDownloader(s.Config)
+	downloader.IsEtag = true
 	downloader.Verbose = s.Verbose
 	downloader.Debug = s.Debug
 
@@ -437,6 +441,7 @@ func (s *SEC) DownloadIndex(db *sqlx.DB) error {
 	}
 
 	downloader := download.NewDownloader(s.Config)
+	downloader.IsEtag = true
 	downloader.Verbose = s.Verbose
 	downloader.Debug = s.Debug
 
@@ -678,6 +683,7 @@ func (s *SEC) TotalXbrlFileCountGet(worklist []Worklist, cacheDir string) (int, 
 
 func (s *SEC) DownloadXbrlFileContent(db *sqlx.DB, files []XbrlFile, config config.Config, currentCount *int, totalCount int) error {
 	downloader := download.NewDownloader(s.Config)
+	downloader.IsEtag = true
 	downloader.Verbose = s.Verbose
 	downloader.Debug = s.Debug
 
@@ -965,6 +971,7 @@ func (s *SEC) ForEachWorklist(db *sqlx.DB, implementFunc func(*sqlx.DB, RSSFile,
 
 func (s *SEC) DownloadZIPFiles(db *sqlx.DB, rssFile RSSFile, worklist []Worklist) error {
 	downloader := download.NewDownloader(s.Config)
+	downloader.IsEtag = true
 	downloader.Verbose = s.Verbose
 	downloader.Debug = s.Debug
 
@@ -1087,6 +1094,231 @@ func (s *SEC) InsertAllSecItemFile(db *sqlx.DB, rssFile RSSFile, worklist []Work
 		currentCount++
 		if s.Verbose {
 			fmt.Printf("[%d/%d] %s inserted for current file...\n", currentCount, totalCount, time.Now().Format("2006-01-02 03:04:05"))
+		}
+	}
+	return nil
+}
+
+func (s *SEC) DownloadFinancialStatementDataSets(db *sqlx.DB) error {
+	worklist, err := WorklistWillDownloadGet(db)
+	if err != nil {
+		return err
+	}
+
+	downloader := download.NewDownloader(s.Config)
+	downloader.IsContentLength = true
+	downloader.Verbose = s.Verbose
+	downloader.Debug = s.Debug
+
+	rateLimit, err := time.ParseDuration(fmt.Sprintf("%vms", s.Config.Main.RateLimitMs))
+	if err != nil {
+		return err
+	}
+	for _, v := range worklist {
+		var quarter int
+		if v.Month >= 1 && v.Month <= 3 {
+			quarter = 1
+		}
+		if v.Month >= 4 && v.Month <= 6 {
+			quarter = 2
+		}
+		if v.Month >= 7 && v.Month <= 9 {
+			quarter = 3
+		}
+		if v.Month >= 10 && v.Month <= 12 {
+			quarter = 4
+		}
+
+		// Below is to check if quarter is not in sec.gov website
+		// For example: If we are in August (8) then we can only download up to Q2 (June)
+		// because we did not complete Q3 (We complete it after we END Sept (9))
+		var currentMonth = int(time.Now().Month())
+		if v.Year == time.Now().Year() && ((quarter == 1 && currentMonth < 4) ||
+			(quarter == 2 && currentMonth < 7) ||
+			(quarter == 3 && currentMonth < 10) ||
+			(quarter == 4 && currentMonth < 12)) {
+			continue
+		}
+
+		yearQuarter := fmt.Sprintf("%vq%v", v.Year, quarter)
+
+		baseURL, err := url.Parse(s.BaseURL)
+		if err != nil {
+			return err
+		}
+		pathURL, err := url.Parse(fmt.Sprintf("/files/dera/data/financial-statement-data-sets/%v.zip", yearQuarter))
+		if err != nil {
+			return err
+		}
+		fileURL := baseURL.ResolveReference(pathURL).String()
+		if s.Verbose {
+			fmt.Printf("Checking file '%v' in disk: ", filepath.Base(fileURL))
+		}
+		isFileCorrect, err := downloader.FileCorrect(db, fileURL)
+		if err != nil {
+			return err
+		}
+		if s.Verbose && isFileCorrect {
+			fmt.Println("\u2713")
+		}
+
+		if !isFileCorrect {
+			if s.Verbose {
+				fmt.Print("Downloading file...: ")
+			}
+			err = downloader.DownloadFile(db, fileURL)
+			if err != nil {
+				return err
+			}
+			if s.Verbose {
+				fmt.Println(time.Now().Format("2006-01-02 03:04:05"))
+			}
+			time.Sleep(rateLimit)
+		}
+	}
+	return nil
+}
+
+func (s *SEC) IndexFinancialStatementDataSets(db *sqlx.DB) error {
+	filesPath := filepath.Join(s.Config.Main.CacheDir, "files/dera/data/financial-statement-data-sets/")
+	files, err := ioutil.ReadDir(filesPath)
+	if err != nil {
+		return err
+	}
+	for _, v := range files {
+		if s.Verbose {
+			fmt.Printf("Indexing file %v: ", v.Name())
+		}
+		reader, err := zip.OpenReader(filepath.Join(filesPath, v.Name()))
+		if err != nil {
+			return err
+		}
+
+		err = s.FinancialStatementDataSetsZIPUpsert(db, filesPath, reader.File)
+		if err != nil {
+			return err
+		}
+		if s.Verbose {
+			fmt.Println("\u2713")
+		}
+	}
+	return nil
+}
+
+func (s *SEC) FinancialStatementDataSetsZIPUpsert(db *sqlx.DB, pathname string, files []*zip.File) error {
+	for _, file := range files {
+		reader, err := file.Open()
+		if err != nil {
+			return err
+		}
+
+		scanner := bufio.NewScanner(reader)
+		scanner.Split(bufio.ScanLines)
+
+		defer reader.Close()
+
+		fileName := strings.ToLower(file.Name)
+
+		if fileName != "readme.htm" && fileName != "readme.html" {
+			if s.Verbose {
+				fmt.Printf("Indexing file %v\n", fileName)
+			}
+		}
+
+		if fileName == "sub.txt" {
+			err = s.SubDataUpsert(db, scanner)
+			if err != nil {
+				return err
+			}
+		}
+
+		if fileName == "tag.txt" {
+			err = s.TagDataUpsert(db, scanner)
+			if err != nil {
+				return err
+			}
+		}
+
+		if fileName == "num.txt" {
+			err = s.NumDataUpsert(db, scanner)
+			if err != nil {
+				return err
+			}
+		}
+
+		if fileName == "pre.txt" {
+			err = s.PreDataUpsert(db, scanner)
+			if err != nil {
+				return err
+			}
+		}
+	}
+	return nil
+}
+
+func (s *SEC) SubDataUpsert(db *sqlx.DB, scanner *bufio.Scanner) (err error) {
+	// Skip first line
+	scanner.Scan()
+	for scanner.Scan() {
+		text := strings.Split(scanner.Text(), "\t")
+		_, err = db.Exec(`
+		INSERT INTO sec.sub (adsh, cik, name, sic, countryba, stprba, cityba, zipba, bas1, bas2, baph, countryma, strpma, cityma, zipma, mas1, mas2, countryinc, stprinc, ein, former, changed, afs, wksi, fye, form, period, fy, fp, filled, accepted, prevrpt, detail, instance, nciks, aciks, created_at, updated_at) 
+		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23, $24, $25, $26, $27, $28, $29, $30, $31, $32, $33, $34, $35, $36, NOW(), NOW()) 
+		ON CONFLICT (adsh, cik, name, sic) 
+		DO NOTHING;`, text[0], text[1], text[2], text[3], text[4], text[5], text[6], text[7], text[8], text[9], text[10], text[11], text[12], text[13], text[14], text[15], text[16], text[17], text[18], text[19], text[20], text[21], text[22], text[23], text[24], text[25], text[26], text[27], text[28], text[29], text[30], text[31], text[32], text[33], text[34], text[35])
+		if err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func (s *SEC) TagDataUpsert(db *sqlx.DB, scanner *bufio.Scanner) (err error) {
+	// Skip first line
+	scanner.Scan()
+	for scanner.Scan() {
+		text := strings.Split(scanner.Text(), "\t")
+		_, err = db.Exec(`
+		INSERT INTO sec.tag (tag, version, custom, abstract, datatype, lord, crdr, tlabel, doc, created_at, updated_at) 
+		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, NOW(), NOW()) 
+		ON CONFLICT (tag, version) 
+		DO NOTHING;`, text[0], text[1], text[2], text[3], text[4], text[5], text[6], text[7], text[8])
+		if err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func (s *SEC) NumDataUpsert(db *sqlx.DB, scanner *bufio.Scanner) (err error) {
+	// Skip first line
+	scanner.Scan()
+	for scanner.Scan() {
+		text := strings.Split(scanner.Text(), "\t")
+		_, err = db.Exec(`
+		INSERT INTO sec.num (adsh, tag, version, coreg, ddate, qtrs, uom, value, footnote, created_at, updated_at) 
+		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, NOW(), NOW()) 
+		ON CONFLICT (adsh, tag, version, coreg, ddate, qtrs, uom) 
+		DO NOTHING;`, text[0], text[1], text[2], text[3], text[4], text[5], text[6], text[7], text[8])
+		if err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func (s *SEC) PreDataUpsert(db *sqlx.DB, scanner *bufio.Scanner) (err error) {
+	// Skip first line
+	scanner.Scan()
+	for scanner.Scan() {
+		text := strings.Split(scanner.Text(), "\t")
+		_, err = db.Exec(`
+		INSERT INTO sec.pre (adsh, report, line, stmt, inpth, rfile, tag, version, plabel, created_at, updated_at) 
+		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, NOW(), NOW()) 
+		ON CONFLICT (adsh, report, line) 
+		DO NOTHING;`, text[0], text[1], text[2], text[3], text[4], text[5], text[6], text[7], text[8])
+		if err != nil {
+			return err
 		}
 	}
 	return nil
