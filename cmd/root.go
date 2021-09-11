@@ -95,6 +95,7 @@ func initConfig() {
 		cobra.CheckErr(err)
 	}
 	RootConfig = cfg
+
 	RateLimit, err = time.ParseDuration(fmt.Sprintf("%vms", RootConfig.Main.RateLimitMs))
 	if err != nil {
 		cobra.CheckErr(err)
@@ -104,6 +105,7 @@ func initConfig() {
 	if err != nil {
 		cobra.CheckErr(err)
 	}
+
 	S, err = sec.NewSEC(RootConfig)
 	if err != nil {
 		cobra.CheckErr(err)

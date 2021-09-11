@@ -44,9 +44,7 @@ func (d Downloader) FileCorrect(db *sqlx.DB, fullurl string) (bool, error) {
 		return false, err
 	}
 
-	filePath := filepath.Join(d.Config.Main.CacheDir, parsedURL.Path)
-
-	isFileInCache, err := d.FileInCache(filePath)
+	isFileInCache, err := d.FileInCache(filepath.Join(d.Config.Main.CacheDir, parsedURL.Path))
 	if err != nil {
 		if d.Verbose {
 			fmt.Print("File is not in cache: ")

@@ -25,7 +25,6 @@ var deCmd = &cobra.Command{
 		}
 
 		yearMonth := args[0]
-
 		year, month, err := sec.ParseYearMonth(yearMonth)
 		if err != nil {
 			return err
