@@ -599,9 +599,12 @@ func (s *SEC) SecItemFileUpsert(db *sqlx.DB, item Item) error {
 
 		var fileBody string
 		if s.IsFileIndexable(filePath) {
-			fileBody, err = html2text.FromString(string(data))
-			if err != nil {
-				return err
+			fileBody = string(data)
+			if s.IsFileTypeHTML(filePath) {
+				fileBody, err = html2text.FromString(string(data))
+				if err != nil {
+					return err
+				}
 			}
 		}
 
@@ -621,6 +624,15 @@ func (s *SEC) SecItemFileUpsert(db *sqlx.DB, item Item) error {
 }
 
 func (s *SEC) IsFileIndexable(filename string) bool {
+	fileExtension := strings.ToLower(filepath.Ext(filename))
+
+	if fileExtension == ".html" || fileExtension == ".htm" || fileExtension == ".xml" {
+		return true
+	}
+	return false
+}
+
+func (s *SEC) IsFileTypeHTML(filename string) bool {
 	fileExtension := strings.ToLower(filepath.Ext(filename))
 
 	if fileExtension == ".html" || fileExtension == ".htm" {
