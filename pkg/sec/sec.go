@@ -208,6 +208,7 @@ func (s *SEC) FetchFile(urlVar string) ([]byte, error) {
 	if err != nil {
 		return nil, err
 	}
+
 	pathURL, err := url.Parse(urlVar)
 	if err != nil {
 		return nil, err
@@ -248,6 +249,7 @@ func (s *SEC) DownloadTickerFile(db *sqlx.DB, path string) error {
 	if err != nil {
 		return err
 	}
+
 	pathURL, err := url.Parse(path)
 	if err != nil {
 		return err
@@ -280,6 +282,7 @@ func (s *SEC) DownloadTickerFile(db *sqlx.DB, path string) error {
 		if err != nil {
 			return err
 		}
+
 		if s.Verbose {
 			fmt.Println(time.Now().Format("2006-01-02 03:04:05"))
 		}
@@ -299,9 +302,7 @@ func (s *SEC) TickersGetAll(db *sqlx.DB) ([]SecTicker, error) {
 }
 
 func (s *SEC) NoExchangeTickersGet(db *sqlx.DB) error {
-	filePath := filepath.Join(s.Config.Main.CacheDir, "files/company_tickers.json")
-
-	file, err := os.Open(filePath)
+	file, err := os.Open(filepath.Join(s.Config.Main.CacheDir, "files/company_tickers.json"))
 	if err != nil {
 		return err
 	}
@@ -319,6 +320,7 @@ func (s *SEC) NoExchangeTickersGet(db *sqlx.DB) error {
 	if err != nil {
 		return err
 	}
+
 	if s.Verbose {
 		fmt.Print("Indexing file company_tickers.json: ")
 	}
@@ -342,6 +344,7 @@ func (s *SEC) NoExchangeTickersGet(db *sqlx.DB) error {
 			return err
 		}
 	}
+
 	if s.Verbose {
 		fmt.Println("\u2713")
 	}
@@ -350,9 +353,7 @@ func (s *SEC) NoExchangeTickersGet(db *sqlx.DB) error {
 
 func (s *SEC) ExchangeTickersGet(db *sqlx.DB) error {
 	// Retrieving JSON data from URL
-	filePath := filepath.Join(s.Config.Main.CacheDir, "files/company_tickers_exchange.json")
-
-	file, err := os.Open(filePath)
+	file, err := os.Open(filepath.Join(s.Config.Main.CacheDir, "files/company_tickers_exchange.json"))
 	if err != nil {
 		return err
 	}
@@ -466,6 +467,7 @@ func (s *SEC) DownloadIndex(db *sqlx.DB) error {
 			if s.Verbose {
 				fmt.Print("Downloading file...: ")
 			}
+
 			err = downloader.DownloadFile(db, fileURL)
 			if err != nil {
 				return err
@@ -597,9 +599,12 @@ func (s *SEC) SecItemFileUpsert(db *sqlx.DB, item Item) error {
 
 		var fileBody string
 		if s.IsFileIndexable(filePath) {
-			fileBody, err = html2text.FromString(string(data))
-			if err != nil {
-				return err
+			fileBody = string(data)
+			if s.IsFileTypeHTML(filePath) {
+				fileBody, err = html2text.FromString(string(data))
+				if err != nil {
+					return err
+				}
 			}
 		}
 
@@ -619,6 +624,15 @@ func (s *SEC) SecItemFileUpsert(db *sqlx.DB, item Item) error {
 }
 
 func (s *SEC) IsFileIndexable(filename string) bool {
+	fileExtension := strings.ToLower(filepath.Ext(filename))
+
+	if fileExtension == ".html" || fileExtension == ".htm" || fileExtension == ".xml" {
+		return true
+	}
+	return false
+}
+
+func (s *SEC) IsFileTypeHTML(filename string) bool {
 	fileExtension := strings.ToLower(filepath.Ext(filename))
 
 	if fileExtension == ".html" || fileExtension == ".htm" {
@@ -802,7 +816,6 @@ func (s *SEC) ZIPContentUpsert(db *sqlx.DB, pathname string, files []*zip.File) 
 
 	// Spliting directories
 	dirs := strings.Split(dirsPath, "\\")
-
 	if len(dirs) == 1 {
 		dirs = strings.Split(dirsPath, "/")
 	}

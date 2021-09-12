@@ -24,9 +24,8 @@ var deCmd = &cobra.Command{
 			return err
 		}
 
-		year_month := args[0]
-
-		year, month, err := sec.ParseYearMonth(year_month)
+		yearMonth := args[0]
+		year, month, err := sec.ParseYearMonth(yearMonth)
 		if err != nil {
 			return err
 		}
@@ -41,7 +40,7 @@ var deCmd = &cobra.Command{
 			return err
 		}
 
-		fmt.Println("Successfully set download enabled for:", year_month)
+		fmt.Println("Successfully set download enabled for:", yearMonth)
 		return nil
 	},
 }

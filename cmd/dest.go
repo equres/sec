@@ -23,9 +23,6 @@ var destCmd = &cobra.Command{
 		return database.CheckMigration(RootConfig)
 	},
 	RunE: func(cmd *cobra.Command, args []string) error {
-		var totalSize float64
-		var totalSizeZIP int
-
 		worklist, err := sec.WorklistWillDownloadGet(DB)
 		if err != nil {
 			return err
@@ -39,10 +36,10 @@ var destCmd = &cobra.Command{
 		if S.Verbose {
 			fmt.Fprint(tabWriter, "File Name", "\t", "Uncompressed Sized", "\t", "ZIP Sizes", "\n")
 		}
-		for _, v := range worklist {
-			var fileSize float64
-			var fileSizeZIP int
 
+		var totalSize float64
+		var totalSizeZIP int
+		for _, v := range worklist {
 			filePath, err := S.FormatFilePathDate(S.Config.Main.CacheDir, v.Year, v.Month)
 			if err != nil {
 				return err
@@ -66,6 +63,7 @@ var destCmd = &cobra.Command{
 				return err
 			}
 
+			var fileSize float64
 			for _, item := range rssFile.Channel.Item {
 				for _, xbrlFile := range item.XbrlFiling.XbrlFiles.XbrlFile {
 					if xbrlFile.Size == "" {
@@ -84,7 +82,7 @@ var destCmd = &cobra.Command{
 				fmt.Fprint(tabWriter, parseSize(fileSize), "\t\t")
 			}
 
-			fileSizeZIP, err = S.CalculateRSSFilesZIP(rssFile)
+			fileSizeZIP, err := S.CalculateRSSFilesZIP(rssFile)
 			if err != nil {
 				return err
 			}

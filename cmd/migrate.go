@@ -20,8 +20,7 @@ var migrateCmd = &cobra.Command{
 	Long:  `function to migrate the db up or down`,
 	RunE: func(cmd *cobra.Command, args []string) (err error) {
 		if len(args) == 0 {
-			err := errors.New("please type 'up' to migrate up and 'down' to migrate down (e.g. sec migrate up)")
-			return err
+			return errors.New("please type 'up' to migrate up and 'down' to migrate down (e.g. sec migrate up)")
 		}
 
 		switch args[0] {
@@ -38,8 +37,7 @@ var migrateCmd = &cobra.Command{
 			}
 			fmt.Println("Successfully migrated the DB DOWN")
 		default:
-			err := errors.New("please type 'up' to migrate up and 'down' to migrate down (e.g. sec migrate up)")
-			return err
+			return errors.New("please type 'up' to migrate up and 'down' to migrate down (e.g. sec migrate up)")
 		}
 		return nil
 	},
