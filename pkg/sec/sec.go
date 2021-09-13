@@ -4,8 +4,8 @@ package sec
 
 import (
 	"archive/zip"
-	"bufio"
 	"bytes"
+	"database/sql"
 	"encoding/csv"
 	"encoding/json"
 	"encoding/xml"
@@ -155,6 +155,45 @@ type SECItemFile struct {
 	XbrlBody           string    `db:"xbrlbody"`
 }
 
+type SUB struct {
+	Adsh       string `csv:"adsh"`
+	CIK        int    `csv:"cik"`
+	Name       string `csv:"name"`
+	SIC        string `csv:"sic"`
+	CountryBA  string `csv:"countryba"`
+	StprBA     string `csv:"stprba"`
+	CityBA     string `csv:"cityba"`
+	ZIPBA      string `csv:"zipba"`
+	BAS1       string `csv:"bas1"`
+	BAS2       string `csv:"bas2"`
+	BAPH       string `csv:"baph"`
+	CountryMA  string `csv:"countryma"`
+	StrpMA     string `csv:"strpma"`
+	CityMA     string `csv:"cityma"`
+	ZIPMA      string `csv:"zipma"`
+	MAS1       string `csv:"mas1"`
+	MAS2       string `csv:"mas2"`
+	CountryInc string `csv:"countryinc"`
+	StprInc    string `csv:"stprinc"`
+	EIN        string `csv:"ein"`
+	Former     string `csv:"former"`
+	Changed    string `csv:"changed"`
+	Afs        string `csv:"afs"`
+	Wksi       string `csv:"wksi"`
+	Fye        string `csv:"fye"`
+	Form       string `csv:"form"`
+	Period     string `csv:"period"`
+	Fy         string `csv:"fy"`
+	Fp         string `csv:"fp"`
+	Filled     string `csv:"filled"`
+	Accepted   string `csv:"accepted"`
+	Prevrpt    string `csv:"prevrpt"`
+	Detail     string `csv:"detail"`
+	Instance   string `csv:"instance"`
+	Nciks      string `csv:"nciks"`
+	Aciks      string `csv:"aciks"`
+}
+
 type NUM struct {
 	Adsh     string `csv:"adsh"`
 	Tag      string `csv:"tag"`
@@ -165,6 +204,30 @@ type NUM struct {
 	UOM      string `csv:"uom"`
 	Value    string `csv:"value"`
 	Footnote string `csv:"footnote"`
+}
+
+type TAG struct {
+	Tag      string `csv:"tag"`
+	Version  string `csv:"version"`
+	Custom   string `csv:"custom"`
+	Abstract string `csv:"abstract"`
+	Datatype string `csv:"datatype"`
+	Lord     string `csv:"lord"`
+	Crdr     string `csv:"crdr"`
+	Tlabel   string `csv:"tlabel"`
+	Doc      string `csv:"doc"`
+}
+
+type PRE struct {
+	Adsh    string `csv:"adsh"`
+	Report  string `csv:"report"`
+	Line    string `csv:"line"`
+	Stmt    string `csv:"stmt"`
+	Inpth   string `csv:"inpth"`
+	Rfile   string `csv:"rfile"`
+	Tag     string `csv:"tag"`
+	Version string `csv:"version"`
+	Plabel  string `csv:"plabel"`
 }
 
 // Ticker Struct Based on JSON
@@ -1272,18 +1335,25 @@ func (s *SEC) FinancialStatementDataSetsZIPUpsert(db *sqlx.DB, pathname string, 
 }
 
 func (s *SEC) SubDataUpsert(db *sqlx.DB, reader io.ReadCloser) (err error) {
-	scanner := bufio.NewScanner(reader)
-	scanner.Split(bufio.ScanLines)
+	gocsv.SetCSVReader(func(in io.Reader) gocsv.CSVReader {
+		r := csv.NewReader(in)
+		r.Comma = '\t'
+		r.FieldsPerRecord = -1
+		r.LazyQuotes = true
+		return r
+	})
 
-	// Skip first line
-	scanner.Scan()
-	for scanner.Scan() {
-		text := strings.Split(scanner.Text(), "\t")
+	subs := []SUB{}
+	err = gocsv.Unmarshal(reader, &subs)
+	if err != nil {
+		return err
+	}
 
+	for _, v := range subs {
 		ciks := []struct {
 			CIK string
 		}{}
-		err = db.Select(&ciks, "SELECT cik FROM sec.ciks WHERE cik = $1", text[1])
+		err = db.Select(&ciks, "SELECT cik FROM sec.ciks WHERE cik = $1", v.CIK)
 		if err != nil {
 			return err
 		}
@@ -1292,11 +1362,25 @@ func (s *SEC) SubDataUpsert(db *sqlx.DB, reader io.ReadCloser) (err error) {
 			continue
 		}
 
+		var period sql.NullString
+		if v.Period != "" {
+			period = sql.NullString{
+				String: v.Period,
+			}
+		}
+
+		var filled sql.NullString
+		if v.Filled != "" {
+			filled = sql.NullString{
+				String: v.Filled,
+			}
+		}
+
 		_, err = db.Exec(`
 		INSERT INTO sec.sub (adsh, cik, name, sic, countryba, stprba, cityba, zipba, bas1, bas2, baph, countryma, strpma, cityma, zipma, mas1, mas2, countryinc, stprinc, ein, former, changed, afs, wksi, fye, form, period, fy, fp, filled, accepted, prevrpt, detail, instance, nciks, aciks, created_at, updated_at) 
 		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23, $24, $25, $26, $27, $28, $29, $30, $31, $32, $33, $34, $35, $36, NOW(), NOW()) 
 		ON CONFLICT (adsh, cik, name, sic) 
-		DO NOTHING;`, text[0], text[1], text[2], text[3], text[4], text[5], text[6], text[7], text[8], text[9], text[10], text[11], text[12], text[13], text[14], text[15], text[16], text[17], text[18], text[19], text[20], text[21], text[22], text[23], text[24], text[25], text[26], text[27], text[28], text[29], text[30], text[31], text[32], text[33], text[34], text[35])
+		DO NOTHING;`, v.Adsh, v.CIK, v.Name, v.SIC, v.CountryBA, v.StprBA, v.CityBA, v.ZIPBA, v.BAS1, v.BAS2, v.BAPH, v.CountryMA, v.StrpMA, v.CityMA, v.ZIPMA, v.MAS1, v.MAS2, v.CountryInc, v.StprInc, v.EIN, v.Former, v.Changed, v.Afs, v.Wksi, v.Fye, v.Form, period, v.Fy, v.Fp, filled, v.Accepted, v.Prevrpt, v.Detail, v.Instance, v.Nciks, v.Aciks)
 		if err != nil {
 			return err
 		}
@@ -1305,18 +1389,26 @@ func (s *SEC) SubDataUpsert(db *sqlx.DB, reader io.ReadCloser) (err error) {
 }
 
 func (s *SEC) TagDataUpsert(db *sqlx.DB, reader io.ReadCloser) (err error) {
-	scanner := bufio.NewScanner(reader)
-	scanner.Split(bufio.ScanLines)
+	gocsv.SetCSVReader(func(in io.Reader) gocsv.CSVReader {
+		r := csv.NewReader(in)
+		r.Comma = '\t'
+		r.FieldsPerRecord = -1
+		r.LazyQuotes = true
+		return r
+	})
 
-	// Skip first line
-	scanner.Scan()
-	for scanner.Scan() {
-		text := strings.Split(scanner.Text(), "\t")
+	tags := []TAG{}
+	err = gocsv.Unmarshal(reader, &tags)
+	if err != nil {
+		return err
+	}
+
+	for _, v := range tags {
 		_, err = db.Exec(`
 		INSERT INTO sec.tag (tag, version, custom, abstract, datatype, lord, crdr, tlabel, doc, created_at, updated_at) 
 		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, NOW(), NOW()) 
 		ON CONFLICT (tag, version) 
-		DO NOTHING;`, text[0], text[1], text[2], text[3], text[4], text[5], text[6], text[7], text[8])
+		DO NOTHING;`, v.Tag, v.Version, v.Custom, v.Abstract, v.Datatype, v.Lord, v.Crdr, v.Tlabel, v.Doc)
 		if err != nil {
 			return err
 		}
@@ -1328,6 +1420,8 @@ func (s *SEC) NumDataUpsert(db *sqlx.DB, reader io.ReadCloser) (err error) {
 	gocsv.SetCSVReader(func(in io.Reader) gocsv.CSVReader {
 		r := csv.NewReader(in)
 		r.Comma = '\t'
+		r.FieldsPerRecord = -1
+		r.LazyQuotes = true
 		return r
 	})
 
@@ -1363,18 +1457,38 @@ func (s *SEC) NumDataUpsert(db *sqlx.DB, reader io.ReadCloser) (err error) {
 }
 
 func (s *SEC) PreDataUpsert(db *sqlx.DB, reader io.ReadCloser) (err error) {
-	scanner := bufio.NewScanner(reader)
-	scanner.Split(bufio.ScanLines)
+	gocsv.SetCSVReader(func(in io.Reader) gocsv.CSVReader {
+		r := csv.NewReader(in)
+		r.Comma = '\t'
+		r.FieldsPerRecord = -1
+		r.LazyQuotes = true
+		return r
+	})
 
-	// Skip first line
-	scanner.Scan()
-	for scanner.Scan() {
-		text := strings.Split(scanner.Text(), "\t")
+	pres := []PRE{}
+	err = gocsv.Unmarshal(reader, &pres)
+	if err != nil {
+		return err
+	}
+
+	for _, v := range pres {
+		tags := []struct {
+			Tag     string `db:"tag"`
+			Version string `db:"version"`
+		}{}
+		err = db.Select(&tags, "SELECT tag, version FROM sec.tag WHERE tag = $1 AND version = $2;", v.Tag, v.Version)
+		if err != nil {
+			return err
+		}
+		if len(tags) == 0 {
+			continue
+		}
+
 		_, err = db.Exec(`
 		INSERT INTO sec.pre (adsh, report, line, stmt, inpth, rfile, tag, version, plabel, created_at, updated_at) 
 		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, NOW(), NOW()) 
 		ON CONFLICT (adsh, report, line) 
-		DO NOTHING;`, text[0], text[1], text[2], text[3], text[4], text[5], text[6], text[7], text[8])
+		DO NOTHING;`, v.Adsh, v.Report, v.Line, v.Stmt, v.Inpth, v.Rfile, v.Tag, v.Version, v.Plabel)
 		if err != nil {
 			return err
 		}
