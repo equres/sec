@@ -1311,7 +1311,6 @@ func (s *SEC) FinancialStatementDataSetsZIPUpsert(db *sqlx.DB, pathname string, 
 			upsertFunc = s.NumDataUpsert
 		case "pre.txt":
 			upsertFunc = s.PreDataUpsert
-			continue
 		default:
 			continue
 		}
