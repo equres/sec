@@ -6,6 +6,7 @@ import (
 	"archive/zip"
 	"bufio"
 	"bytes"
+	"encoding/csv"
 	"encoding/json"
 	"encoding/xml"
 	"errors"
@@ -22,6 +23,7 @@ import (
 
 	"github.com/equres/sec/pkg/config"
 	"github.com/equres/sec/pkg/download"
+	"github.com/gocarina/gocsv"
 	"github.com/jmoiron/sqlx"
 	"golang.org/x/net/html/charset"
 	"jaytaylor.com/html2text"
@@ -151,6 +153,18 @@ type SECItemFile struct {
 	XbrlInlineXbrl     bool      `db:"xbrlinlinexbrl"`
 	XbrlURL            string    `db:"xbrlurl"`
 	XbrlBody           string    `db:"xbrlbody"`
+}
+
+type NUM struct {
+	Adsh     string `csv:"adsh"`
+	Tag      string `csv:"tag"`
+	Version  string `csv:"version"`
+	Coreg    string `csv:"coreg"`
+	DDate    string `csv:"ddate"`
+	Qtrs     string `csv:"qtrs"`
+	UOM      string `csv:"uom"`
+	Value    string `csv:"value"`
+	Footnote string `csv:"footnote"`
 }
 
 // Ticker Struct Based on JSON
@@ -1115,28 +1129,9 @@ func (s *SEC) DownloadFinancialStatementDataSets(db *sqlx.DB) error {
 		return err
 	}
 	for _, v := range worklist {
-		var quarter int
-		if v.Month >= 1 && v.Month <= 3 {
-			quarter = 1
-		}
-		if v.Month >= 4 && v.Month <= 6 {
-			quarter = 2
-		}
-		if v.Month >= 7 && v.Month <= 9 {
-			quarter = 3
-		}
-		if v.Month >= 10 && v.Month <= 12 {
-			quarter = 4
-		}
+		quarter := QuarterFromMonth(v.Month)
 
-		// Below is to check if quarter is not in sec.gov website
-		// For example: If we are in August (8) then we can only download up to Q2 (June)
-		// because we did not complete Q3 (We complete it after we END Sept (9))
-		var currentMonth = int(time.Now().Month())
-		if v.Year == time.Now().Year() && ((quarter == 1 && currentMonth < 4) ||
-			(quarter == 2 && currentMonth < 7) ||
-			(quarter == 3 && currentMonth < 10) ||
-			(quarter == 4 && currentMonth < 12)) {
+		if !IsCurrentYearQuarterCorrect(v.Year, quarter) {
 			continue
 		}
 
@@ -1205,62 +1200,98 @@ func (s *SEC) IndexFinancialStatementDataSets(db *sqlx.DB) error {
 	return nil
 }
 
+func QuarterFromMonth(month int) int {
+	if month >= 1 && month <= 3 {
+		return 1
+	}
+	if month >= 4 && month <= 6 {
+		return 2
+	}
+	if month >= 7 && month <= 9 {
+		return 3
+	}
+	if month >= 10 && month <= 12 {
+		return 4
+	}
+	return 0
+}
+
+func IsCurrentYearQuarterCorrect(year int, quarter int) bool {
+	// Below is to check if quarter is not in sec.gov website
+	// For example: If we are in August (8) then we can only download up to Q2 (June)
+	// because we did not complete Q3 (We complete it after we END Sept (9))
+	var currentMonth = int(time.Now().Month())
+	if year == time.Now().Year() && ((quarter == 1 && currentMonth < 4) ||
+		(quarter == 2 && currentMonth < 7) ||
+		(quarter == 3 && currentMonth < 10) ||
+		(quarter == 4 && currentMonth < 12)) {
+		return false
+	}
+	return true
+}
+
 func (s *SEC) FinancialStatementDataSetsZIPUpsert(db *sqlx.DB, pathname string, files []*zip.File) error {
 	for _, file := range files {
+		fileName := strings.ToLower(file.Name)
+
+		if fileName == "readme.htm" || fileName == "readme.html" {
+			continue
+		}
+
+		var upsertFunc func(*sqlx.DB, io.ReadCloser) error
+		switch fileName {
+		case "sub.txt":
+			upsertFunc = s.SubDataUpsert
+		case "tag.txt":
+			upsertFunc = s.TagDataUpsert
+		case "num.txt":
+			upsertFunc = s.NumDataUpsert
+		case "pre.txt":
+			upsertFunc = s.PreDataUpsert
+			continue
+		default:
+			continue
+		}
+
+		if s.Verbose {
+			fmt.Printf("Indexing file %v\n", fileName)
+		}
+
 		reader, err := file.Open()
 		if err != nil {
 			return err
 		}
-
-		scanner := bufio.NewScanner(reader)
-		scanner.Split(bufio.ScanLines)
-
 		defer reader.Close()
 
-		fileName := strings.ToLower(file.Name)
-
-		if fileName != "readme.htm" && fileName != "readme.html" {
-			if s.Verbose {
-				fmt.Printf("Indexing file %v\n", fileName)
-			}
-		}
-
-		if fileName == "sub.txt" {
-			err = s.SubDataUpsert(db, scanner)
-			if err != nil {
-				return err
-			}
-		}
-
-		if fileName == "tag.txt" {
-			err = s.TagDataUpsert(db, scanner)
-			if err != nil {
-				return err
-			}
-		}
-
-		if fileName == "num.txt" {
-			err = s.NumDataUpsert(db, scanner)
-			if err != nil {
-				return err
-			}
-		}
-
-		if fileName == "pre.txt" {
-			err = s.PreDataUpsert(db, scanner)
-			if err != nil {
-				return err
-			}
+		err = upsertFunc(db, reader)
+		if err != nil {
+			return err
 		}
 	}
 	return nil
 }
 
-func (s *SEC) SubDataUpsert(db *sqlx.DB, scanner *bufio.Scanner) (err error) {
+func (s *SEC) SubDataUpsert(db *sqlx.DB, reader io.ReadCloser) (err error) {
+	scanner := bufio.NewScanner(reader)
+	scanner.Split(bufio.ScanLines)
+
 	// Skip first line
 	scanner.Scan()
 	for scanner.Scan() {
 		text := strings.Split(scanner.Text(), "\t")
+
+		ciks := []struct {
+			CIK string
+		}{}
+		err = db.Select(&ciks, "SELECT cik FROM sec.ciks WHERE cik = $1", text[1])
+		if err != nil {
+			return err
+		}
+
+		if len(ciks) == 0 {
+			continue
+		}
+
 		_, err = db.Exec(`
 		INSERT INTO sec.sub (adsh, cik, name, sic, countryba, stprba, cityba, zipba, bas1, bas2, baph, countryma, strpma, cityma, zipma, mas1, mas2, countryinc, stprinc, ein, former, changed, afs, wksi, fye, form, period, fy, fp, filled, accepted, prevrpt, detail, instance, nciks, aciks, created_at, updated_at) 
 		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23, $24, $25, $26, $27, $28, $29, $30, $31, $32, $33, $34, $35, $36, NOW(), NOW()) 
@@ -1273,7 +1304,10 @@ func (s *SEC) SubDataUpsert(db *sqlx.DB, scanner *bufio.Scanner) (err error) {
 	return nil
 }
 
-func (s *SEC) TagDataUpsert(db *sqlx.DB, scanner *bufio.Scanner) (err error) {
+func (s *SEC) TagDataUpsert(db *sqlx.DB, reader io.ReadCloser) (err error) {
+	scanner := bufio.NewScanner(reader)
+	scanner.Split(bufio.ScanLines)
+
 	// Skip first line
 	scanner.Scan()
 	for scanner.Scan() {
@@ -1290,16 +1324,37 @@ func (s *SEC) TagDataUpsert(db *sqlx.DB, scanner *bufio.Scanner) (err error) {
 	return nil
 }
 
-func (s *SEC) NumDataUpsert(db *sqlx.DB, scanner *bufio.Scanner) (err error) {
-	// Skip first line
-	scanner.Scan()
-	for scanner.Scan() {
-		text := strings.Split(scanner.Text(), "\t")
+func (s *SEC) NumDataUpsert(db *sqlx.DB, reader io.ReadCloser) (err error) {
+	gocsv.SetCSVReader(func(in io.Reader) gocsv.CSVReader {
+		r := csv.NewReader(in)
+		r.Comma = '\t'
+		return r
+	})
+
+	nums := []NUM{}
+	err = gocsv.Unmarshal(reader, &nums)
+	if err != nil {
+		return err
+	}
+
+	for _, v := range nums {
+		tags := []struct {
+			Tag     string `db:"tag"`
+			Version string `db:"version"`
+		}{}
+		err = db.Select(&tags, "SELECT tag, version FROM sec.tag WHERE tag = $1 AND version = $2;", v.Tag, v.Version)
+		if err != nil {
+			return err
+		}
+		if len(tags) == 0 {
+			continue
+		}
+
 		_, err = db.Exec(`
 		INSERT INTO sec.num (adsh, tag, version, coreg, ddate, qtrs, uom, value, footnote, created_at, updated_at) 
 		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, NOW(), NOW()) 
 		ON CONFLICT (adsh, tag, version, coreg, ddate, qtrs, uom) 
-		DO NOTHING;`, text[0], text[1], text[2], text[3], text[4], text[5], text[6], text[7], text[8])
+		DO NOTHING;`, v.Adsh, v.Tag, v.Version, v.Coreg, v.DDate, v.Qtrs, v.UOM, v.Value, v.Footnote)
 		if err != nil {
 			return err
 		}
@@ -1307,7 +1362,10 @@ func (s *SEC) NumDataUpsert(db *sqlx.DB, scanner *bufio.Scanner) (err error) {
 	return nil
 }
 
-func (s *SEC) PreDataUpsert(db *sqlx.DB, scanner *bufio.Scanner) (err error) {
+func (s *SEC) PreDataUpsert(db *sqlx.DB, reader io.ReadCloser) (err error) {
+	scanner := bufio.NewScanner(reader)
+	scanner.Split(bufio.ScanLines)
+
 	// Skip first line
 	scanner.Scan()
 	for scanner.Scan() {

@@ -12,5 +12,6 @@ CREATE TABLE sec.pre (
     created_at timestamp with time zone,
     updated_at timestamp with time zone,
     deleted_at timestamp with time zone,
-    CONSTRAINT adsh_report_line UNIQUE (adsh, report, line)
+    CONSTRAINT adsh_report_line UNIQUE (adsh, report, line),
+    FOREIGN KEY (tag, version) REFERENCES sec.tag (tag, version)
 );

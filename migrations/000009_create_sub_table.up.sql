@@ -39,5 +39,6 @@ CREATE TABLE sec.sub (
     created_at timestamp with time zone,
     updated_at timestamp with time zone,
     deleted_at timestamp with time zone,
-    CONSTRAINT sub_item UNIQUE (adsh, cik, name, sic)
+    CONSTRAINT sub_item UNIQUE (adsh, cik, name, sic),
+    CONSTRAINT fk_cik FOREIGN KEY (cik) REFERENCES sec.ciks(cik)
 );

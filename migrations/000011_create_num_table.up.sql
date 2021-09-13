@@ -4,7 +4,7 @@ CREATE TABLE sec.num (
     tag text,
     version text,
     coreg text,
-    ddate date,
+    ddate text,
     qtrs text,
     uom text,
     value text,
@@ -12,5 +12,6 @@ CREATE TABLE sec.num (
     created_at timestamp with time zone,
     updated_at timestamp with time zone,
     deleted_at timestamp with time zone,
-    CONSTRAINT unique_keys UNIQUE (adsh, tag, version, coreg, ddate, qtrs, uom)
+    CONSTRAINT unique_keys UNIQUE (adsh, tag, version, coreg, ddate, qtrs, uom),
+    FOREIGN KEY (tag, version) REFERENCES sec.tag (tag, version)
 );
