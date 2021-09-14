@@ -1108,7 +1108,6 @@ func (s *SEC) IndexZIPFileContent(db *sqlx.DB, rssFile RSSFile, worklist []Workl
 		if err != nil {
 			return err
 		}
-
 		defer reader.Close()
 
 		err = s.ZIPContentUpsert(db, zipPath, reader.File)
@@ -1144,7 +1143,6 @@ func (s *SEC) UnzipFiles(db *sqlx.DB, rssFile RSSFile, worklist []Worklist) erro
 		if err != nil {
 			return err
 		}
-
 		defer reader.Close()
 
 		err = s.CreateFilesFromZIP(zipPath, reader.File)
