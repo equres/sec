@@ -5,6 +5,8 @@ package sec
 import (
 	"archive/zip"
 	"bytes"
+	"database/sql"
+	"encoding/csv"
 	"encoding/json"
 	"encoding/xml"
 	"errors"
@@ -21,14 +23,17 @@ import (
 
 	"github.com/equres/sec/pkg/config"
 	"github.com/equres/sec/pkg/download"
+	"github.com/gocarina/gocsv"
 	"github.com/jmoiron/sqlx"
 	"golang.org/x/net/html/charset"
 	"jaytaylor.com/html2text"
 )
 
 const (
-	XMLStartYear  = 2005
-	XMLStartMonth = 04
+	XMLStartYear                           = 2005
+	XMLStartMonth                          = 04
+	FinancialStatementDataSetsStartYear    = 2009
+	FinancialStatementDataSetsStartQuarter = 1
 )
 
 type RSSFile struct {
@@ -150,6 +155,81 @@ type SECItemFile struct {
 	XbrlBody           string    `db:"xbrlbody"`
 }
 
+type SUB struct {
+	Adsh       string `csv:"adsh"`
+	CIK        int    `csv:"cik"`
+	Name       string `csv:"name"`
+	SIC        string `csv:"sic"`
+	CountryBA  string `csv:"countryba"`
+	StprBA     string `csv:"stprba"`
+	CityBA     string `csv:"cityba"`
+	ZIPBA      string `csv:"zipba"`
+	BAS1       string `csv:"bas1"`
+	BAS2       string `csv:"bas2"`
+	BAPH       string `csv:"baph"`
+	CountryMA  string `csv:"countryma"`
+	StrpMA     string `csv:"strpma"`
+	CityMA     string `csv:"cityma"`
+	ZIPMA      string `csv:"zipma"`
+	MAS1       string `csv:"mas1"`
+	MAS2       string `csv:"mas2"`
+	CountryInc string `csv:"countryinc"`
+	StprInc    string `csv:"stprinc"`
+	EIN        string `csv:"ein"`
+	Former     string `csv:"former"`
+	Changed    string `csv:"changed"`
+	Afs        string `csv:"afs"`
+	Wksi       string `csv:"wksi"`
+	Fye        string `csv:"fye"`
+	Form       string `csv:"form"`
+	Period     string `csv:"period"`
+	Fy         string `csv:"fy"`
+	Fp         string `csv:"fp"`
+	Filled     string `csv:"filled"`
+	Accepted   string `csv:"accepted"`
+	Prevrpt    string `csv:"prevrpt"`
+	Detail     string `csv:"detail"`
+	Instance   string `csv:"instance"`
+	Nciks      string `csv:"nciks"`
+	Aciks      string `csv:"aciks"`
+}
+
+type NUM struct {
+	Adsh     string `csv:"adsh"`
+	Tag      string `csv:"tag"`
+	Version  string `csv:"version"`
+	Coreg    string `csv:"coreg"`
+	DDate    string `csv:"ddate"`
+	Qtrs     string `csv:"qtrs"`
+	UOM      string `csv:"uom"`
+	Value    string `csv:"value"`
+	Footnote string `csv:"footnote"`
+}
+
+type TAG struct {
+	Tag      string `csv:"tag"`
+	Version  string `csv:"version"`
+	Custom   string `csv:"custom"`
+	Abstract string `csv:"abstract"`
+	Datatype string `csv:"datatype"`
+	Lord     string `csv:"lord"`
+	Crdr     string `csv:"crdr"`
+	Tlabel   string `csv:"tlabel"`
+	Doc      string `csv:"doc"`
+}
+
+type PRE struct {
+	Adsh    string `csv:"adsh"`
+	Report  string `csv:"report"`
+	Line    string `csv:"line"`
+	Stmt    string `csv:"stmt"`
+	Inpth   string `csv:"inpth"`
+	Rfile   string `csv:"rfile"`
+	Tag     string `csv:"tag"`
+	Version string `csv:"version"`
+	Plabel  string `csv:"plabel"`
+}
+
 // Ticker Struct Based on JSON
 type SecTicker struct {
 	Cik      int    `json:"cik_str"`
@@ -242,6 +322,7 @@ func (s *SEC) TickerUpdateAll(db *sqlx.DB) error {
 
 func (s *SEC) DownloadTickerFile(db *sqlx.DB, path string) error {
 	downloader := download.NewDownloader(s.Config)
+	downloader.IsEtag = true
 	downloader.Verbose = s.Verbose
 	downloader.Debug = s.Debug
 
@@ -438,6 +519,7 @@ func (s *SEC) DownloadIndex(db *sqlx.DB) error {
 	}
 
 	downloader := download.NewDownloader(s.Config)
+	downloader.IsEtag = true
 	downloader.Verbose = s.Verbose
 	downloader.Debug = s.Debug
 
@@ -692,6 +774,7 @@ func (s *SEC) TotalXbrlFileCountGet(worklist []Worklist, cacheDir string) (int, 
 
 func (s *SEC) DownloadXbrlFileContent(db *sqlx.DB, files []XbrlFile, config config.Config, currentCount *int, totalCount int) error {
 	downloader := download.NewDownloader(s.Config)
+	downloader.IsEtag = true
 	downloader.Verbose = s.Verbose
 	downloader.Debug = s.Debug
 
@@ -978,6 +1061,7 @@ func (s *SEC) ForEachWorklist(db *sqlx.DB, implementFunc func(*sqlx.DB, RSSFile,
 
 func (s *SEC) DownloadZIPFiles(db *sqlx.DB, rssFile RSSFile, worklist []Worklist) error {
 	downloader := download.NewDownloader(s.Config)
+	downloader.IsEtag = true
 	downloader.Verbose = s.Verbose
 	downloader.Debug = s.Debug
 
@@ -1037,7 +1121,6 @@ func (s *SEC) IndexZIPFileContent(db *sqlx.DB, rssFile RSSFile, worklist []Workl
 		if err != nil {
 			return err
 		}
-
 		defer reader.Close()
 
 		err = s.ZIPContentUpsert(db, zipPath, reader.File)
@@ -1073,7 +1156,6 @@ func (s *SEC) UnzipFiles(db *sqlx.DB, rssFile RSSFile, worklist []Worklist) erro
 		if err != nil {
 			return err
 		}
-
 		defer reader.Close()
 
 		err = s.CreateFilesFromZIP(zipPath, reader.File)
@@ -1100,6 +1182,325 @@ func (s *SEC) InsertAllSecItemFile(db *sqlx.DB, rssFile RSSFile, worklist []Work
 		currentCount++
 		if s.Verbose {
 			fmt.Printf("[%d/%d] %s inserted for current file...\n", currentCount, totalCount, time.Now().Format("2006-01-02 03:04:05"))
+		}
+	}
+	return nil
+}
+
+func (s *SEC) DownloadFinancialStatementDataSets(db *sqlx.DB) error {
+	worklist, err := WorklistWillDownloadGet(db)
+	if err != nil {
+		return err
+	}
+
+	downloader := download.NewDownloader(s.Config)
+	downloader.IsContentLength = true
+	downloader.Verbose = s.Verbose
+	downloader.Debug = s.Debug
+
+	rateLimit, err := time.ParseDuration(fmt.Sprintf("%vms", s.Config.Main.RateLimitMs))
+	if err != nil {
+		return err
+	}
+	for _, v := range worklist {
+		quarter := QuarterFromMonth(v.Month)
+
+		if !IsCurrentYearQuarterCorrect(v.Year, quarter) {
+			continue
+		}
+
+		yearQuarter := fmt.Sprintf("%vq%v", v.Year, quarter)
+
+		baseURL, err := url.Parse(s.BaseURL)
+		if err != nil {
+			return err
+		}
+		pathURL, err := url.Parse(fmt.Sprintf("/files/dera/data/financial-statement-data-sets/%v.zip", yearQuarter))
+		if err != nil {
+			return err
+		}
+		fileURL := baseURL.ResolveReference(pathURL).String()
+		if s.Verbose {
+			fmt.Printf("Checking file '%v' in disk: ", filepath.Base(fileURL))
+		}
+		isFileCorrect, err := downloader.FileCorrect(db, fileURL)
+		if err != nil {
+			return err
+		}
+		if s.Verbose && isFileCorrect {
+			fmt.Println("\u2713")
+		}
+
+		if !isFileCorrect {
+			if s.Verbose {
+				fmt.Print("Downloading file...: ")
+			}
+			err = downloader.DownloadFile(db, fileURL)
+			if err != nil {
+				return err
+			}
+			if s.Verbose {
+				fmt.Println(time.Now().Format("2006-01-02 03:04:05"))
+			}
+			time.Sleep(rateLimit)
+		}
+	}
+	return nil
+}
+
+func (s *SEC) IndexFinancialStatementDataSets(db *sqlx.DB) error {
+	filesPath := filepath.Join(s.Config.Main.CacheDir, "files/dera/data/financial-statement-data-sets/")
+	files, err := ioutil.ReadDir(filesPath)
+	if err != nil {
+		return err
+	}
+	for _, v := range files {
+		if s.Verbose {
+			fmt.Printf("Indexing file %v: ", v.Name())
+		}
+		reader, err := zip.OpenReader(filepath.Join(filesPath, v.Name()))
+		if err != nil {
+			return err
+		}
+
+		err = s.FinancialStatementDataSetsZIPUpsert(db, filesPath, reader.File)
+		if err != nil {
+			return err
+		}
+		if s.Verbose {
+			fmt.Println("\u2713")
+		}
+	}
+	return nil
+}
+
+func QuarterFromMonth(month int) int {
+	if month >= 1 && month <= 3 {
+		return 1
+	}
+	if month >= 4 && month <= 6 {
+		return 2
+	}
+	if month >= 7 && month <= 9 {
+		return 3
+	}
+	if month >= 10 && month <= 12 {
+		return 4
+	}
+	return 0
+}
+
+func IsCurrentYearQuarterCorrect(year int, quarter int) bool {
+	// Below is to check if quarter is not in sec.gov website
+	// For example: If we are in August (8) then we can only download up to Q2 (June)
+	// because we did not complete Q3 (We complete it after we END Sept (9))
+	var currentMonth = int(time.Now().Month())
+	if year == time.Now().Year() && ((quarter == 1 && currentMonth < 4) ||
+		(quarter == 2 && currentMonth < 7) ||
+		(quarter == 3 && currentMonth < 10) ||
+		(quarter == 4 && currentMonth < 12)) {
+		return false
+	}
+	return true
+}
+
+func (s *SEC) FinancialStatementDataSetsZIPUpsert(db *sqlx.DB, pathname string, files []*zip.File) error {
+	for _, file := range files {
+		fileName := strings.ToLower(file.Name)
+
+		if fileName == "readme.htm" || fileName == "readme.html" {
+			continue
+		}
+
+		var upsertFunc func(*sqlx.DB, io.ReadCloser) error
+		switch fileName {
+		case "sub.txt":
+			upsertFunc = s.SubDataUpsert
+		case "tag.txt":
+			upsertFunc = s.TagDataUpsert
+		case "num.txt":
+			upsertFunc = s.NumDataUpsert
+		case "pre.txt":
+			upsertFunc = s.PreDataUpsert
+		default:
+			continue
+		}
+
+		if s.Verbose {
+			fmt.Printf("Indexing file %v\n", fileName)
+		}
+
+		reader, err := file.Open()
+		if err != nil {
+			return err
+		}
+		defer reader.Close()
+
+		err = upsertFunc(db, reader)
+		if err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func (s *SEC) SubDataUpsert(db *sqlx.DB, reader io.ReadCloser) (err error) {
+	gocsv.SetCSVReader(func(in io.Reader) gocsv.CSVReader {
+		r := csv.NewReader(in)
+		r.Comma = '\t'
+		r.FieldsPerRecord = -1
+		r.LazyQuotes = true
+		return r
+	})
+
+	subs := []SUB{}
+	err = gocsv.Unmarshal(reader, &subs)
+	if err != nil {
+		return err
+	}
+
+	for _, v := range subs {
+		ciks := []struct {
+			CIK string
+		}{}
+		err = db.Select(&ciks, "SELECT cik FROM sec.ciks WHERE cik = $1", v.CIK)
+		if err != nil {
+			return err
+		}
+
+		if len(ciks) == 0 {
+			continue
+		}
+
+		var period sql.NullString
+		if v.Period != "" {
+			period = sql.NullString{
+				String: v.Period,
+			}
+		}
+
+		var filled sql.NullString
+		if v.Filled != "" {
+			filled = sql.NullString{
+				String: v.Filled,
+			}
+		}
+
+		_, err = db.Exec(`
+		INSERT INTO sec.sub (adsh, cik, name, sic, countryba, stprba, cityba, zipba, bas1, bas2, baph, countryma, strpma, cityma, zipma, mas1, mas2, countryinc, stprinc, ein, former, changed, afs, wksi, fye, form, period, fy, fp, filled, accepted, prevrpt, detail, instance, nciks, aciks, created_at, updated_at) 
+		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23, $24, $25, $26, $27, $28, $29, $30, $31, $32, $33, $34, $35, $36, NOW(), NOW()) 
+		ON CONFLICT (adsh, cik, name, sic) 
+		DO NOTHING;`, v.Adsh, v.CIK, v.Name, v.SIC, v.CountryBA, v.StprBA, v.CityBA, v.ZIPBA, v.BAS1, v.BAS2, v.BAPH, v.CountryMA, v.StrpMA, v.CityMA, v.ZIPMA, v.MAS1, v.MAS2, v.CountryInc, v.StprInc, v.EIN, v.Former, v.Changed, v.Afs, v.Wksi, v.Fye, v.Form, period, v.Fy, v.Fp, filled, v.Accepted, v.Prevrpt, v.Detail, v.Instance, v.Nciks, v.Aciks)
+		if err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func (s *SEC) TagDataUpsert(db *sqlx.DB, reader io.ReadCloser) (err error) {
+	gocsv.SetCSVReader(func(in io.Reader) gocsv.CSVReader {
+		r := csv.NewReader(in)
+		r.Comma = '\t'
+		r.FieldsPerRecord = -1
+		r.LazyQuotes = true
+		return r
+	})
+
+	tags := []TAG{}
+	err = gocsv.Unmarshal(reader, &tags)
+	if err != nil {
+		return err
+	}
+
+	for _, v := range tags {
+		_, err = db.Exec(`
+		INSERT INTO sec.tag (tag, version, custom, abstract, datatype, lord, crdr, tlabel, doc, created_at, updated_at) 
+		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, NOW(), NOW()) 
+		ON CONFLICT (tag, version) 
+		DO NOTHING;`, v.Tag, v.Version, v.Custom, v.Abstract, v.Datatype, v.Lord, v.Crdr, v.Tlabel, v.Doc)
+		if err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func (s *SEC) NumDataUpsert(db *sqlx.DB, reader io.ReadCloser) (err error) {
+	gocsv.SetCSVReader(func(in io.Reader) gocsv.CSVReader {
+		r := csv.NewReader(in)
+		r.Comma = '\t'
+		r.FieldsPerRecord = -1
+		r.LazyQuotes = true
+		return r
+	})
+
+	nums := []NUM{}
+	err = gocsv.Unmarshal(reader, &nums)
+	if err != nil {
+		return err
+	}
+
+	for _, v := range nums {
+		tags := []struct {
+			Tag     string `db:"tag"`
+			Version string `db:"version"`
+		}{}
+		err = db.Select(&tags, "SELECT tag, version FROM sec.tag WHERE tag = $1 AND version = $2;", v.Tag, v.Version)
+		if err != nil {
+			return err
+		}
+		if len(tags) == 0 {
+			continue
+		}
+
+		_, err = db.Exec(`
+		INSERT INTO sec.num (adsh, tag, version, coreg, ddate, qtrs, uom, value, footnote, created_at, updated_at) 
+		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, NOW(), NOW()) 
+		ON CONFLICT (adsh, tag, version, coreg, ddate, qtrs, uom) 
+		DO NOTHING;`, v.Adsh, v.Tag, v.Version, v.Coreg, v.DDate, v.Qtrs, v.UOM, v.Value, v.Footnote)
+		if err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func (s *SEC) PreDataUpsert(db *sqlx.DB, reader io.ReadCloser) (err error) {
+	gocsv.SetCSVReader(func(in io.Reader) gocsv.CSVReader {
+		r := csv.NewReader(in)
+		r.Comma = '\t'
+		r.FieldsPerRecord = -1
+		r.LazyQuotes = true
+		return r
+	})
+
+	pres := []PRE{}
+	err = gocsv.Unmarshal(reader, &pres)
+	if err != nil {
+		return err
+	}
+
+	for _, v := range pres {
+		tags := []struct {
+			Tag     string `db:"tag"`
+			Version string `db:"version"`
+		}{}
+		err = db.Select(&tags, "SELECT tag, version FROM sec.tag WHERE tag = $1 AND version = $2;", v.Tag, v.Version)
+		if err != nil {
+			return err
+		}
+		if len(tags) == 0 {
+			continue
+		}
+
+		_, err = db.Exec(`
+		INSERT INTO sec.pre (adsh, report, line, stmt, inpth, rfile, tag, version, plabel, created_at, updated_at) 
+		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, NOW(), NOW()) 
+		ON CONFLICT (adsh, report, line) 
+		DO NOTHING;`, v.Adsh, v.Report, v.Line, v.Stmt, v.Inpth, v.Rfile, v.Tag, v.Version, v.Plabel)
+		if err != nil {
+			return err
 		}
 	}
 	return nil

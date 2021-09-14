@@ -9,8 +9,9 @@ import (
 )
 
 type Config struct {
-	Database DatabaseConfig
-	Main     MainConfig
+	Database  DatabaseConfig
+	Main      MainConfig
+	IndexMode IndexModeConfig
 }
 
 type DatabaseConfig struct {
@@ -29,6 +30,11 @@ type MainConfig struct {
 	RetryLimit       string `mapstructure:"retrylimit"`
 	CacheDirUnpacked string `mapstructure:"cachedirunpacked"`
 	ServerPort       string `mapstructure:"serverport"`
+}
+
+type IndexModeConfig struct {
+	FinancialStatementDataSets string `mapstructure:"financialstatementdatasets"`
+	CompanyFacts               string `mapstructure:"companyfacts"`
 }
 
 func LoadConfig(path string) (config Config, err error) {

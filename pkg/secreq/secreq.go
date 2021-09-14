@@ -7,13 +7,16 @@ import (
 )
 
 type SECReq struct {
-	UserAgent   string
-	RequestType string
+	UserAgent       string
+	RequestType     string
+	IsEtag          bool
+	IsContentLength bool
 }
 
 func (sr *SECReq) SendRequest(retryLimit int, rateLimit time.Duration, fullurl string) (*http.Response, error) {
 	var resp *http.Response
 	var etag string
+	var contentLength string
 
 	currentRetryLimit := retryLimit
 	for currentRetryLimit > 0 {
@@ -29,14 +32,23 @@ func (sr *SECReq) SendRequest(retryLimit int, rateLimit time.Duration, fullurl s
 			return nil, err
 		}
 
-		etag = resp.Header.Get("eTag")
-		if etag != "" {
-			break
+		if sr.IsEtag {
+			etag = resp.Header.Get("eTag")
+			if etag != "" {
+				break
+			}
+		}
+
+		if sr.IsContentLength {
+			contentLength = resp.Header.Get("Content-Length")
+			if contentLength != "" {
+				break
+			}
 		}
 		time.Sleep(rateLimit)
 	}
 
-	if currentRetryLimit == 0 && etag == "" {
+	if currentRetryLimit == 0 && etag == "" && contentLength == "" {
 		return nil, fmt.Errorf("retried %v request %v times and failed", sr.RequestType, retryLimit)
 	}
 

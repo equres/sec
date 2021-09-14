@@ -20,6 +20,7 @@ var indexCmd = &cobra.Command{
 	},
 	RunE: func(cmd *cobra.Command, args []string) (err error) {
 		downloader := download.NewDownloader(RootConfig)
+		downloader.IsEtag = true
 		downloader.Verbose = S.Verbose
 		downloader.Debug = S.Debug
 
@@ -40,6 +41,13 @@ var indexCmd = &cobra.Command{
 		err = S.TickerUpdateAll(DB)
 		if err != nil {
 			return err
+		}
+
+		if S.Config.IndexMode.FinancialStatementDataSets == "enabled" || S.Config.IndexMode.FinancialStatementDataSets == "true" {
+			err = S.IndexFinancialStatementDataSets(DB)
+			if err != nil {
+				return err
+			}
 		}
 
 		err = S.ForEachWorklist(DB, S.InsertAllSecItemFile, "")

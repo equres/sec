@@ -32,6 +32,17 @@ var dowIndexCmd = &cobra.Command{
 			return err
 		}
 
+		if RootConfig.IndexMode.FinancialStatementDataSets == "enabled" || RootConfig.IndexMode.FinancialStatementDataSets == "true" {
+			if S.Verbose {
+				fmt.Println("Downloading financial statement data sets...:")
+			}
+
+			err = S.DownloadFinancialStatementDataSets(DB)
+			if err != nil {
+				return err
+			}
+		}
+
 		return nil
 	},
 }

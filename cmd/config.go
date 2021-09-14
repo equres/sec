@@ -89,6 +89,21 @@ func GenerateConfig() error {
 		return err
 	}
 
+	fmt.Println("Index Mode Config:")
+	financialStatementDataSets := "enabled"
+	fmt.Printf("Financial Statement Data Sets [default: '%v'] (enabled/disabled): ", financialStatementDataSets)
+	err = AcceptInput(reader, &financialStatementDataSets)
+	if err != nil {
+		return err
+	}
+
+	companyfacts := "enabled"
+	fmt.Printf("Company Facts [default: '%v'] (enabled/disabled): ", companyfacts)
+	err = AcceptInput(reader, &companyfacts)
+	if err != nil {
+		return err
+	}
+
 	cfg := viper.New()
 
 	if _, err = os.Stat(cfgFile); err != nil {
@@ -116,6 +131,11 @@ func GenerateConfig() error {
 		RetryLimit:       retrylimit,
 		CacheDirUnpacked: "./unzipped_cache",
 		ServerPort:       port,
+	})
+
+	cfg.SetDefault("indexmode", config.IndexModeConfig{
+		FinancialStatementDataSets: financialStatementDataSets,
+		CompanyFacts:               companyfacts,
 	})
 
 	cfg.SetDefault("database", config.DatabaseConfig{

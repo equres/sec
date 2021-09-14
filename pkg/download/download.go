@@ -24,6 +24,8 @@ type Downloader struct {
 	Config            config.Config
 	Verbose           bool
 	Debug             bool
+	IsEtag            bool
+	IsContentLength   bool
 }
 
 type Download struct {
@@ -87,9 +89,17 @@ func (d Downloader) FileConsistent(db *sqlx.DB, file fs.FileInfo, fullurl string
 		return false, err
 	}
 
-	err = db.Select(&downloads, "SELECT url, etag, size FROM sec.downloads WHERE url = $1", fullurl)
-	if err != nil {
-		return false, err
+	if d.IsEtag {
+		err = db.Select(&downloads, "SELECT url, etag, size FROM sec.downloads WHERE url = $1", fullurl)
+		if err != nil {
+			return false, err
+		}
+	}
+	if d.IsContentLength {
+		err = db.Select(&downloads, "SELECT url, size FROM sec.downloads WHERE url = $1", fullurl)
+		if err != nil {
+			return false, err
+		}
 	}
 
 	if len(downloads) == 0 {
@@ -102,6 +112,8 @@ func (d Downloader) FileConsistent(db *sqlx.DB, file fs.FileInfo, fullurl string
 	}
 
 	req := secreq.NewSECReqHEAD()
+	req.IsEtag = d.IsEtag
+	req.IsContentLength = d.IsContentLength
 
 	resp, err := req.SendRequest(retryLimit, rateLimit, fullurl)
 	if err != nil {
@@ -117,10 +129,22 @@ func (d Downloader) FileConsistent(db *sqlx.DB, file fs.FileInfo, fullurl string
 		fmt.Print(string(headers))
 	}
 
-	etag := resp.Header.Get("eTag")
+	if d.IsEtag {
+		etag := resp.Header.Get("eTag")
+		if download.Etag != etag {
+			return false, nil
+		}
+	}
 
-	if download.Etag != etag {
-		return false, nil
+	if d.IsContentLength {
+		contentLengthHeader := resp.Header.Get("Content-Length")
+		contentLength, err := strconv.Atoi(contentLengthHeader)
+		if err != nil {
+			return false, err
+		}
+		if download.Size != contentLength {
+			return false, nil
+		}
 	}
 
 	return true, nil
@@ -144,6 +168,8 @@ func (d Downloader) DownloadFile(db *sqlx.DB, fullurl string) error {
 	}
 
 	req := secreq.NewSECReqGET()
+	req.IsEtag = d.IsEtag
+	req.IsContentLength = d.IsContentLength
 
 	resp, err := req.SendRequest(retryLimit, rateLimit, fullurl)
 	if err != nil {
@@ -188,15 +214,29 @@ func (d Downloader) DownloadFile(db *sqlx.DB, fullurl string) error {
 		return err
 	}
 
-	etag := resp.Header.Get("eTag")
-	_, err = db.Exec(`
-	INSERT INTO sec.downloads (url, etag, size, created_at, updated_at) 
-	VALUES ($1, $2, $3, NOW(), NOW()) 
-	ON CONFLICT (url) 
-	DO UPDATE SET url=EXCLUDED.url, etag=EXCLUDED.etag, size=EXCLUDED.size, updated_at=NOW() 
-	WHERE downloads.url=EXCLUDED.url;`, fullurl, etag, size)
-	if err != nil {
-		return err
+	if d.IsEtag {
+		etag := resp.Header.Get("eTag")
+		_, err = db.Exec(`
+		INSERT INTO sec.downloads (url, etag, size, created_at, updated_at) 
+		VALUES ($1, $2, $3, NOW(), NOW()) 
+		ON CONFLICT (url) 
+		DO UPDATE SET url=EXCLUDED.url, etag=EXCLUDED.etag, size=EXCLUDED.size, updated_at=NOW() 
+		WHERE downloads.url=EXCLUDED.url;`, fullurl, etag, size)
+		if err != nil {
+			return err
+		}
+	}
+
+	if d.IsContentLength {
+		_, err = db.Exec(`
+		INSERT INTO sec.downloads (url, size, created_at, updated_at) 
+		VALUES ($1, $2, NOW(), NOW()) 
+		ON CONFLICT (url) 
+		DO UPDATE SET url=EXCLUDED.url, size=EXCLUDED.size, updated_at=NOW() 
+		WHERE downloads.url=EXCLUDED.url;`, fullurl, size)
+		if err != nil {
+			return err
+		}
 	}
 
 	return nil
