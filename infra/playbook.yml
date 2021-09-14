@@ -1,0 +1,64 @@
+---
+- hosts: all
+  remote_user: root
+  become: yes
+  become_user: root
+  vars:
+    db_user: sec
+    db_name: sec
+    db_password: sec2021
+  tasks:
+    - name: Install Software Properties Common
+      apt:
+        name:
+          - software-properties-common
+    - name: Add Apt Key
+      ansible.builtin.apt_key:
+        id: C99B11DEB97541F0
+        keyserver: keyserver.ubuntu.com
+    - name: Add Golang Backports
+      ansible.builtin.apt_repository:
+        repo: ppa:longsleep/golang-backports
+    - name: Update Cache
+      apt:
+        upgrade: "yes"
+        update_cache: yes
+    - name: Add Golang Packages Repository
+      ansible.builtin.apt_repository:
+        repo: deb https://cli.github.com/packages stable main
+    - name: Install Packages
+      apt:
+        name:
+          - postgresql
+          - golang-go
+          - git
+          - make
+          - vim
+          - tig
+          - ncdu
+          - htop
+          - tmux
+          - jq
+          - postgresql
+          - curl
+          - gh
+    - name: Create Database
+      become: true
+      become_user: postgres
+      postgresql_db: name={{ db_name }} template='template0' state=present
+    - name: Ensure user has access to the new database
+      become: true
+      become_user: postgres
+      postgresql_user: db={{ db_name }} name={{ db_user }} password={{ db_password }} priv=ALL state=present
+    - name: Add Github SSH Key
+      copy: >
+        src=/home/hazem/.ssh/id_rsa
+        dest=/home/sec/.ssh/id_rsa
+        owner=sec
+        group=sec
+        mode=0600
+    - name: clone a private repository
+      git: >
+        repo=ssh://git@github.com/equres/sec.git
+        key_file=/home/hazem/.ssh/id_rsa
+        dest=/home/sec/go
