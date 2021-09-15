@@ -2,12 +2,12 @@
 - hosts: all
   remote_user: root
   become: yes
-  become_user: root
-  vars:
-    db_user: sec
-    db_name: sec
-    db_password: sec2021
   tasks:
+    - name: Apt Upgrade
+      apt:
+        upgrade: "yes"
+        update_cache: yes
+        cache_valid_time: 432000
     - name: Install Software Properties Common
       apt:
         name:
@@ -18,16 +18,15 @@
         keyserver: keyserver.ubuntu.com
     - name: Add Golang Backports
       ansible.builtin.apt_repository:
-        repo: ppa:longsleep/golang-backports
-    - name: Update Cache
-      apt:
-        upgrade: "yes"
-        update_cache: yes
+        repo: 'deb http://ppa.launchpad.net/longsleep/golang-backports/ubuntu focal main'
+        state: present
+        update_cache: true
     - name: Add Golang Packages Repository
       ansible.builtin.apt_repository:
-        repo: deb https://cli.github.com/packages stable main
+        repo: 'deb https://cli.github.com/packages stable main'
     - name: Install Packages
       apt:
+        force: yes
         name:
           - postgresql
           - golang-go
@@ -39,26 +38,5 @@
           - htop
           - tmux
           - jq
-          - postgresql
           - curl
           - gh
-    - name: Create Database
-      become: true
-      become_user: postgres
-      postgresql_db: name={{ db_name }} template='template0' state=present
-    - name: Ensure user has access to the new database
-      become: true
-      become_user: postgres
-      postgresql_user: db={{ db_name }} name={{ db_user }} password={{ db_password }} priv=ALL state=present
-    - name: Add Github SSH Key
-      copy: >
-        src=/home/hazem/.ssh/id_rsa
-        dest=/home/sec/.ssh/id_rsa
-        owner=sec
-        group=sec
-        mode=0600
-    - name: clone a private repository
-      git: >
-        repo=ssh://git@github.com/equres/sec.git
-        key_file=/home/hazem/.ssh/id_rsa
-        dest=/home/sec/go
