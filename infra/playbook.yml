@@ -1,0 +1,55 @@
+---
+- hosts: "{{ host_names | default('all')}}"
+  become: yes
+  vars:
+      ansible_ssh_user: "{{ ssh_user | default('root')}}"
+  tasks:
+    - name: Apt Upgrade
+      become: yes
+      become_user: root
+      become_method: sudo
+      apt:
+        upgrade: "yes"
+        update_cache: yes
+        cache_valid_time: 432000
+    - name: Install Software Properties Common
+      apt:
+        name:
+          - software-properties-common
+    - name: Install Necessities
+      become: yes
+      become_user: root
+      become_method: sudo
+      apt:
+        update_cache: yes
+        name:
+          - git
+          - make
+          - vim
+          - tig
+          - ncdu
+          - htop
+          - tmux
+          - jq
+          - curl
+          - postgresql 
+          - postgresql-contrib
+          - libpq-dev
+          - pip
+    - name: Install Python Psycopg2
+      pip:
+        name: psycopg2
+    - name: Install GH
+      become: yes
+      become_user: root
+      become_method: sudo
+      snap:
+        name:
+          - gh
+    - name: Install Golang
+      become: yes
+      become_user: root
+      become_method: sudo
+      snap:
+        classic: yes
+        name: go
