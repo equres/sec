@@ -60,7 +60,7 @@ func (sr *SECReq) SendRequest(retryLimit int, rateLimit time.Duration, fullurl s
 
 func NewSECReqHEAD() *SECReq {
 	return &SECReq{
-		UserAgent:   "Equres LLC wojciech@koszek.com",
+		UserAgent:   "Koszek Systems wojciech@koszek.com",
 		RequestType: http.MethodHead,
 	}
 }

@@ -1,4 +1,4 @@
-// Copyright (c) 2021 Equres LLC. All rights reserved.
+// Copyright (c) 2021 Koszek Systems. All rights reserved.
 
 package database
 
