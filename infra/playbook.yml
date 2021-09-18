@@ -46,6 +46,7 @@
           - libpq-dev
           - pip
           - whois
+          - syslog-ng
     - name: Install Python Psycopg2
       pip:
         name: psycopg2
