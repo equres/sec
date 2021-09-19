@@ -10,7 +10,6 @@
       become_method: sudo
       user:
         name: sec
-        password: '$6$f9PHd4OCB8$Amb0UnKSnWVEbk8GqRdGgJ8PhVIkIlh2RvY9ZIH7y.0.E5t/iM8y3aS36co4eWEOaHA18Gv6NZ5lXVh2Hsqke0'
         state: present
         home: /home/sec
     - name: Apt Upgrade
