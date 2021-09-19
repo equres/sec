@@ -4,6 +4,14 @@
   vars:
       ansible_ssh_user: "{{ ssh_user | default('root')}}"
   tasks:
+    - name: Create SEC User
+      become: yes
+      become_user: root
+      become_method: sudo
+      user:
+        name: sec
+        state: present
+        home: /home/sec
     - name: Apt Upgrade
       become: yes
       become_user: root
@@ -36,6 +44,8 @@
           - postgresql-contrib
           - libpq-dev
           - pip
+          - whois
+          - syslog-ng
     - name: Install Python Psycopg2
       pip:
         name: psycopg2
