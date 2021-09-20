@@ -19,11 +19,8 @@ jobs:
         run: make build
 
       - name: Copy App to Production Server
-        uses: appleboy/scp-action@master
-        with:
-          host: ${{ secrets.HOST }}
-          username: ${{ secrets.USERNAME }}
-          port: ${{ secrets.PORT }}
-          key: ${{ secrets.KEY }}
-          source: "./sec"
-          target: "/usr/bin/sec"
+        run: |
+          echo "${{ secrets.KEY }}" > ~/.ssh/id_rsa
+          chmod 700 ~/.ssh/id_rsa
+          ssh-keyscan -H 192.99.161.20
+          scp -o StrictHostKeyChecking=no -r ../../sec root@192.99.161.20://home/sec/sec
