@@ -24,3 +24,4 @@ sec
 # config
 config.yml
 
+infra/.env
