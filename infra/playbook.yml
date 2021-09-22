@@ -3,6 +3,10 @@
   become: yes
   vars:
       ansible_ssh_user: "{{ ssh_user | default('root')}}"
+      postgresql_data_dir: "/mnt/sec"
+      postgresql_global_config_options:
+        - option: data_directory
+          value: "/mnt/sec"
   tasks:
     - name: Apt Upgrade
       become: yes
@@ -23,6 +27,7 @@
       apt:
         update_cache: yes
         name:
+          - python3
           - git
           - make
           - vim
@@ -32,20 +37,20 @@
           - tmux
           - jq
           - curl
-          - postgresql 
+          - postgresql
           - postgresql-contrib
           - libpq-dev
-          - pip
-    - name: Install Python Psycopg2
-      pip:
-        name: psycopg2
+          - python3-pip
+          - python-psycopg2
+          - snapd
+    - name: Reboot To Configure Snap Properly
+      reboot:
     - name: Install GH
       become: yes
       become_user: root
       become_method: sudo
       snap:
-        name:
-          - gh
+        name: gh
     - name: Install Golang
       become: yes
       become_user: root
@@ -53,3 +58,27 @@
       snap:
         classic: yes
         name: go
+    - name: Create /mnt/sec Directory
+      file:
+        path: /mnt/sec
+        state: directory
+        owner: postgres
+    - name: InitDB in /mnt/sec
+      become: yes
+      become_user: postgres
+      become_method: sudo
+      command: postgresql-setup initdb
+    - name: Start Postgres Cluster
+      become: yes
+      become_user: root
+      become_method: sudo
+      shell: /etc/init.d/postgresql start
+    - name: Create the Database
+      become_user: postgres
+      postgresql_db:
+        name: postgres
+        owner: postgres
+        template: template0
+        encoding: UTF8
+        lc_collate: 'en_US.UTF-8'
+        lc_ctype: 'en_US.UTF-8'
