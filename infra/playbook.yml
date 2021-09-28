@@ -8,6 +8,14 @@
         - option: data_directory
           value: "/mnt/sec"
   tasks:
+    - name: Create SEC User
+      become: yes
+      become_user: root
+      become_method: sudo
+      user:
+        name: sec
+        state: present
+        home: /home/sec
     - name: Apt Upgrade
       become: yes
       become_user: root
