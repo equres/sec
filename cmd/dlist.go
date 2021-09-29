@@ -8,6 +8,7 @@ import (
 
 	"github.com/equres/sec/pkg/database"
 	"github.com/equres/sec/pkg/sec"
+	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 )
 
@@ -25,7 +26,7 @@ to quickly create a Cobra application.`,
 		return database.CheckMigration(RootConfig)
 	},
 	RunE: func(cmd *cobra.Command, args []string) error {
-		fmt.Println("Year/Month that will be downloaded:")
+		logrus.Info("Year/Month that will be downloaded:")
 
 		worklist, err := sec.WorklistWillDownloadGet(DB)
 		if err != nil {

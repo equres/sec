@@ -17,6 +17,7 @@ import (
 	"github.com/equres/sec/pkg/config"
 	"github.com/equres/sec/pkg/secreq"
 	"github.com/jmoiron/sqlx"
+	"github.com/sirupsen/logrus"
 )
 
 type Downloader struct {
@@ -49,7 +50,7 @@ func (d Downloader) FileCorrect(db *sqlx.DB, fullurl string) (bool, error) {
 	isFileInCache, err := d.FileInCache(filepath.Join(d.Config.Main.CacheDir, parsedURL.Path))
 	if err != nil {
 		if d.Verbose {
-			fmt.Print("File is not in cache: ")
+			logrus.Info("File is not in cache: ")
 		}
 		return false, nil
 	}
@@ -61,7 +62,7 @@ func (d Downloader) FileCorrect(db *sqlx.DB, fullurl string) (bool, error) {
 
 	if isFileInCache != nil && !isConsistent {
 		if d.Verbose {
-			fmt.Print("File in cache not consistent: ")
+			logrus.Info("File in cache not consistent: ")
 		}
 		return false, err
 	}
@@ -126,7 +127,7 @@ func (d Downloader) FileConsistent(db *sqlx.DB, file fs.FileInfo, fullurl string
 		if err != nil {
 			return false, err
 		}
-		fmt.Print(string(headers))
+		logrus.Debug(string(headers))
 	}
 
 	if d.IsEtag {
@@ -182,7 +183,7 @@ func (d Downloader) DownloadFile(db *sqlx.DB, fullurl string) error {
 		if err != nil {
 			return err
 		}
-		fmt.Print(string(headers))
+		logrus.Debug(string(headers))
 	}
 
 	responseBody, err := ioutil.ReadAll(resp.Body)

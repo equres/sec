@@ -1,9 +1,8 @@
 package cmd
 
 import (
-	"fmt"
-
 	"github.com/equres/sec/pkg/database"
+	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 )
 
@@ -21,7 +20,7 @@ var retrieveCmd = &cobra.Command{
 		if err != nil {
 			return err
 		}
-		fmt.Println(tickers)
+		logrus.Info(tickers)
 		return nil
 	},
 }

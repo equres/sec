@@ -11,6 +11,7 @@ require (
 	github.com/johejo/golang-migrate-extra v0.0.0-20210217013041-51a992e50d16
 	github.com/lib/pq v1.10.2
 	github.com/olekukonko/tablewriter v0.0.5 // indirect
+	github.com/sirupsen/logrus v1.8.1 // indirect
 	github.com/spf13/cobra v1.2.1
 	github.com/spf13/viper v1.8.1
 	github.com/ssor/bom v0.0.0-20170718123548-6386211fdfcf // indirect

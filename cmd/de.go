@@ -3,10 +3,10 @@ package cmd
 
 import (
 	"errors"
-	"fmt"
 
 	"github.com/equres/sec/pkg/database"
 	"github.com/equres/sec/pkg/sec"
+	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 )
 
@@ -40,7 +40,7 @@ var deCmd = &cobra.Command{
 			return err
 		}
 
-		fmt.Println("Successfully set download enabled for:", yearMonth)
+		logrus.Info("Successfully set download enabled for:", yearMonth)
 		return nil
 	},
 }

@@ -1,6 +1,7 @@
 package server
 
 import (
+	"errors"
 	"fmt"
 	"html/template"
 	"net/http"
@@ -9,6 +10,7 @@ import (
 
 	"github.com/equres/sec/pkg/sec"
 	"github.com/gorilla/mux"
+	"github.com/sirupsen/logrus"
 )
 
 func (s Server) GenerateRouter() *mux.Router {
@@ -121,11 +123,13 @@ func (s Server) RenderTemplate(w http.ResponseWriter, tmpl string, data interfac
 func getIntVar(vars map[string]string, varName string) (int, error) {
 	varStr, ok := vars[varName]
 	if !ok {
-		return 0, fmt.Errorf("please choose a proper year and month")
+		logrus.Error("please choose a proper year and month")
+		return 0, errors.New("please choose a proper year and month")
 	}
 	value, err := strconv.Atoi(varStr)
 	if err != nil {
-		return 0, fmt.Errorf("please choose a proper year and month")
+		logrus.Error("please choose a proper year and month")
+		return 0, errors.New("please choose a proper year and month")
 	}
 	return value, nil
 }
