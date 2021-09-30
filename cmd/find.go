@@ -7,6 +7,7 @@ import (
 	"text/tabwriter"
 	"time"
 
+	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 )
 
@@ -17,7 +18,8 @@ var findCmd = &cobra.Command{
 	Long:  `find indexes with specific filling date`,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		if len(args) == 0 {
-			return fmt.Errorf("please insert a date to search with format YYYY-MM-DD (e.g. 2021-08-23)")
+			logrus.Error("please insert a date to search with format YYYY-MM-DD (e.g. 2021-08-23)")
+			return nil
 		}
 
 		date, err := time.Parse("2006-01-02", args[0])
@@ -42,7 +44,7 @@ var findCmd = &cobra.Command{
 
 		if len(secitemfiles) == 0 {
 			formattedDate := fmt.Sprintf("%v-%v-%v", date.Year(), int(date.Month()), date.Day())
-			fmt.Println("There are no search results for the date provided -", formattedDate)
+			logrus.Warn("There are no search results for the date provided -", formattedDate)
 		}
 
 		return nil

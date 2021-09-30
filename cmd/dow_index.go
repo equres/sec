@@ -2,8 +2,7 @@
 package cmd
 
 import (
-	"fmt"
-
+	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 )
 
@@ -24,7 +23,7 @@ var dowIndexCmd = &cobra.Command{
 		}
 
 		if S.Verbose {
-			fmt.Println("Checking/Downloading index files...")
+			logrus.Info("Checking/Downloading index files...")
 		}
 
 		err = S.DownloadIndex(DB)
@@ -34,7 +33,7 @@ var dowIndexCmd = &cobra.Command{
 
 		if RootConfig.IndexMode.FinancialStatementDataSets == "enabled" || RootConfig.IndexMode.FinancialStatementDataSets == "true" {
 			if S.Verbose {
-				fmt.Println("Downloading financial statement data sets...:")
+				logrus.Info("Downloading financial statement data sets...:")
 			}
 
 			err = S.DownloadFinancialStatementDataSets(DB)

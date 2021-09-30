@@ -3,10 +3,10 @@ package cmd
 
 import (
 	"errors"
-	"fmt"
 
 	"github.com/equres/sec/pkg/database"
 	"github.com/equres/sec/pkg/sec"
+	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 )
 
@@ -20,8 +20,7 @@ var deCmd = &cobra.Command{
 	},
 	RunE: func(cmd *cobra.Command, args []string) error {
 		if len(args) == 0 {
-			err := errors.New("please enter a year and month (for example: 2021 or 2021/06)")
-			return err
+			return errors.New("please enter a year and month (for example: 2021 or 2021/06)")
 		}
 
 		yearMonth := args[0]
@@ -40,7 +39,7 @@ var deCmd = &cobra.Command{
 			return err
 		}
 
-		fmt.Println("Successfully set download enabled for:", yearMonth)
+		logrus.Info("Successfully set download enabled for:", yearMonth)
 		return nil
 	},
 }

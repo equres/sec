@@ -2,11 +2,11 @@ package server
 
 import (
 	"embed"
-	"fmt"
 	"net/http"
 
 	"github.com/equres/sec/pkg/config"
 	"github.com/jmoiron/sqlx"
+	"github.com/sirupsen/logrus"
 )
 
 type Server struct {
@@ -28,7 +28,7 @@ func NewServer(db *sqlx.DB, config config.Config, templates embed.FS) (Server, e
 func (s Server) StartServer() error {
 	router := s.GenerateRouter()
 
-	fmt.Println("Listening on port", s.Config.Main.ServerPort)
+	logrus.Info("Listening on port", s.Config.Main.ServerPort)
 	err := http.ListenAndServe(s.Config.Main.ServerPort, router)
 	if err != nil {
 		return err

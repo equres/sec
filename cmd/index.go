@@ -2,11 +2,11 @@
 package cmd
 
 import (
-	"fmt"
 	"path/filepath"
 
 	"github.com/equres/sec/pkg/database"
 	"github.com/equres/sec/pkg/download"
+	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 )
 
@@ -28,14 +28,16 @@ var indexCmd = &cobra.Command{
 		filePath := filepath.Join(S.Config.Main.CacheDir, "files/company_tickers_exchange.json")
 		_, err = downloader.FileInCache(filePath)
 		if err != nil {
-			return fmt.Errorf("please run sec dow index to download the necessary files")
+			logrus.Error("please run sec dow index to download the necessary files")
+			return nil
 		}
 
 		// Check if ticker with exchange json files are in cache
 		filePath = filepath.Join(S.Config.Main.CacheDir, "files/company_tickers_exchange.json")
 		_, err = downloader.FileInCache(filePath)
 		if err != nil {
-			return fmt.Errorf("please run sec dow index to download the necessary files")
+			logrus.Error("please run sec dow index to download the necessary files")
+			return nil
 		}
 
 		err = S.TickerUpdateAll(DB)

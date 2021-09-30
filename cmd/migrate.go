@@ -2,12 +2,10 @@
 package cmd
 
 import (
-	"errors"
-	"fmt"
-
 	"embed"
 
 	"github.com/equres/sec/pkg/database"
+	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 )
 
@@ -20,7 +18,8 @@ var migrateCmd = &cobra.Command{
 	Long:  `function to migrate the db up or down`,
 	RunE: func(cmd *cobra.Command, args []string) (err error) {
 		if len(args) == 0 {
-			return errors.New("please type 'up' to migrate up and 'down' to migrate down (e.g. sec migrate up)")
+			logrus.Error("please type 'up' to migrate up and 'down' to migrate down (e.g. sec migrate up)")
+			return nil
 		}
 
 		switch args[0] {
@@ -29,15 +28,16 @@ var migrateCmd = &cobra.Command{
 			if err != nil {
 				return err
 			}
-			fmt.Println("Successfully migrated the DB UP")
+			logrus.Info("Successfully migrated the DB UP")
 		case "down":
 			err = database.MigrateDown(DB, GlobalMigrationsFS, RootConfig)
 			if err != nil {
 				return err
 			}
-			fmt.Println("Successfully migrated the DB DOWN")
+			logrus.Info("Successfully migrated the DB DOWN")
 		default:
-			return errors.New("please type 'up' to migrate up and 'down' to migrate down (e.g. sec migrate up)")
+			logrus.Error("please type 'up' to migrate up and 'down' to migrate down (e.g. sec migrate up)")
+			return nil
 		}
 		return nil
 	},
