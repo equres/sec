@@ -12,7 +12,7 @@ HOST=
 USER=
 
 if [ $SERVER = "dev" ]; then
-	HOST="10.0.0.1"
+	HOST="10.7.7.7"
 	USER="vagrant"
 elif [ $SERVER = "prod" ]; then
 	HOST="192.99.161.20"

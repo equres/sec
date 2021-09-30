@@ -1,0 +1,15 @@
+version: "3.7"
+services:
+  database:
+    image: postgres
+    restart: always
+    environment:
+      POSTGRES_USER: ${POSTGRES_DBUSER}
+      POSTGRES_PASSWORD: ${POSTGRES_DBPASSWORD}
+      POSTGRES_DB: ${POSTGRES_DBNAME}
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/mnt/sec/
+volumes:
+  pgdata:

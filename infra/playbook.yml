@@ -8,22 +8,28 @@
       become: yes
       become_user: root
       become_method: sudo
-      user:
-        name: sec
-        state: present
-        home: /home/sec
-    - name: Apt Upgrade
+      user: name=sec state=present groups="sudo"
+    - name: Update Golang From Apt
       become: yes
       become_user: root
       become_method: sudo
-      apt:
-        upgrade: "yes"
-        update_cache: yes
-        cache_valid_time: 432000
-    - name: Install Software Properties Common
-      apt:
-        name:
-          - software-properties-common
+      ansible.builtin.apt_repository:
+        repo: ppa:longsleep/golang-backports
+    - name: Update Postgres From Apt
+      become: yes
+      become_user: root
+      become_method: sudo
+      ansible.builtin.apt_repository:
+        update_cache: no
+        repo: "deb http://apt.postgresql.org/pub/repos/apt focal-pgdg main"
+        state: present
+    - name: Add Postgres Key
+      become: yes
+      become_user: root
+      become_method: sudo
+      ansible.builtin.apt_key:
+        url: https://www.postgresql.org/media/keys/ACCC4CF8.asc
+        state: present
     - name: Install Necessities
       become: yes
       become_user: root
@@ -31,6 +37,9 @@
       apt:
         update_cache: yes
         name:
+          - software-properties-common
+          - postgresql-13
+          - python3
           - git
           - make
           - vim
@@ -39,27 +48,35 @@
           - htop
           - tmux
           - jq
-          - curl
-          - postgresql 
-          - postgresql-contrib
-          - libpq-dev
-          - pip
-          - whois
-          - syslog-ng
-    - name: Install Python Psycopg2
-      pip:
-        name: psycopg2
-    - name: Install GH
+          - curl     
+          - acl
+          - python3-pip
+          - python3-psycopg2     
+          - golang-go
+    - name: Create /mnt/sec/db Directory
       become: yes
       become_user: root
       become_method: sudo
-      snap:
-        name:
-          - gh
-    - name: Install Golang
+      file:
+        path: /mnt/sec/db
+        state: directory
+        owner: sec
+    - name: InitDB in /mnt/sec/db
       become: yes
-      become_user: root
-      become_method: sudo
-      snap:
-        classic: yes
-        name: go
+      become_user: sec
+      command: /usr/lib/postgresql/13/bin/initdb -D /mnt/sec/db
+    - name: Create SEC User
+      become_user: postgres
+      postgresql_user:
+        login_user: postgres
+        name: sec
+        role_attr_flags: SUPERUSER
+    - name: Create the Database
+      become_user: postgres
+      postgresql_db:
+        name: sec
+        owner: sec
+        template: template0
+        encoding: UTF8
+        lc_collate: 'en_US.UTF-8'
+        lc_ctype: 'en_US.UTF-8'
