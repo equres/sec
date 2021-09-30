@@ -3,23 +3,33 @@
   become: yes
   vars:
       ansible_ssh_user: "{{ ssh_user | default('root')}}"
-      postgresql_data_dir: "/mnt/sec"
-      postgresql_global_config_options:
-        - option: data_directory
-          value: "/mnt/sec"
   tasks:
-    - name: Apt Upgrade
+    - name: Create SEC User
       become: yes
       become_user: root
       become_method: sudo
-      apt:
-        upgrade: "yes"
-        update_cache: yes
-        cache_valid_time: 432000
-    - name: Install Software Properties Common
-      apt:
-        name:
-          - software-properties-common
+      user: name=sec state=present groups="sudo"
+    - name: Update Golang From Apt
+      become: yes
+      become_user: root
+      become_method: sudo
+      ansible.builtin.apt_repository:
+        repo: ppa:longsleep/golang-backports
+    - name: Update Postgres From Apt
+      become: yes
+      become_user: root
+      become_method: sudo
+      ansible.builtin.apt_repository:
+        update_cache: no
+        repo: "deb http://apt.postgresql.org/pub/repos/apt focal-pgdg main"
+        state: present
+    - name: Add Postgres Key
+      become: yes
+      become_user: root
+      become_method: sudo
+      ansible.builtin.apt_key:
+        url: https://www.postgresql.org/media/keys/ACCC4CF8.asc
+        state: present
     - name: Install Necessities
       become: yes
       become_user: root
@@ -27,6 +37,8 @@
       apt:
         update_cache: yes
         name:
+          - software-properties-common
+          - postgresql-13
           - python3
           - git
           - make
@@ -36,65 +48,34 @@
           - htop
           - tmux
           - jq
-          - curl
-          - postgresql
-          - postgresql-contrib
-          - libpq-dev
+          - curl     
+          - acl
           - python3-pip
-          - python-psycopg2
+          - python3-psycopg2     
           - golang-go
-    - name: Get File Stat For /mnt/sec
-      stat:
-        path: /mnt/sec
-      register: mnt_sec_stat
-    - name: Create /mnt/sec Directory
+    - name: Create /mnt/sec/db Directory
+      become: yes
+      become_user: root
+      become_method: sudo
       file:
-        path: /mnt/sec
+        path: /mnt/sec/db
         state: directory
-        owner: vagrant
-      when: not mnt_sec_stat.stat.exists
-    - name: Export Essential Variables
-      shell: "export LC_CTYPE=en_US.UTF-8; export LC_ALL=en_US.UTF-8"
-    - name: Get Database Folder
-      command: du -sk /mnt/sec
-      register: folder_size_raw
-    - name: Get Database Folder Size
-      set_fact:
-        folder_size: "{{ folder_size_raw.stdout.split()[0] }}"
-      when: mnt_sec_stat.stat.exists
-    - name: Get /mnt/sec Content
-      shell: ls -la
-      args:
-        chdir: /mnt/sec
-      register: contents
-      when: mnt_sec_stat.stat.exists
-    - meta: end_play
-      when: mnt_sec_stat.stat.exists and contents["stdout_lines"] | length > 8 and folder_size|int < 4000000000000
-    - name: InitDB in /mnt/sec
+        owner: sec
+    - name: InitDB in /mnt/sec/db
       become: yes
-      become_user: vagrant
-      command: /usr/lib/postgresql/9.3/bin/initdb -D /mnt/sec
-    - name: Export PG Data Directory
-      shell: "export PGDATA=/mnt/sec"
-    - name: Change Postgres File Permissions
-      file:
-        path: /var/run/postgresql/
-        owner: vagrant
-    - name: Start Postgres Cluster
-      become: yes
-      become_user: vagrant
-      shell: /usr/lib/postgresql/9.3/bin/pg_ctl -D /mnt/sec/ start
-    - name: Create Postgres User
+      become_user: sec
+      command: /usr/lib/postgresql/13/bin/initdb -D /mnt/sec/db
+    - name: Create SEC User
+      become_user: postgres
       postgresql_user:
-        login_user: vagrant
-        db: postgres
-        name: postgres
+        login_user: postgres
+        name: sec
         role_attr_flags: SUPERUSER
     - name: Create the Database
-      become_user: vagrant
+      become_user: postgres
       postgresql_db:
-        name: vagrant
-        owner: vagrant
+        name: sec
+        owner: sec
         template: template0
         encoding: UTF8
         lc_collate: 'en_US.UTF-8'
