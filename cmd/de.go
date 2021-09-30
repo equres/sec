@@ -20,8 +20,7 @@ var deCmd = &cobra.Command{
 	},
 	RunE: func(cmd *cobra.Command, args []string) error {
 		if len(args) == 0 {
-			err := errors.New("please enter a year and month (for example: 2021 or 2021/06)")
-			return err
+			return errors.New("please enter a year and month (for example: 2021 or 2021/06)")
 		}
 
 		yearMonth := args[0]

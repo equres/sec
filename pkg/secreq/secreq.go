@@ -1,7 +1,6 @@
 package secreq
 
 import (
-	"errors"
 	"fmt"
 	"net/http"
 	"time"
@@ -53,7 +52,7 @@ func (sr *SECReq) SendRequest(retryLimit int, rateLimit time.Duration, fullurl s
 
 	if currentRetryLimit == 0 && etag == "" && contentLength == "" {
 		logrus.Error(fmt.Sprintf("retried %v request %v times and failed", sr.RequestType, retryLimit))
-		return nil, errors.New(fmt.Sprintf("retried %v request %v times and failed", sr.RequestType, retryLimit))
+		return nil, fmt.Errorf("retried %v request %v times and failed", sr.RequestType, retryLimit)
 	}
 
 	// Sleep before starting any other HTTP request
