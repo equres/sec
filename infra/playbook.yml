@@ -38,7 +38,7 @@
         update_cache: yes
         name:
           - software-properties-common
-          - postgresql-13
+          - postgresql-14
           - python3
           - git
           - make
@@ -64,7 +64,7 @@
     - name: InitDB in /mnt/sec/db
       become: yes
       become_user: sec
-      command: /usr/lib/postgresql/13/bin/initdb -D /mnt/sec/db
+      command: /usr/lib/postgresql/14/bin/initdb -D /mnt/sec/db
     - name: Create SEC User
       become_user: postgres
       postgresql_user:
