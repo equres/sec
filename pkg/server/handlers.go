@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"html/template"
 	"net/http"
+	"os"
 	"path/filepath"
 	"strconv"
 	"strings"
@@ -68,6 +69,10 @@ func (s Server) HandlerFiles(w http.ResponseWriter, r *http.Request) {
 	}
 
 	filePath := filepath.Join(s.Config.Main.CacheDir, "/Archives/edgar/data/", cik, accession, filename)
+
+	if _, err := os.Stat(filePath); os.IsNotExist(err) {
+		filePath = filepath.Join(s.Config.Main.CacheDirUnpacked, "/Archives/edgar/data/", cik, accession, filename)
+	}
 
 	http.ServeFile(w, r, filePath)
 }
