@@ -5,7 +5,9 @@ import (
 	"fmt"
 	"html/template"
 	"net/http"
+	"path/filepath"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/equres/sec/pkg/sec"
@@ -15,9 +17,11 @@ import (
 
 func (s Server) GenerateRouter() *mux.Router {
 	router := mux.NewRouter()
+
 	router.HandleFunc("/", s.HandlerHome).Methods("GET")
-	router.HandleFunc("/{year}", s.HandlerMonthsPage).Methods("GET")
-	router.HandleFunc("/{year}/{month}", s.HandlerFillingsPage).Methods("GET")
+	router.HandleFunc("/static/{cik}/{accession}/{filename}", s.HandlerFiles).Methods("GET")
+	router.HandleFunc("/search/{year}", s.HandlerMonthsPage).Methods("GET")
+	router.HandleFunc("/search/{year}/{month}", s.HandlerFillingsPage).Methods("GET")
 
 	return router
 }
@@ -37,6 +41,35 @@ func (s Server) HandlerHome(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
+}
+
+func (s Server) HandlerFiles(w http.ResponseWriter, r *http.Request) {
+	vars := mux.Vars(r)
+	cik, ok := vars["cik"]
+	if !ok {
+		fmt.Println("Cik number not there")
+		http.Error(w, "404 File Not Found", http.StatusNotFound)
+		return
+	}
+
+	accession, ok := vars["accession"]
+	if !ok {
+		fmt.Println("accession number not there")
+		http.Error(w, "404 File Not Found", http.StatusNotFound)
+		return
+	}
+	accession = strings.ReplaceAll(accession, "-", "")
+
+	filename, ok := vars["filename"]
+	if !ok {
+		fmt.Println("filename not there")
+		http.Error(w, "404 File Not Found", http.StatusNotFound)
+		return
+	}
+
+	filePath := filepath.Join(s.Config.Main.CacheDir, "/Archives/edgar/data/", cik, accession, filename)
+
+	http.ServeFile(w, r, filePath)
 }
 
 func (s Server) HandlerMonthsPage(w http.ResponseWriter, r *http.Request) {
