@@ -24,6 +24,7 @@ jobs:
           pwd
           ls -la
           whoami
+          mkdir -p ~/.ssh
           echo "${{ secrets.SECPROD_PRIV_KEY }}" > ~/.ssh/id_rsa
           chmod 700 ~/.ssh/id_rsa
           ssh-keyscan -H 192.99.161.20
