@@ -27,5 +27,5 @@ jobs:
           mkdir -p ~/.ssh
           echo "${{ secrets.SECPROD_PRIV_KEY }}" > ~/.ssh/id_rsa
           chmod 700 ~/.ssh/id_rsa
-          ssh-keyscan -H 192.99.161.20
-          scp -o StrictHostKeyChecking=no -r ../../sec root@192.99.161.20://home/sec/sec
+          ssh-keyscan -H equres.com >> ~/.ssh/known_hosts
+          scp -o StrictHostKeyChecking=no -r ../../sec sec@equres.com://home/sec/sec
