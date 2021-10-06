@@ -1175,6 +1175,10 @@ func (s *SEC) UnzipFiles(db *sqlx.DB, rssFile RSSFile, worklist []Worklist) erro
 			return err
 		}
 
+		if strings.ToLower(filepath.Ext(zipCachePath)) != ".zip" {
+			continue
+		}
+
 		reader, err := zip.OpenReader(zipCachePath)
 		if err != nil {
 			return err
