@@ -976,13 +976,11 @@ func (s *SEC) CreateFilesFromZIP(zipPath string, files []*zip.File) error {
 			if err != nil {
 				return err
 			}
-			defer out.Close()
 
 			reader, err := file.Open()
 			if err != nil {
 				return err
 			}
-			defer reader.Close()
 
 			buf := bytes.Buffer{}
 			_, err = buf.ReadFrom(reader)
@@ -994,6 +992,9 @@ func (s *SEC) CreateFilesFromZIP(zipPath string, files []*zip.File) error {
 			if err != nil {
 				return err
 			}
+
+			out.Close()
+			reader.Close()
 		}
 	}
 	return nil
