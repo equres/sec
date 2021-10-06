@@ -1181,11 +1181,13 @@ func (s *SEC) UnzipFiles(db *sqlx.DB, rssFile RSSFile, worklist []Worklist) erro
 
 		reader, err := zip.OpenReader(zipCachePath)
 		if err != nil {
+			logrus.Error("error opening the file:", zipCachePath)
 			return err
 		}
 
 		err = s.CreateFilesFromZIP(zipPath, reader.File)
 		if err != nil {
+			logrus.Error("error creating files from ZIP:", zipPath)
 			return err
 		}
 
