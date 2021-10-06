@@ -388,6 +388,7 @@ func (s *SEC) NoExchangeTickersGet(db *sqlx.DB) error {
 	if err != nil {
 		return err
 	}
+	defer file.Close()
 
 	data, err := ioutil.ReadAll(file)
 	if err != nil {
@@ -439,6 +440,7 @@ func (s *SEC) ExchangeTickersGet(db *sqlx.DB) error {
 	if err != nil {
 		return err
 	}
+	defer file.Close()
 
 	data, err := ioutil.ReadAll(file)
 	if err != nil {
@@ -496,6 +498,7 @@ func (s *SEC) ParseRSSGoXML(path string) (RSSFile, error) {
 	if err != nil {
 		return rssFile, err
 	}
+	defer xmlFile.Close()
 
 	data, err := ioutil.ReadAll(xmlFile)
 	if err != nil {
@@ -675,6 +678,7 @@ func (s *SEC) SecItemFileUpsert(db *sqlx.DB, item Item) error {
 		if err != nil {
 			return err
 		}
+		defer xbrlFile.Close()
 
 		data, err := ioutil.ReadAll(xbrlFile)
 		if err != nil {
@@ -916,6 +920,7 @@ func (s *SEC) ZIPContentUpsert(db *sqlx.DB, pathname string, files []*zip.File) 
 		if err != nil {
 			return err
 		}
+		defer reader.Close()
 
 		buf := bytes.Buffer{}
 		_, err = buf.ReadFrom(reader)
@@ -1268,6 +1273,7 @@ func (s *SEC) IndexFinancialStatementDataSets(db *sqlx.DB) error {
 		if err != nil {
 			return err
 		}
+		defer reader.Close()
 
 		err = s.FinancialStatementDataSetsZIPUpsert(db, filesPath, reader.File)
 		if err != nil {
