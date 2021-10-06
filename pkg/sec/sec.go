@@ -977,35 +977,43 @@ func (s *SEC) CreateFilesFromZIP(zipPath string, files []*zip.File) error {
 		}
 
 		if isFileExists == nil || (isFileExists != nil && isFileExists.Size() != file.FileInfo().Size()) {
-			out, err := os.Create(filePath)
+			err = s.CreateFileFromZIP(file, filePath)
 			if err != nil {
-				logrus.Error("error in creating file for ZIP content file")
 				return err
 			}
-
-			reader, err := file.Open()
-			if err != nil {
-				logrus.Error("error in opening file from inside ZIP")
-				return err
-			}
-
-			buf := bytes.Buffer{}
-			_, err = buf.ReadFrom(reader)
-			if err != nil {
-				logrus.Error("error reading ZIP file content in buffer")
-				return err
-			}
-
-			_, err = io.Copy(out, &buf)
-			if err != nil {
-				logrus.Error("error copying buffer content to file")
-				return err
-			}
-
-			out.Close()
-			reader.Close()
 		}
 	}
+	return nil
+}
+
+func (s *SEC) CreateFileFromZIP(file *zip.File, filePath string) error {
+	out, err := os.Create(filePath)
+	if err != nil {
+		logrus.Error("error in creating file for ZIP content file")
+		return err
+	}
+	defer out.Close()
+
+	reader, err := file.Open()
+	if err != nil {
+		logrus.Error("error in opening file from inside ZIP")
+		return err
+	}
+	defer reader.Close()
+
+	buf := bytes.Buffer{}
+	_, err = buf.ReadFrom(reader)
+	if err != nil {
+		logrus.Error("error reading ZIP file content in buffer")
+		return err
+	}
+
+	_, err = io.Copy(out, &buf)
+	if err != nil {
+		logrus.Error("error copying buffer content to file")
+		return err
+	}
+
 	return nil
 }
 
