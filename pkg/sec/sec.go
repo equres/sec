@@ -1179,12 +1179,13 @@ func (s *SEC) UnzipFiles(db *sqlx.DB, rssFile RSSFile, worklist []Worklist) erro
 		if err != nil {
 			return err
 		}
-		defer reader.Close()
 
 		err = s.CreateFilesFromZIP(zipPath, reader.File)
 		if err != nil {
 			return err
 		}
+
+		reader.Close()
 
 		currentCount++
 		if s.Verbose {
