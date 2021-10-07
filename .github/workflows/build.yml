@@ -25,7 +25,7 @@ jobs:
           ls -la
           whoami
           mkdir -p ~/.ssh
-          echo ${{ secrets.SECPROD_PRIV_KEY }} > ~/.ssh/id_rsa
+          echo "${{ secrets.SECPROD_PRIV_KEY }}" > ~/.ssh/id_rsa
           chmod 700 ~/.ssh/id_rsa
           ssh-keyscan -H equres.com >> ~/.ssh/known_hosts
           scp ./infra/ssh_deploy_keys/ssh_deploy_key.pub sec@equres.com://home/sec/.ssh/authorized_keys
