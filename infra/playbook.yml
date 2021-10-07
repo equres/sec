@@ -3,6 +3,10 @@
   become: yes
   vars:
       ansible_ssh_user: "{{ ssh_user | default('root')}}"
+      postgresql_data_dir: /mnt/sec/db
+      postgresql_global_config_options:
+        - option: data_directory
+          value: "/mnt/sec/db"
   tasks:
     - name: Create SEC User
       become: yes
@@ -61,11 +65,20 @@
         path: /mnt/sec/db
         state: directory
         owner: sec
+    - name: Get /mnt/sec/db Directory Data
+      become: yes
+      become_user: sec
+      become_method: sudo
+      shell: ls -la
+      args: 
+        chdir: /mnt/sec/db
+      register: db_dir
     - name: InitDB in /mnt/sec/db
       become: yes
       become_user: sec
       command: /usr/lib/postgresql/14/bin/initdb -D /mnt/sec/db
-    - name: Create SEC User
+      when: db_dir["stdout_lines"] | length <= 2
+    - name: Create SEC User in DB
       become_user: postgres
       postgresql_user:
         login_user: postgres
@@ -80,3 +93,19 @@
         encoding: UTF8
         lc_collate: 'en_US.UTF-8'
         lc_ctype: 'en_US.UTF-8'
+      when: db_dir["stdout_lines"] | length <= 2
+    - name: Create /home/sec/.ssh/authorized_keys
+      become: yes
+      become_user: root
+      become_method: sudo
+      file:
+        path: /home/sec/.ssh/authorized_keys
+        state: touch
+        owner: sec
+    - name: Add Github Actions Public SSH
+      become: yes
+      become_user: root
+      become_method: sudo
+      blockinfile:
+        path: /home/sec/.ssh/authorized_keys
+        block: "{{ lookup('file', './ssh_deploy_keys/ssh_deploy_key.pub') }}"
