@@ -28,4 +28,4 @@ jobs:
           echo "${{ secrets.SECPROD_PRIV_KEY }}" > ~/.ssh/id_rsa
           chmod 700 ~/.ssh/id_rsa
           ssh-keyscan -H equres.com >> ~/.ssh/known_hosts
-          scp -o StrictHostKeyChecking=no -r ../../sec sec@equres.com://home/sec/sec
+          scp -i ~/.ssh/id_rsa -o StrictHostKeyChecking=no -r ../../sec sec@equres.com://home/sec/sec
