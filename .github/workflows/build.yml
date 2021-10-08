@@ -29,4 +29,4 @@ jobs:
           chmod 700 ~/.ssh/id_rsa
           ssh-keyscan -H equres.com >> ~/.ssh/known_hosts
           md5sum ~/.ssh/id_rsa
-          scp -i ~/.ssh/id_rsa -o StrictHostKeyChecking=no -r ../../sec sec@equres.com://home/sec/sec
+          scp -i ~/.ssh/id_rsa ../../sec sec@equres.com://home/sec/sec
