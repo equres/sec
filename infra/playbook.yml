@@ -98,6 +98,8 @@
       become: yes
       become_user: root
       become_method: sudo
-      blockinfile:
-        path: /home/sec/.ssh/authorized_keys
-        block: "{{ lookup('file', './ssh_deploy_keys/ssh_deploy_key.pub') }}"
+      ansible.builtin.copy:
+        src: ./ssh_deploy_keys/ssh_deploy_key.pub
+        dest: /home/sec/.ssh/authorized_keys
+        owner: sec
+        mode: '0644'
