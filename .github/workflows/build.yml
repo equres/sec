@@ -27,6 +27,7 @@ jobs:
           mkdir -p ~/.ssh
           echo "${{ secrets.SECPROD_PRIV_KEY }}" > ~/.ssh/id_rsa
           chmod 700 ~/.ssh/id_rsa
+          eval `ssh-agent -s`
           ssh-keyscan -H equres.com >> ~/.ssh/known_hosts
-          ssh-add - <<< "${{ secrets.SECPROD_PRIV_KEY }}"
+          ssh-add
           scp -i ~/.ssh/id_rsa ../../sec sec@equres.com://home/sec/sec
