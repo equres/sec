@@ -20,7 +20,7 @@ func (s Server) GenerateRouter() *mux.Router {
 	router := mux.NewRouter()
 
 	router.HandleFunc("/", s.HandlerHome).Methods("GET")
-	router.HandleFunc("/static/{cik}/{accession}/{filename}", s.HandlerFiles).Methods("GET")
+	router.PathPrefix("/static/").HandlerFunc(s.HandlerFiles)
 	router.HandleFunc("/search/{year}", s.HandlerMonthsPage).Methods("GET")
 	router.HandleFunc("/search/{year}/{month}", s.HandlerFillingsPage).Methods("GET")
 
@@ -45,33 +45,12 @@ func (s Server) HandlerHome(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s Server) HandlerFiles(w http.ResponseWriter, r *http.Request) {
-	vars := mux.Vars(r)
-	cik, ok := vars["cik"]
-	if !ok {
-		fmt.Println("Cik number not there")
-		http.Error(w, "404 File Not Found", http.StatusNotFound)
-		return
-	}
+	filename := strings.ReplaceAll(r.URL.Path, "/static/", "")
 
-	accession, ok := vars["accession"]
-	if !ok {
-		fmt.Println("accession number not there")
-		http.Error(w, "404 File Not Found", http.StatusNotFound)
-		return
-	}
-	accession = strings.ReplaceAll(accession, "-", "")
-
-	filename, ok := vars["filename"]
-	if !ok {
-		fmt.Println("filename not there")
-		http.Error(w, "404 File Not Found", http.StatusNotFound)
-		return
-	}
-
-	filePath := filepath.Join(s.Config.Main.CacheDir, "/Archives/edgar/data/", cik, accession, filename)
+	filePath := filepath.Join(s.Config.Main.CacheDir, filename)
 
 	if _, err := os.Stat(filePath); os.IsNotExist(err) {
-		filePath = filepath.Join(s.Config.Main.CacheDirUnpacked, "/Archives/edgar/data/", cik, accession, filename)
+		filePath = filepath.Join(s.Config.Main.CacheDirUnpacked, filename)
 	}
 
 	http.ServeFile(w, r, filePath)
@@ -144,13 +123,19 @@ func (s Server) HandlerFillingsPage(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func (s Server) RenderTemplate(w http.ResponseWriter, tmpl string, data interface{}) error {
-	template, err := template.ParseFS(s.TemplatesFS, "templates/"+tmpl, "templates/base.layout.gohtml")
+func (s Server) RenderTemplate(w http.ResponseWriter, tmplName string, data interface{}) error {
+	funcMap := template.FuncMap{
+		"formatAccession": func(accession string) string {
+			return strings.ReplaceAll(accession, "-", "")
+		},
+	}
+
+	tmpl, err := template.New("tmpl").Funcs(funcMap).ParseFS(s.TemplatesFS, "templates/"+tmplName, "templates/base.layout.gohtml")
 	if err != nil {
 		return err
 	}
 
-	err = template.ExecuteTemplate(w, "base", data)
+	err = tmpl.ExecuteTemplate(w, "base", data)
 	if err != nil {
 		return err
 	}
