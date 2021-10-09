@@ -388,6 +388,7 @@ func (s *SEC) NoExchangeTickersGet(db *sqlx.DB) error {
 	if err != nil {
 		return err
 	}
+	defer file.Close()
 
 	data, err := ioutil.ReadAll(file)
 	if err != nil {
@@ -439,6 +440,7 @@ func (s *SEC) ExchangeTickersGet(db *sqlx.DB) error {
 	if err != nil {
 		return err
 	}
+	defer file.Close()
 
 	data, err := ioutil.ReadAll(file)
 	if err != nil {
@@ -496,6 +498,7 @@ func (s *SEC) ParseRSSGoXML(path string) (RSSFile, error) {
 	if err != nil {
 		return rssFile, err
 	}
+	defer xmlFile.Close()
 
 	data, err := ioutil.ReadAll(xmlFile)
 	if err != nil {
@@ -675,6 +678,7 @@ func (s *SEC) SecItemFileUpsert(db *sqlx.DB, item Item) error {
 		if err != nil {
 			return err
 		}
+		defer xbrlFile.Close()
 
 		data, err := ioutil.ReadAll(xbrlFile)
 		if err != nil {
@@ -877,7 +881,7 @@ func UniqueYearsInWorklist(db *sqlx.DB) ([]int, error) {
 	// Retrieve from DB
 	var worklistYears []int
 
-	err := db.Select(&worklistYears, "SELECT year FROM sec.worklist WHERE will_download = true ORDER BY year ASC")
+	err := db.Select(&worklistYears, "SELECT DISTINCT year FROM sec.worklist WHERE will_download = true ORDER BY year ASC")
 	if err != nil {
 		return nil, err
 	}
@@ -916,6 +920,7 @@ func (s *SEC) ZIPContentUpsert(db *sqlx.DB, pathname string, files []*zip.File) 
 		if err != nil {
 			return err
 		}
+		defer reader.Close()
 
 		buf := bytes.Buffer{}
 		_, err = buf.ReadFrom(reader)
@@ -972,29 +977,43 @@ func (s *SEC) CreateFilesFromZIP(zipPath string, files []*zip.File) error {
 		}
 
 		if isFileExists == nil || (isFileExists != nil && isFileExists.Size() != file.FileInfo().Size()) {
-			out, err := os.Create(filePath)
-			if err != nil {
-				return err
-			}
-			defer out.Close()
-
-			reader, err := file.Open()
-			if err != nil {
-				return err
-			}
-
-			buf := bytes.Buffer{}
-			_, err = buf.ReadFrom(reader)
-			if err != nil {
-				return err
-			}
-
-			_, err = io.Copy(out, &buf)
+			err = s.CreateFileFromZIP(file, filePath)
 			if err != nil {
 				return err
 			}
 		}
 	}
+	return nil
+}
+
+func (s *SEC) CreateFileFromZIP(file *zip.File, filePath string) error {
+	out, err := os.Create(filePath)
+	if err != nil {
+		logrus.Error("error in creating file for ZIP content file")
+		return err
+	}
+	defer out.Close()
+
+	reader, err := file.Open()
+	if err != nil {
+		logrus.Error("error in opening file from inside ZIP")
+		return err
+	}
+	defer reader.Close()
+
+	buf := bytes.Buffer{}
+	_, err = buf.ReadFrom(reader)
+	if err != nil {
+		logrus.Error("error reading ZIP file content in buffer")
+		return err
+	}
+
+	_, err = io.Copy(out, &buf)
+	if err != nil {
+		logrus.Error("error copying buffer content to file")
+		return err
+	}
+
 	return nil
 }
 
@@ -1156,16 +1175,23 @@ func (s *SEC) UnzipFiles(db *sqlx.DB, rssFile RSSFile, worklist []Worklist) erro
 			return err
 		}
 
+		if strings.ToLower(filepath.Ext(zipCachePath)) != ".zip" {
+			continue
+		}
+
 		reader, err := zip.OpenReader(zipCachePath)
 		if err != nil {
+			logrus.Error("error opening the file:", zipCachePath)
 			return err
 		}
-		defer reader.Close()
 
 		err = s.CreateFilesFromZIP(zipPath, reader.File)
 		if err != nil {
+			logrus.Error("error creating files from ZIP:", zipPath)
 			return err
 		}
+
+		reader.Close()
 
 		currentCount++
 		if s.Verbose {
@@ -1266,6 +1292,7 @@ func (s *SEC) IndexFinancialStatementDataSets(db *sqlx.DB) error {
 		if err != nil {
 			return err
 		}
+		defer reader.Close()
 
 		err = s.FinancialStatementDataSetsZIPUpsert(db, filesPath, reader.File)
 		if err != nil {

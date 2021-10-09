@@ -5,7 +5,10 @@ import (
 	"fmt"
 	"html/template"
 	"net/http"
+	"os"
+	"path/filepath"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/equres/sec/pkg/sec"
@@ -15,9 +18,11 @@ import (
 
 func (s Server) GenerateRouter() *mux.Router {
 	router := mux.NewRouter()
+
 	router.HandleFunc("/", s.HandlerHome).Methods("GET")
-	router.HandleFunc("/{year}", s.HandlerMonthsPage).Methods("GET")
-	router.HandleFunc("/{year}/{month}", s.HandlerFillingsPage).Methods("GET")
+	router.PathPrefix("/static/").HandlerFunc(s.HandlerFiles)
+	router.HandleFunc("/search/{year}", s.HandlerMonthsPage).Methods("GET")
+	router.HandleFunc("/search/{year}/{month}", s.HandlerFillingsPage).Methods("GET")
 
 	return router
 }
@@ -37,6 +42,18 @@ func (s Server) HandlerHome(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
+}
+
+func (s Server) HandlerFiles(w http.ResponseWriter, r *http.Request) {
+	filename := strings.ReplaceAll(r.URL.Path, "/static/", "")
+
+	filePath := filepath.Join(s.Config.Main.CacheDir, filename)
+
+	if _, err := os.Stat(filePath); os.IsNotExist(err) {
+		filePath = filepath.Join(s.Config.Main.CacheDirUnpacked, filename)
+	}
+
+	http.ServeFile(w, r, filePath)
 }
 
 func (s Server) HandlerMonthsPage(w http.ResponseWriter, r *http.Request) {
@@ -106,13 +123,19 @@ func (s Server) HandlerFillingsPage(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func (s Server) RenderTemplate(w http.ResponseWriter, tmpl string, data interface{}) error {
-	template, err := template.ParseFS(s.TemplatesFS, "templates/"+tmpl, "templates/base.layout.gohtml")
+func (s Server) RenderTemplate(w http.ResponseWriter, tmplName string, data interface{}) error {
+	funcMap := template.FuncMap{
+		"formatAccession": func(accession string) string {
+			return strings.ReplaceAll(accession, "-", "")
+		},
+	}
+
+	tmpl, err := template.New("tmpl").Funcs(funcMap).ParseFS(s.TemplatesFS, "templates/"+tmplName, "templates/base.layout.gohtml")
 	if err != nil {
 		return err
 	}
 
-	err = template.ExecuteTemplate(w, "base", data)
+	err = tmpl.ExecuteTemplate(w, "base", data)
 	if err != nil {
 		return err
 	}
