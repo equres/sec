@@ -1,0 +1,91 @@
+name: CI
+
+on:
+  push:
+    branches:
+      - '*'
+jobs:
+  format:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - uses: actions/setup-go@v2
+        with:
+          stable: 'false'
+          go-version: '1.16'
+        
+      - name: Clean Up Code
+        run: make clean
+  golangci:
+    needs: format
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - name: golangci-lint
+        uses: golangci/golangci-lint-action@v2
+        with:
+          version: 'latest'
+  build:
+    needs: golangci
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - uses: actions/setup-go@v2
+        with:
+          stable: 'false'
+          go-version: '1.16'
+        
+      - name: Build App
+        run: make build
+      
+      - uses: actions/upload-artifact@v2
+        with:
+          name: sec_binary
+          path: ./sec
+  postgres-job:
+    needs: build
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:latest
+        env:
+          POSTGRES_HOST: localhost
+          POSTGRES_USER: test_postgres
+          POSTGRES_PASSWORD: test_postgres
+          POSTGRES_DB: sec_project
+          POSTGRES_PORT: 5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 5432:5432
+
+    steps:
+      - uses: actions/checkout@v2
+      - uses: actions/setup-go@v2
+        with:
+          stable: 'false'
+          go-version: '1.16'
+
+      - name: Download SEC Binary
+        uses: actions/download-artifact@v2
+        with:
+          name: sec_binary
+      
+      - name: Changing Permissions For SEC Binary
+        run: chmod 755 ./sec
+
+      - name: Run Migration
+        run: make migrateup
+
+      - name: Install PostgreSQL
+        run: |
+          sudo apt-get update
+          sudo apt-get install --yes postgresql-client
+
+      - name: Testing Database
+        run: | 
+          ./sec de 2021/06 --config=ci
+          ./sec dlist --config=ci
