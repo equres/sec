@@ -1,16 +1,16 @@
-name: Deploy SEC App
+name: CD
 
-on: 
+on:
   push:
     branches:
       - main
   workflow_run:
-     workflows: ["GolangCI Linting SEC App"]
+     workflows: ["CI"]
      types: [completed]
 
 jobs:
   on-success:
-    runs-on: ubuntu-18.04
+    runs-on: ubuntu-latest
     if: ${{ github.event.workflow_run.conclusion == 'success' }}
     steps:
       - uses: actions/checkout@v2
@@ -36,7 +36,7 @@ jobs:
           ssh-add
           scp -i ~/.ssh/id_rsa ./sec sec@equres.com://home/sec/sec
   on-failure:
-    runs-on: ubuntu-18.04
+    runs-on: ubuntu-latest
     if: ${{ github.event.workflow_run.conclusion == 'failure' }}
     steps:
-      - run: echo "Linting Job Failed - Will Not Deploy"
+      - run: echo "CI Job Failed - Will Not Deploy"
