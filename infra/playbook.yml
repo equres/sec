@@ -57,6 +57,8 @@
           - python3-pip
           - python3-psycopg2     
           - golang-go
+          - zip
+          - unzip
     - name: Create /mnt/sec/db Directory
       become: yes
       become_user: root
@@ -64,10 +66,27 @@
       file:
         path: /mnt/sec/db
         state: directory
+        owner: postgres
+        group: postgres
+    - name: Copy Config Files
+      become: yes
+      become_user: root
+      become_method: sudo
+      ansible.builtin.unarchive:
+        src: ./etc/postgresql/config.zip
+        dest: /etc/postgresql/14/main/
+    - name: Update Data Directory Address
+      become: yes
+      become_user: root
+      become_method: sudo
+      ansible.builtin.copy:
+        src: ./etc/postgresql/postgresql.service
+        dest: /lib/systemd/system/postgresql.service
         owner: sec
+        mode: '0644'
     - name: Get /mnt/sec/db Directory Data
       become: yes
-      become_user: sec
+      become_user: postgres
       become_method: sudo
       shell: ls -la
       args: 
@@ -75,15 +94,26 @@
       register: db_dir
     - name: InitDB in /mnt/sec/db
       become: yes
-      become_user: sec
+      become_user: postgres
       command: /usr/lib/postgresql/14/bin/initdb -D /mnt/sec/db
       when: db_dir["stdout_lines"] | length <= 8
+    - name: Reload Postgresql Service
+      become: yes
+      become_user: root
+      become_method: sudo
+      command: systemctl daemon-reload
+    - name: Start Postgresql Service
+      become: yes
+      become_user: root
+      become_method: sudo
+      command: systemctl start postgresql@14-main.service
     - name: Create SEC User in DB
       become_user: postgres
       postgresql_user:
         login_user: postgres
         name: sec
-        role_attr_flags: SUPERUSER
+        password: sec_project_2021
+        role_attr_flags: SUPERUSER,LOGIN
     - name: Create the Database
       become_user: postgres
       postgresql_db:
