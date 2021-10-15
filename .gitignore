@@ -16,6 +16,7 @@
 app.env
 cache
 unzipped_cache
+infra/.vagrant/
 
 # executable
 .sec
