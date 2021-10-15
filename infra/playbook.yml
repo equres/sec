@@ -72,7 +72,7 @@
       become: yes
       become_user: root
       become_method: sudo
-      copy: src=./etc/postgresql/{{ item.src }} dest=/etc/postgresql/14/main
+      copy: src=./etc/postgresql/14/main/{{ item.src }} dest=/etc/postgresql/14/main
       with_items:
         - { src: 'conf.d' }
         - { src: 'environment' }
