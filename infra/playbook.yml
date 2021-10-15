@@ -72,9 +72,15 @@
       become: yes
       become_user: root
       become_method: sudo
-      ansible.builtin.unarchive:
-        src: ./etc/postgresql/config.zip
-        dest: /etc/postgresql/14/main/
+      copy: src=./etc/postgresql/{{ item.src }} dest=/etc/postgresql/14/main
+      with_items:
+        - { src: 'conf.d' }
+        - { src: 'environment' }
+        - { src: 'pg_ctl.conf' }
+        - { src: 'pg_hba.conf' }
+        - { src: 'pg_ident.conf' }
+        - { src: 'postgresql.conf' }
+        - { src: 'start.conf' }
     - name: Update Data Directory Address
       become: yes
       become_user: root
