@@ -31,6 +31,7 @@ jobs:
           eval `ssh-agent -s`
           ssh-keyscan -H equres.com >> ~/.ssh/known_hosts
           ssh-add
+          ssh -i ~/.ssh/id_rsa sec@equres.com mv sec sec.old
           scp -i ~/.ssh/id_rsa ./sec sec@equres.com://home/sec/sec
   on-failure:
     runs-on: ubuntu-latest
