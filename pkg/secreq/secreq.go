@@ -1,8 +1,13 @@
 package secreq
 
 import (
+	"bytes"
 	"fmt"
+	"io/ioutil"
+	"mime"
 	"net/http"
+	"path/filepath"
+	"strings"
 	"time"
 
 	"github.com/sirupsen/logrus"
@@ -32,6 +37,24 @@ func (sr *SECReq) SendRequest(retryLimit int, rateLimit time.Duration, fullurl s
 		resp, err = new(http.Client).Do(req)
 		if err != nil {
 			return nil, err
+		}
+
+		if sr.RequestType == http.MethodGet {
+			responseBody, err := ioutil.ReadAll(resp.Body)
+			if err != nil {
+				return nil, err
+			}
+
+			resp.Body = ioutil.NopCloser(bytes.NewBuffer(responseBody))
+
+			fileExtensions, err := mime.ExtensionsByType(http.DetectContentType(responseBody))
+			if err != nil || len(fileExtensions) == 0 {
+				return nil, err
+			}
+
+			if strings.ToLower(fileExtensions[0]) != strings.ToLower(filepath.Ext(fullurl)) {
+				continue
+			}
 		}
 
 		if sr.IsEtag {
