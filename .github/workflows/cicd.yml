@@ -91,7 +91,7 @@ jobs:
           ./sec dlist --config=ci
   deploy: 
     needs: postgres-job
-    # if: github.ref == 'refs/heads/main'
+    if: github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v2
