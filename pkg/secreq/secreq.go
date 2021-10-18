@@ -52,7 +52,7 @@ func (sr *SECReq) SendRequest(retryLimit int, rateLimit time.Duration, fullurl s
 				return nil, err
 			}
 
-			if strings.ToLower(fileExtensions[0]) != strings.ToLower(filepath.Ext(fullurl)) {
+			if !strings.EqualFold(strings.ToLower(fileExtensions[0]), strings.ToLower(filepath.Ext(fullurl))) {
 				continue
 			}
 		}
