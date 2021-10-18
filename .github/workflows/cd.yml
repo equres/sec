@@ -8,7 +8,7 @@ on:
 jobs:
   on-success:
     runs-on: ubuntu-latest
-    if: ${{ github.event.workflow_run.conclusion == 'success' }}
+    needs: postgres-job
     steps:
       - uses: actions/checkout@v2
       - uses: actions/setup-go@v2
@@ -33,8 +33,3 @@ jobs:
           ssh-add
           ssh -i ~/.ssh/id_rsa sec@equres.com mv sec sec.old
           scp -i ~/.ssh/id_rsa ./sec sec@equres.com://home/sec/sec
-  on-failure:
-    runs-on: ubuntu-latest
-    if: ${{ github.event.workflow_run.conclusion == 'failure' }}
-    steps:
-      - run: echo "CI Job Failed - Will Not Deploy"
