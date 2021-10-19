@@ -32,6 +32,8 @@ jobs:
           ssh-keyscan -H equres.com >> ~/.ssh/known_hosts
           ssh-add
           scp -i ~/.ssh/id_rsa ./sec sec@equres.com://home/sec/sec
+          ssh sec@equres.com nohup ./sec serve &
+          ssh sec@equres.com caddy reverse-proxy --from equres.com --to localhost:8000
   on-failure:
     runs-on: ubuntu-latest
     if: ${{ github.event.workflow_run.conclusion == 'failure' }}
