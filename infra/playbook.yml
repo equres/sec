@@ -72,10 +72,6 @@
           - debian-archive-keyring 
           - apt-transport-https
           - caddy
-    - name: Setting Up Caddy Properly
-      become: yes
-      become_user: root
-      shell: sudo setcap CAP_NET_BIND_SERVICE=+eip $(which caddy)
     - name: Create /mnt/sec/db Directory
       become: yes
       become_user: root
