@@ -191,13 +191,46 @@ func (d Downloader) DownloadFile(db *sqlx.DB, fullurl string) error {
 		return err
 	}
 
+	fmt.Println("Status Code:", resp.StatusCode)
+	if IsErrorPage(string(responseBody)) {
+		return fmt.Errorf("requested file but received an error instead")
+	}
+
 	size, err := io.Copy(ioutil.Discard, bytes.NewReader(responseBody))
 	if err != nil {
 		return err
 	}
 
+	err = SaveFile(cachePath, responseBody)
+	if err != nil {
+		return err
+	}
+
+	if d.IsEtag {
+		etag := resp.Header.Get("eTag")
+		err = IndexEtag(*db, fullurl, etag, size)
+		if err != nil {
+			return err
+		}
+	}
+
+	if d.IsContentLength {
+		err = IndexContentLength(*db, fullurl, size)
+		if err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+func IsErrorPage(data string) bool {
+	return strings.Contains(data, "This page is temporarily unavailable.")
+}
+
+func SaveFile(cachePath string, responseBody []byte) error {
 	foldersPath := strings.ReplaceAll(cachePath, filepath.Base(cachePath), "")
-	if _, err = os.Stat(foldersPath); err != nil {
+	if _, err := os.Stat(foldersPath); err != nil {
 		err = os.MkdirAll(foldersPath, 0755)
 		if err != nil {
 			return err
@@ -215,29 +248,32 @@ func (d Downloader) DownloadFile(db *sqlx.DB, fullurl string) error {
 		return err
 	}
 
-	if d.IsEtag {
-		etag := resp.Header.Get("eTag")
-		_, err = db.Exec(`
+	return nil
+}
+
+func IndexEtag(db sqlx.DB, fullurl string, etag string, size int64) error {
+	_, err := db.Exec(`
 		INSERT INTO sec.downloads (url, etag, size, created_at, updated_at) 
 		VALUES ($1, $2, $3, NOW(), NOW()) 
 		ON CONFLICT (url) 
 		DO UPDATE SET url=EXCLUDED.url, etag=EXCLUDED.etag, size=EXCLUDED.size, updated_at=NOW() 
 		WHERE downloads.url=EXCLUDED.url;`, fullurl, etag, size)
-		if err != nil {
-			return err
-		}
+	if err != nil {
+		return err
 	}
 
-	if d.IsContentLength {
-		_, err = db.Exec(`
+	return nil
+}
+
+func IndexContentLength(db sqlx.DB, fullurl string, size int64) error {
+	_, err := db.Exec(`
 		INSERT INTO sec.downloads (url, size, created_at, updated_at) 
 		VALUES ($1, $2, NOW(), NOW()) 
 		ON CONFLICT (url) 
 		DO UPDATE SET url=EXCLUDED.url, size=EXCLUDED.size, updated_at=NOW() 
 		WHERE downloads.url=EXCLUDED.url;`, fullurl, size)
-		if err != nil {
-			return err
-		}
+	if err != nil {
+		return err
 	}
 
 	return nil
