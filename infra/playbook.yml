@@ -94,6 +94,18 @@
         - { src: 'pg_ident.conf' }
         - { src: 'postgresql.conf' }
         - { src: 'start.conf' }
+    - name: Copy Caddy Config File
+      become: yes
+      become_user: root
+      become_method: sudo
+      copy: src=./etc/caddy/Caddyfile dest=/etc/caddy
+    - name: Reload Caddy Service
+      become: yes
+      become_user: root
+      become_method: sudo
+      ansible.builtin.service:
+        name: caddy
+        state: reloaded
     - name: Get /mnt/sec/db Directory Data
       become: yes
       become_user: postgres
