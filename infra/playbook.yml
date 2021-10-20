@@ -34,6 +34,15 @@
       ansible.builtin.apt_key:
         url: https://www.postgresql.org/media/keys/ACCC4CF8.asc
         state: present
+    - name: Update Caddy From Apt (1/2)
+      become: yes
+      become_user: root
+      become_method: sudo
+      ansible.builtin.apt_key:
+        url: "https://dl.cloudsmith.io/public/caddy/stable/gpg.key"
+        state: present
+    - name: Update Caddy From Apt (2/2)
+      shell: curl -1sLf 'https://dl.cloudsmith.io/public/caddy/stable/debian.deb.txt' | sudo tee /etc/apt/sources.list.d/caddy-stable.list
     - name: Install Necessities
       become: yes
       become_user: root
@@ -59,6 +68,10 @@
           - golang-go
           - zip
           - unzip
+          - debian-keyring 
+          - debian-archive-keyring 
+          - apt-transport-https
+          - caddy
     - name: Create /mnt/sec/db Directory
       become: yes
       become_user: root
@@ -68,7 +81,7 @@
         state: directory
         owner: postgres
         group: postgres
-    - name: Copy Config Files
+    - name: Copy Postgres Config Files
       become: yes
       become_user: root
       become_method: sudo
