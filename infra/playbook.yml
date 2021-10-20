@@ -72,6 +72,7 @@
           - debian-archive-keyring 
           - apt-transport-https
           - caddy
+          - monit
     - name: Create /mnt/sec/db Directory
       become: yes
       become_user: root
@@ -105,6 +106,18 @@
       become_method: sudo
       ansible.builtin.service:
         name: caddy
+        state: reloaded
+    - name: Copy Monit Config File
+      become: yes
+      become_user: root
+      become_method: sudo
+      copy: src=./etc/monit/monitrc dest=/etc/monit
+    - name: Reload Monit Service
+      become: yes
+      become_user: root
+      become_method: sudo
+      ansible.builtin.service:
+        name: monit
         state: reloaded
     - name: Get /mnt/sec/db Directory Data
       become: yes
