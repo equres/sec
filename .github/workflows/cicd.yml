@@ -87,8 +87,8 @@ jobs:
 
       - name: Copy Config File
         run: |
-        sudo mkdir ~/.config/.sec/
-        sudo cp ./ci/config.yml ~/.config/.sec/config.yml
+          sudo mkdir ~/.config/.sec/
+          sudo cp ./ci/config.yml ~/.config/.sec/config.yml
 
       - name: Testing Database
         run: | 
