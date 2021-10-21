@@ -21,7 +21,7 @@
                     <td>{{ .CompanyName }}</td>
                     <td>{{ .CIKNumber }}</td>
                     <td>{{ .AccessionNumber }}</td>
-                    <td><a href="/static/Archives\edgar\data\{{ .CIKNumber }}\{{ formatAccession .AccessionNumber }}\{{ .XbrlFile }}">{{ .XbrlFile }}</a></td>
+                    <td><a href="/Archives\edgar\data\{{ .CIKNumber }}\{{ formatAccession .AccessionNumber }}\{{ .XbrlFile }}">{{ .XbrlFile }}</a></td>
                 </tr>
             {{ end }}
         </tbody>
