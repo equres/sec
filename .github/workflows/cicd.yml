@@ -77,6 +77,11 @@ jobs:
       - name: Changing Permissions For SEC Binary
         run: chmod 755 ./sec
 
+      - name: Copy Config File
+        run: |
+          sudo mkdir ~/.config/.sec/
+          sudo cp ./ci/config.yaml ~/.config/.sec/config.yaml
+
       - name: Run Migration
         run: make migrateup
 
@@ -84,12 +89,6 @@ jobs:
         run: |
           sudo apt-get update
           sudo apt-get install --yes postgresql-client
-
-      - name: Copy Config File
-        run: |
-          sudo mkdir ~/.config/.sec/
-          sudo cp ./ci/config.yml ~/.config/.sec/config.yml
-          cat ~/.config/.sec/config.yml
 
       - name: Testing Database
         run: | 
