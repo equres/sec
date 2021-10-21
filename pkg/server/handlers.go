@@ -20,9 +20,9 @@ func (s Server) GenerateRouter() *mux.Router {
 	router := mux.NewRouter()
 
 	router.HandleFunc("/", s.HandlerHome).Methods("GET")
-	router.PathPrefix("/static/").HandlerFunc(s.HandlerFiles)
 	router.HandleFunc("/search/{year}", s.HandlerMonthsPage).Methods("GET")
 	router.HandleFunc("/search/{year}/{month}", s.HandlerFillingsPage).Methods("GET")
+	router.PathPrefix("/").HandlerFunc(s.HandlerFiles)
 
 	return router
 }
