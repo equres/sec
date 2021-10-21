@@ -89,6 +89,7 @@ jobs:
         run: |
           sudo mkdir ~/.config/.sec/
           sudo cp ./ci/config.yml ~/.config/.sec/config.yml
+          cat ~/.config/.sec/config.yml
 
       - name: Testing Database
         run: | 
