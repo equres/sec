@@ -86,7 +86,9 @@ jobs:
           sudo apt-get install --yes postgresql-client
 
       - name: Copy Config File
-        run: cp ./ci/config.yml ~/.sec/config.yml
+        run: |
+        sudo mkdir ~/.config/.sec/
+        sudo cp ./ci/config.yml ~/.config/.sec/config.yml
 
       - name: Testing Database
         run: | 
