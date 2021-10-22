@@ -1,5 +1,5 @@
 # vim:set tw=1000:
-set daemon 5
+set daemon 120
 set log syslog
 
 #set onreboot start
@@ -12,19 +12,18 @@ set httpd
 #check file lp_bin with path /tmp/lp
 #   if changed timestamp then exec "/usr/bin/say hello"
 
-check system sec
+# check system sec
 
-CHECK PROCESS sec_app MATCHING ".*sec*"
-	start program = "/bin/sh -c '/home/sec/sec ./serve>&1 > /tmp/log.sec &'"
-		 as uid "sec" and gid "sec" WITH TIMEOUT 5 SECONDS
-	stop program = "/bin/sh -c 'killall -s SIGTERM sec'"
-		 as uid "sec" and gid "sec" WITH TIMEOUT 5 SECONDS
-
+CHECK PROCESS sec_app MATCHING "sec serve"
+	start program = "/bin/su -s /bin/bash -c '/home/sec/sec serve' sec"
+		# as uid "sec" and gid "sec" WITH TIMEOUT 5 SECONDS
+	stop program = "/bin/su -s /bin/bash -c 'killall -s SIGTERM sec' sec"
+		# as uid "sec" and gid "sec" WITH TIMEOUT 5 SECONDS
 
         if failed
 		port 8000 protocol http
-		with http headers [Host: 127.0.0.1, Cache-Control: no-cache, Cookie: csrftoken=placeholder]
-		and request /x/uptime with content = ".*OK"
+		with http headers [Host: 127.0.0.1]
+		# and request /x/uptime with content = ".*OK"
         then
 		restart
 
