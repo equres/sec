@@ -77,6 +77,11 @@ jobs:
       - name: Changing Permissions For SEC Binary
         run: chmod 755 ./sec
 
+      - name: Copy Config File
+        run: |
+          sudo mkdir ~/.config/.sec/
+          sudo cp ./ci/config.yaml ~/.config/.sec/config.yaml
+
       - name: Run Migration
         run: make migrateup
 
@@ -87,8 +92,8 @@ jobs:
 
       - name: Testing Database
         run: | 
-          ./sec de 2021/06 --config=ci
-          ./sec dlist --config=ci
+          ./sec de 2021/06
+          ./sec dlist
   deploy: 
     needs: postgres-job
     if: github.ref == 'refs/heads/main'
