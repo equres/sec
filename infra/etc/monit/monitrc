@@ -23,7 +23,7 @@ CHECK PROCESS sec_app MATCHING "sec serve"
         if failed
 		port 8000 protocol http
 		with http headers [Host: 127.0.0.1]
-		# and request /x/uptime with content = ".*OK"
+		and request /uptime with content = "Works fine!"
         then
 		restart
 

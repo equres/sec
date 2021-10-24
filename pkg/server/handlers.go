@@ -23,6 +23,7 @@ func (s Server) GenerateRouter() *mux.Router {
 	router.PathPrefix("/static/").HandlerFunc(s.HandlerFiles)
 	router.HandleFunc("/search/{year}", s.HandlerMonthsPage).Methods("GET")
 	router.HandleFunc("/search/{year}/{month}", s.HandlerFillingsPage).Methods("GET")
+	router.HandleFunc("/uptime", s.HandlerUptime).Methods("GET")
 
 	return router
 }
@@ -121,6 +122,10 @@ func (s Server) HandlerFillingsPage(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 	}
+}
+
+func (s Server) HandlerUptime(w http.ResponseWriter, r *http.Request) {
+	fmt.Fprint(w, "Works fine!")
 }
 
 func (s Server) RenderTemplate(w http.ResponseWriter, tmplName string, data interface{}) error {
