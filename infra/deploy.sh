@@ -14,6 +14,7 @@ USER=
 if [ $SERVER = "dev" ]; then
 	HOST="10.7.7.7"
 	USER="vagrant"
+	ssh-add .vagrant/machines/default/virtualbox/private_key
 elif [ $SERVER = "prod" ]; then
 	HOST="192.99.161.20"
 	USER="ubuntu"
