@@ -135,8 +135,10 @@
     - name: Start Postgresql Service
       become: yes
       become_user: postgres
-      command: /usr/lib/postgresql/14/bin/pg_ctl -D /mnt/sec/db -l logfile start
-      when: psql_status["stdout_lines"] | length < 2
+      ansible.builtin.service:
+        name: postgresql
+        state: started
+        enabled: yes
     - name: Create SEC User in DB
       become_user: postgres
       postgresql_user:
