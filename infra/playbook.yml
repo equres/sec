@@ -12,7 +12,7 @@
       become: yes
       become_user: root
       become_method: sudo
-      user: name=sec state=present groups="sudo"
+      user: name=sec state=present groups="sec"
     - name: Update Golang From Apt
       become: yes
       become_user: root
