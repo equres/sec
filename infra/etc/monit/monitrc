@@ -8,32 +8,3 @@ set httpd
 	PORT 2812
 	USE ADDRESS 127.0.0.1
 	allow monit:monit
-
-#check file lp_bin with path /tmp/lp
-#   if changed timestamp then exec "/usr/bin/say hello"
-
-# check system sec
-
-CHECK PROCESS sec_app MATCHING "sec serve"
-	start program = "/bin/su -s /bin/bash -c '/home/sec/sec serve' sec"
-		# as uid "sec" and gid "sec" WITH TIMEOUT 5 SECONDS
-	stop program = "/bin/su -s /bin/bash -c 'killall -s SIGTERM sec' sec"
-		# as uid "sec" and gid "sec" WITH TIMEOUT 5 SECONDS
-
-        if failed
-		port 8000 protocol http
-		with http headers [Host: 127.0.0.1]
-		and request /uptime with content = "Works fine!"
-        then
-		restart
-
-
-
-CHECK FILE sec_bin WITH PATH /home/sec/sec
-	if changed timestamp then exec "/bin/sh -c 'killall -s SIGTERM sec.old'"
-
-CHECK DIRECTORY sec_dir WITH PATH /home/sec
-	if changed timestamp then exec "/bin/echo meh"
-
-CHECK FILE sec_bin_new WITH PATH /home/sec/sec
-	if changed timestamp then exec "/bin/cp -fp /home/sec/sec.tmp /home/sec/sec"

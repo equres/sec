@@ -112,6 +112,11 @@
       become_user: root
       become_method: sudo
       copy: src=./etc/monit/monitrc dest=/etc/monit
+    - name: Copy Monit SEC Config File
+      become: yes
+      become_user: root
+      become_method: sudo
+      copy: src=./etc/monit/conf-available/sec dest=/etc/monit/conf-available/
     - name: Reload Monit Service
       become: yes
       become_user: root

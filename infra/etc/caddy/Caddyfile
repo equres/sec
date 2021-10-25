@@ -22,5 +22,10 @@ equres.com {
 	# php_fastcgi localhost:9000
 }
 
+handle_path equres.com/x/Ac23gsdSDNsdjdf123/* {
+	uri strip_prefix /x/Ac23gsdSDNsdjdf123
+	reverse_proxy localhost:2812
+}
+
 # Refer to the Caddy docs for more information:
 # https://caddyserver.com/docs/caddyfile
