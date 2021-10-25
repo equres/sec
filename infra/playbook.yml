@@ -8,11 +8,18 @@
         - option: data_directory
           value: "/mnt/sec/db"
   tasks:
+    - name: Create SEC Group
+      become: yes
+      become_user: root
+      become_method: sudo
+      group:
+        name: sec
+        state: present
     - name: Create SEC User
       become: yes
       become_user: root
       become_method: sudo
-      user: name=sec state=present groups="sudo"
+      user: name=sec state=present groups="sec"
     - name: Update Golang From Apt
       become: yes
       become_user: root
@@ -146,8 +153,10 @@
     - name: Start Postgresql Service
       become: yes
       become_user: postgres
-      command: /usr/lib/postgresql/14/bin/pg_ctl -D /mnt/sec/db -l logfile start
-      when: psql_status["stdout_lines"] | length < 2
+      ansible.builtin.service:
+        name: postgresql
+        state: started
+        enabled: yes
     - name: Create SEC User in DB
       become_user: postgres
       postgresql_user:
@@ -171,6 +180,15 @@
         lc_collate: 'en_US.UTF-8'
         lc_ctype: 'en_US.UTF-8'
       when: ping_database.warnings is defined
+    - name: Create /home/sec/.ssh Directory
+      become: yes
+      become_user: root
+      become_method: sudo
+      file:
+        path: /home/sec/.ssh
+        state: directory
+        owner: sec
+        group: sec
     - name: Add Github Actions Public SSH
       become: yes
       become_user: root

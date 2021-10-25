@@ -42,7 +42,7 @@ jobs:
         with:
           name: sec_binary
           path: ./sec
-  postgres-job:
+  functional-tests:
     needs: build
     runs-on: ubuntu-latest
     services:
@@ -77,6 +77,11 @@ jobs:
       - name: Changing Permissions For SEC Binary
         run: chmod 755 ./sec
 
+      - name: Copy Config File
+        run: |
+          sudo mkdir ~/.config/.sec/
+          sudo cp ./ci/config.yaml ~/.config/.sec/config.yaml
+
       - name: Run Migration
         run: make migrateup
 
@@ -87,10 +92,10 @@ jobs:
 
       - name: Testing Database
         run: | 
-          ./sec de 2021/06 --config=ci
-          ./sec dlist --config=ci
+          ./sec de 2021/06
+          ./sec dlist
   deploy: 
-    needs: postgres-job
+    needs: functional-tests
     if: github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
     steps:
@@ -121,4 +126,4 @@ jobs:
           ssh-keyscan -H equres.com >> ~/.ssh/known_hosts
           ssh-add
           ssh sec@equres.com mv sec sec.old
-          scp ./sec sec@equres.com://home/sec/sec
+          scp ./sec sec@equres.com:/home/sec/sec
