@@ -1,0 +1,25 @@
+check system sec
+
+CHECK PROCESS sec_app MATCHING "sec serve"
+	start program = "/bin/sh -c '/home/sec/sec serve > /tmp/log.sec 2>&1 &'"
+		as uid "sec" and gid "sec" WITH TIMEOUT 5 SECONDS
+	stop program = "/bin/sh -c 'killall -s SIGTERM sec'"
+		as uid "sec" and gid "sec" WITH TIMEOUT 5 SECONDS
+
+        if failed
+		port 8000 protocol http
+		with http headers [Host: 127.0.0.1]
+		and request /api/v1/uptime with content = "OK:*"
+        then
+		restart
+
+
+
+CHECK FILE sec_bin WITH PATH /home/sec/sec
+	if changed timestamp then exec "/bin/sh -c 'killall -s SIGTERM sec.old'"
+
+CHECK DIRECTORY sec_dir WITH PATH /home/sec
+	if changed timestamp then exec "/bin/echo meh"
+
+CHECK FILE sec_bin_new WITH PATH /home/sec/sec.new
+	if changed timestamp then exec "/bin/cp -fp /home/sec/sec.new /home/sec/sec"

@@ -126,4 +126,4 @@ jobs:
           ssh-keyscan -H equres.com >> ~/.ssh/known_hosts
           ssh-add
           ssh sec@equres.com mv sec sec.old
-          scp ./sec sec@equres.com:/home/sec/sec
+          scp ./sec sec@equres.com:/home/sec/sec.new
