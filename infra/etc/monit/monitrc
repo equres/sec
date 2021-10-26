@@ -1,5 +1,5 @@
 # vim:set tw=1000:
-set daemon 120
+set daemon 5
 set log syslog
 
 #set onreboot start
@@ -8,3 +8,6 @@ set httpd
 	PORT 2812
 	USE ADDRESS 127.0.0.1
 	allow monit:monit
+
+include /etc/monit/conf.d/*
+include /etc/monit/conf-enabled/*

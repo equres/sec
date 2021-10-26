@@ -124,6 +124,14 @@
       become_user: root
       become_method: sudo
       copy: src=./etc/monit/conf-available/sec dest=/etc/monit/conf-available/
+    - name: Create Symbolic link 
+      become: yes
+      become_user: root
+      become_method: sudo
+      file:
+        src: /etc/monit/conf-available/sec
+        dest: /etc/monit/conf-enabled/sec
+        state: link
     - name: Reload Monit Service
       become: yes
       become_user: root
