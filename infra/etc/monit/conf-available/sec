@@ -1,9 +1,7 @@
-check system sec
-
 CHECK PROCESS sec_app MATCHING "sec serve"
 	start program = "/bin/sh -c '/home/sec/sec serve > /tmp/log.sec 2>&1 &'"
 		as uid "sec" and gid "sec" WITH TIMEOUT 5 SECONDS
-	stop program = "/bin/sh -c 'killall -s SIGTERM sec'"
+	stop program = "/bin/sh -c 'killall -9 sec'"
 		as uid "sec" and gid "sec" WITH TIMEOUT 5 SECONDS
 
         if failed
@@ -16,7 +14,7 @@ CHECK PROCESS sec_app MATCHING "sec serve"
 
 
 CHECK FILE sec_bin WITH PATH /home/sec/sec
-	if changed timestamp then exec "/bin/sh -c 'killall -s SIGTERM sec.old'"
+	if changed timestamp then exec "/bin/sh -c 'killall -9 sec'"
 
 CHECK DIRECTORY sec_dir WITH PATH /home/sec
 	if changed timestamp then exec "/bin/echo meh"
