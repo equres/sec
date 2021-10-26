@@ -118,12 +118,20 @@
       become: yes
       become_user: root
       become_method: sudo
-      copy: src=./etc/monit/monitrc dest=/etc/monit
+      ansible.builtin.copy:
+        src: ./etc/monit/monitrc
+        dest: /etc/monit/monitrc
+        owner: root
+        mode: '0700'
     - name: Copy Monit SEC Config File
       become: yes
       become_user: root
       become_method: sudo
-      copy: src=./etc/monit/conf-available/sec dest=/etc/monit/conf-available/
+      ansible.builtin.copy:
+        src: ./etc/monit/conf-available/sec
+        dest: /etc/monit/conf-available/sec
+        owner: root
+        mode: '0700'
     - name: Create Symbolic link 
       become: yes
       become_user: root
