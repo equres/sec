@@ -3,10 +3,10 @@ package cmd
 
 import (
 	"errors"
+	"log"
 
 	"github.com/equres/sec/pkg/database"
 	"github.com/equres/sec/pkg/sec"
-	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 )
 
@@ -39,7 +39,7 @@ var ddCmd = &cobra.Command{
 			return err
 		}
 
-		logrus.Info("Successfully set download disabled for:", yearMonth)
+		log.Print("Successfully set download disabled for:", yearMonth)
 		return nil
 	},
 }

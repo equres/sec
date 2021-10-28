@@ -1,8 +1,9 @@
 package cmd
 
 import (
+	"log"
+
 	"github.com/equres/sec/pkg/database"
-	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 )
 
@@ -20,7 +21,7 @@ var retrieveCmd = &cobra.Command{
 		if err != nil {
 			return err
 		}
-		logrus.Info(tickers)
+		log.Println(tickers)
 		return nil
 	},
 }

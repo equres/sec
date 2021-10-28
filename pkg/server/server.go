@@ -2,12 +2,12 @@ package server
 
 import (
 	"embed"
+	"log"
 	"net/http"
 	"time"
 
 	"github.com/equres/sec/pkg/config"
 	"github.com/jmoiron/sqlx"
-	"github.com/sirupsen/logrus"
 )
 
 var GlobalUptime time.Time
@@ -32,7 +32,7 @@ func (s Server) StartServer() error {
 	router := s.GenerateRouter()
 	GlobalUptime = time.Now()
 
-	logrus.Info("Listening on port", s.Config.Main.ServerPort)
+	log.Println("Listening on port", s.Config.Main.ServerPort)
 	err := http.ListenAndServe(s.Config.Main.ServerPort, router)
 	if err != nil {
 		return err

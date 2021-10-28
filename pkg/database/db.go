@@ -4,13 +4,13 @@ package database
 
 import (
 	"embed"
+	"log"
 
 	"github.com/equres/sec/pkg/config"
 	"github.com/golang-migrate/migrate/v4"
 	_ "github.com/golang-migrate/migrate/v4/database/postgres"
 	"github.com/jmoiron/sqlx"
 	"github.com/johejo/golang-migrate-extra/source/iofs"
-	"github.com/sirupsen/logrus"
 )
 
 func ConnectDB(config config.Config) (*sqlx.DB, error) {
@@ -31,19 +31,19 @@ func MigrateUp(db *sqlx.DB, fs embed.FS, config config.Config) error {
 
 	d, err := iofs.New(fs, "migrations")
 	if err != nil {
-		logrus.Error("failed to make migrations")
+		log.Println("failed to make migrations")
 		return err
 	}
 
 	m, err := migrate.NewWithSourceInstance("iofs", d, config.DBGetURL())
 	if err != nil {
-		logrus.Error("failed make iofs source")
+		log.Println("failed make iofs source")
 		return err
 	}
 
 	err = m.Up()
 	if err != nil && err != migrate.ErrNoChange {
-		logrus.Error("failed to UP the migrations")
+		log.Println("failed to UP the migrations")
 		return err
 	}
 
@@ -58,19 +58,19 @@ func MigrateDown(db *sqlx.DB, fs embed.FS, config config.Config) error {
 
 	d, err := iofs.New(fs, "migrations")
 	if err != nil {
-		logrus.Error("failed to make migrations")
+		log.Println("failed to make migrations")
 		return err
 	}
 
 	m, err := migrate.NewWithSourceInstance("iofs", d, config.DBGetURL())
 	if err != nil {
-		logrus.Error("failed make iofs source")
+		log.Println("failed make iofs source")
 		return err
 	}
 
 	err = m.Down()
 	if err != nil && err != migrate.ErrNoChange {
-		logrus.Error("failed to DOWN the migrations")
+		log.Println("failed to DOWN the migrations")
 		return err
 	}
 
@@ -86,7 +86,7 @@ func CheckMigration(config config.Config) error {
 	// Check if migrated
 	_, err = db.Exec("SELECT 'sec.tickers'::regclass")
 	if err != nil {
-		logrus.Error("looks like you're running sec for the first time. Please initialize the database with sec migrate up")
+		log.Println("looks like you're running sec for the first time. Please initialize the database with sec migrate up")
 		return err
 	}
 	return nil

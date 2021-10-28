@@ -3,6 +3,7 @@ package cmd
 
 import (
 	"fmt"
+	"log"
 	"os"
 	"path/filepath"
 	"strconv"
@@ -33,6 +34,9 @@ var destCmd = &cobra.Command{
 
 		// For organizing the output
 		tabWriter := tabwriter.NewWriter(os.Stdout, 12, 0, 2, ' ', 0)
+		if FileLogging {
+			tabWriter = tabwriter.NewWriter(LogWriter, 12, 0, 2, ' ', 0)
+		}
 
 		if S.Verbose {
 			fmt.Fprint(tabWriter, "File Name", "\t", "Uncompressed Sized", "\t", "ZIP Sizes", "\n")
@@ -68,7 +72,7 @@ var destCmd = &cobra.Command{
 			for _, item := range rssFile.Channel.Item {
 				for _, xbrlFile := range item.XbrlFiling.XbrlFiles.XbrlFile {
 					if xbrlFile.Size == "" {
-						fmt.Printf("File %s size is ZERO!\n", xbrlFile.File)
+						log.Printf("File %s size is ZERO!\n", xbrlFile.File)
 						continue
 					}
 

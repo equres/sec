@@ -3,6 +3,9 @@ package cmd
 
 import (
 	"fmt"
+	"io"
+	"log"
+	"log/syslog"
 	"os"
 	"path/filepath"
 	"time"
@@ -22,6 +25,8 @@ var defaultCfgPath string
 var RateLimit time.Duration
 var Verbose bool
 var Debug bool
+var FileLogging bool
+var LogWriter io.Writer
 var DB *sqlx.DB
 var S *sec.SEC
 
@@ -54,6 +59,7 @@ func init() {
 	// will be global for your application.
 	rootCmd.PersistentFlags().BoolVar(&Verbose, "verbose", false, "Display the summarized version of progress")
 	rootCmd.PersistentFlags().BoolVar(&Debug, "debug", false, "Display additional details for debugging")
+	rootCmd.PersistentFlags().BoolVar(&FileLogging, "syslog", false, "Add logs into log files")
 	rootCmd.PersistentFlags().StringVar(&cfgFile, "config", defaultCfgPath, fmt.Sprintf("config file (default is %v)", defaultCfgPath))
 
 	// Cobra also supports local flags, which will only run
@@ -74,13 +80,22 @@ func initConfig() {
 	} else {
 		filePath := filepath.Join(defaultCfgPath, "config.yaml")
 		if _, err := os.Stat(filePath); err != nil {
-			fmt.Println("you do not have a config file. Please create it by answering the questions below")
+			log.Println("you do not have a config file. Please create it by answering the questions below")
 			err = GenerateConfig()
 			if err != nil {
 				cobra.CheckErr(err)
 			}
 			os.Exit(0)
 		}
+	}
+
+	if FileLogging {
+		LogWriter, err = syslog.New(syslog.LOG_NOTICE, "sec")
+		if err != nil {
+			cobra.CheckErr(err)
+		}
+
+		log.SetOutput(LogWriter)
 	}
 
 	viper.AutomaticEnv() // read in environment variables that match
