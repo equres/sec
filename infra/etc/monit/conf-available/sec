@@ -1,5 +1,5 @@
 CHECK PROCESS sec_app MATCHING "sec serve"
-	start program = "/bin/sh -c '/home/sec/sec serve --syslog > /tmp/log.sec 2>&1 &'"
+	start program = "/bin/sh -c '/home/sec/sec serve --syslog &'"
 		as uid "sec" and gid "sec" WITH TIMEOUT 5 SECONDS
 	stop program = "/bin/sh -c 'killall -s SIGTERM sec'"
 		as uid "sec" and gid "sec" WITH TIMEOUT 5 SECONDS
