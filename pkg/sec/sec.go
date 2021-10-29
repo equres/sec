@@ -916,6 +916,16 @@ func (s *SEC) ZIPContentUpsert(db *sqlx.DB, pathname string, files []*zip.File) 
 	cik := dirs[0]
 	accession := dirs[1]
 
+	// Check if CIK here is in CIKs table
+	var ciks []int
+	err := db.Select(&ciks, "SELECT cik FROM sec.ciks WHERE cik = $1", cik)
+	if err != nil {
+		return err
+	}
+	if len(ciks) == 0 {
+		return nil
+	}
+
 	for _, file := range files {
 		reader, err := file.Open()
 		if err != nil {
@@ -1095,26 +1105,28 @@ func (s *SEC) DownloadZIPFiles(db *sqlx.DB, rssFile RSSFile, worklist []Worklist
 	totalCount := len(rssFile.Channel.Item)
 	currentCount := 0
 	for _, v1 := range rssFile.Channel.Item {
-		isFileCorrect, err := downloader.FileCorrect(db, v1.Enclosure.URL)
-		if err != nil {
-			return err
-		}
-
-		if !isFileCorrect {
-			err = downloader.DownloadFile(db, v1.Enclosure.URL)
+		if v1.Enclosure.URL != "" {
+			isFileCorrect, err := downloader.FileCorrect(db, v1.Enclosure.URL)
 			if err != nil {
 				return err
 			}
-			time.Sleep(rateLimit)
-		}
 
-		currentCount++
-		if !s.Verbose {
-			log.Info(fmt.Sprintf("\r[%d/%d files already downloaded]. Will download %d remaining files. Pass --verbose to see progress report", currentCount, totalCount, (totalCount - currentCount)))
-		}
+			if !isFileCorrect {
+				err = downloader.DownloadFile(db, v1.Enclosure.URL)
+				if err != nil {
+					return err
+				}
+				time.Sleep(rateLimit)
+			}
 
-		if s.Verbose {
-			log.Info(fmt.Sprintf("[%d/%d] %s downloaded...\n", currentCount, totalCount, time.Now().Format("2006-01-02 03:04:05")))
+			currentCount++
+			if !s.Verbose {
+				log.Info(fmt.Sprintf("\r[%d/%d files already downloaded]. Will download %d remaining files. Pass --verbose to see progress report", currentCount, totalCount, (totalCount - currentCount)))
+			}
+
+			if s.Verbose {
+				log.Info(fmt.Sprintf("[%d/%d] %s downloaded...\n", currentCount, totalCount, time.Now().Format("2006-01-02 03:04:05")))
+			}
 		}
 	}
 	return nil
