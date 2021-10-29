@@ -3,8 +3,6 @@ package cmd
 
 import (
 	"fmt"
-	"io"
-	"log"
 	"log/syslog"
 	"os"
 	"path/filepath"
@@ -15,6 +13,8 @@ import (
 	"github.com/equres/sec/pkg/database"
 	"github.com/equres/sec/pkg/sec"
 	"github.com/jmoiron/sqlx"
+	log "github.com/sirupsen/logrus"
+	logrus_syslog "github.com/sirupsen/logrus/hooks/syslog"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 )
@@ -25,8 +25,7 @@ var defaultCfgPath string
 var RateLimit time.Duration
 var Verbose bool
 var Debug bool
-var FileLogging bool
-var LogWriter io.Writer
+var SyslogEnabled bool
 var DB *sqlx.DB
 var S *sec.SEC
 
@@ -59,7 +58,7 @@ func init() {
 	// will be global for your application.
 	rootCmd.PersistentFlags().BoolVar(&Verbose, "verbose", false, "Display the summarized version of progress")
 	rootCmd.PersistentFlags().BoolVar(&Debug, "debug", false, "Display additional details for debugging")
-	rootCmd.PersistentFlags().BoolVar(&FileLogging, "syslog", false, "Add logs into log files")
+	rootCmd.PersistentFlags().BoolVar(&SyslogEnabled, "syslog", false, "Add logs into log files")
 	rootCmd.PersistentFlags().StringVar(&cfgFile, "config", defaultCfgPath, fmt.Sprintf("config file (default is %v)", defaultCfgPath))
 
 	// Cobra also supports local flags, which will only run
@@ -80,7 +79,7 @@ func initConfig() {
 	} else {
 		filePath := filepath.Join(defaultCfgPath, "config.yaml")
 		if _, err := os.Stat(filePath); err != nil {
-			log.Println("you do not have a config file. Please create it by answering the questions below")
+			log.Info("you do not have a config file. Please create it by answering the questions below")
 			err = GenerateConfig()
 			if err != nil {
 				cobra.CheckErr(err)
@@ -89,13 +88,13 @@ func initConfig() {
 		}
 	}
 
-	if FileLogging {
-		LogWriter, err = syslog.New(syslog.LOG_NOTICE, "sec")
+	if SyslogEnabled {
+		hook, err := logrus_syslog.NewSyslogHook("", "", syslog.LOG_INFO, "")
 		if err != nil {
 			cobra.CheckErr(err)
 		}
 
-		log.SetOutput(LogWriter)
+		log.SetOutput(hook.Writer)
 	}
 
 	viper.AutomaticEnv() // read in environment variables that match

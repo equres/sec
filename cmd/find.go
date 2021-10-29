@@ -3,10 +3,9 @@ package cmd
 
 import (
 	"fmt"
-	"log"
-	"os"
-	"text/tabwriter"
 	"time"
+
+	log "github.com/sirupsen/logrus"
 
 	"github.com/spf13/cobra"
 )
@@ -18,7 +17,7 @@ var findCmd = &cobra.Command{
 	Long:  `find indexes with specific filling date`,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		if len(args) == 0 {
-			log.Println("please insert a date to search with format YYYY-MM-DD (e.g. 2021-08-23)")
+			log.Info("please insert a date to search with format YYYY-MM-DD (e.g. 2021-08-23)")
 			return nil
 		}
 
@@ -32,23 +31,14 @@ var findCmd = &cobra.Command{
 			return err
 		}
 
-		tabWriter := tabwriter.NewWriter(os.Stdout, 12, 0, 2, ' ', 0)
-		if FileLogging {
-			tabWriter = tabwriter.NewWriter(LogWriter, 12, 0, 2, ' ', 0)
-		}
-
-		fmt.Fprint(tabWriter, "Title", "\t", "Company Name", "\t", "CIK Number", "\t", "Accession Number", "\t", "XBRLFile Name", "\n")
+		log.Info("Title\tCompany Name\tCIK Number\tAccession Number\tXBRLFile Name\n")
 		for _, v := range secitemfiles {
-			fmt.Fprint(tabWriter, v.Title, "\t", v.CompanyName, "\t", v.CIKNumber, "\t", v.AccessionNumber, "\t", v.XbrlFile, "\n")
-		}
-		err = tabWriter.Flush()
-		if err != nil {
-			return err
+			log.Info(v.Title, "\t", v.CompanyName, "\t", v.CIKNumber, "\t", v.AccessionNumber, "\t", v.XbrlFile, "\n")
 		}
 
 		if len(secitemfiles) == 0 {
 			formattedDate := fmt.Sprintf("%v-%v-%v", date.Year(), int(date.Month()), date.Day())
-			log.Println("There are no search results for the date provided -", formattedDate)
+			log.Info("There are no search results for the date provided -", formattedDate)
 		}
 
 		return nil

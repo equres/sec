@@ -2,7 +2,7 @@
 package cmd
 
 import (
-	"log"
+	log "github.com/sirupsen/logrus"
 
 	"github.com/equres/sec/pkg/database"
 	"github.com/spf13/cobra"
@@ -24,7 +24,7 @@ to quickly create a Cobra application.`,
 	RunE: func(cmd *cobra.Command, args []string) error {
 
 		if S.Verbose {
-			log.Println("Checking/Downloading index files...")
+			log.Info("Checking/Downloading index files...")
 		}
 
 		err := S.DownloadIndex(DB)

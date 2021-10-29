@@ -2,8 +2,9 @@
 package cmd
 
 import (
-	"log"
 	"path/filepath"
+
+	log "github.com/sirupsen/logrus"
 
 	"github.com/equres/sec/pkg/database"
 	"github.com/equres/sec/pkg/download"
@@ -28,7 +29,7 @@ var indexCmd = &cobra.Command{
 		filePath := filepath.Join(S.Config.Main.CacheDir, "files/company_tickers_exchange.json")
 		_, err = downloader.FileInCache(filePath)
 		if err != nil {
-			log.Println("please run sec dow index to download the necessary files")
+			log.Info("please run sec dow index to download the necessary files")
 			return nil
 		}
 
@@ -36,7 +37,7 @@ var indexCmd = &cobra.Command{
 		filePath = filepath.Join(S.Config.Main.CacheDir, "files/company_tickers_exchange.json")
 		_, err = downloader.FileInCache(filePath)
 		if err != nil {
-			log.Println("please run sec dow index to download the necessary files")
+			log.Info("please run sec dow index to download the necessary files")
 			return nil
 		}
 

@@ -4,13 +4,14 @@ import (
 	"errors"
 	"fmt"
 	"html/template"
-	"log"
 	"net/http"
 	"os"
 	"path/filepath"
 	"strconv"
 	"strings"
 	"time"
+
+	log "github.com/sirupsen/logrus"
 
 	"github.com/equres/sec/pkg/sec"
 	"github.com/gorilla/mux"
@@ -151,12 +152,12 @@ func (s Server) RenderTemplate(w http.ResponseWriter, tmplName string, data inte
 func getIntVar(vars map[string]string, varName string) (int, error) {
 	varStr, ok := vars[varName]
 	if !ok {
-		log.Println("please choose a proper year and month")
+		log.Info("please choose a proper year and month")
 		return 0, errors.New("please choose a proper year and month")
 	}
 	value, err := strconv.Atoi(varStr)
 	if err != nil {
-		log.Println("please choose a proper year and month")
+		log.Info("please choose a proper year and month")
 		return 0, errors.New("please choose a proper year and month")
 	}
 	return value, nil

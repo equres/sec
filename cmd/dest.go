@@ -3,15 +3,13 @@ package cmd
 
 import (
 	"fmt"
-	"log"
-	"os"
 	"path/filepath"
 	"strconv"
-	"text/tabwriter"
 
 	"github.com/equres/sec/pkg/database"
 	"github.com/equres/sec/pkg/download"
 	"github.com/equres/sec/pkg/sec"
+	log "github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 )
 
@@ -32,14 +30,8 @@ var destCmd = &cobra.Command{
 		downloader := download.NewDownloader(RootConfig)
 		downloader.IsEtag = true
 
-		// For organizing the output
-		tabWriter := tabwriter.NewWriter(os.Stdout, 12, 0, 2, ' ', 0)
-		if FileLogging {
-			tabWriter = tabwriter.NewWriter(LogWriter, 12, 0, 2, ' ', 0)
-		}
-
 		if S.Verbose {
-			fmt.Fprint(tabWriter, "File Name", "\t", "Uncompressed Sized", "\t", "ZIP Sizes", "\n")
+			log.Info("File Name\tUncompressed Sized\tZIP Sizes\n")
 		}
 
 		var totalSize float64
@@ -56,11 +48,7 @@ var destCmd = &cobra.Command{
 			}
 
 			if S.Verbose {
-				fmt.Fprint(tabWriter, fmt.Sprintf("%v", filepath.Base(filePath)), "\t\t")
-				err = tabWriter.Flush()
-				if err != nil {
-					return err
-				}
+				log.Info(fmt.Sprintf("%v", filepath.Base(filePath)), "\t\t")
 			}
 
 			rssFile, err := S.ParseRSSGoXML(filePath)
@@ -72,7 +60,7 @@ var destCmd = &cobra.Command{
 			for _, item := range rssFile.Channel.Item {
 				for _, xbrlFile := range item.XbrlFiling.XbrlFiles.XbrlFile {
 					if xbrlFile.Size == "" {
-						log.Printf("File %s size is ZERO!\n", xbrlFile.File)
+						log.Info(fmt.Sprintf("File %s size is ZERO!\n", xbrlFile.File))
 						continue
 					}
 
@@ -84,7 +72,7 @@ var destCmd = &cobra.Command{
 				}
 			}
 			if S.Verbose {
-				fmt.Fprint(tabWriter, parseSize(fileSize), "\t\t")
+				log.Info(parseSize(fileSize), "\t\t")
 			}
 
 			fileSizeZIP, err := S.CalculateRSSFilesZIP(rssFile)
@@ -93,23 +81,14 @@ var destCmd = &cobra.Command{
 			}
 
 			if S.Verbose {
-				fmt.Fprint(tabWriter, parseSize(float64(fileSizeZIP)), "\t\t", "\n")
-			}
-
-			err = tabWriter.Flush()
-			if err != nil {
-				return err
+				log.Info(parseSize(float64(fileSizeZIP)), "\t\t", "\n")
 			}
 
 			totalSize += fileSize
 			totalSizeZIP += fileSizeZIP
 		}
 
-		fmt.Fprint(tabWriter, "Total Size", "\t\t", parseSize(totalSize), "\t\t", parseSize(float64(totalSizeZIP)), "\n")
-		err = tabWriter.Flush()
-		if err != nil {
-			return err
-		}
+		log.Info("Total Size", "\t\t", parseSize(totalSize), "\t\t", parseSize(float64(totalSizeZIP)), "\n")
 		return nil
 	},
 }

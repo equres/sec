@@ -1,7 +1,7 @@
 package cmd
 
 import (
-	"log"
+	log "github.com/sirupsen/logrus"
 
 	"github.com/spf13/cobra"
 )
@@ -16,7 +16,7 @@ var dowzCmd = &cobra.Command{
 	Long:  `download all of the referenced file from XBRL index as ZIP files`,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		if S.Verbose {
-			log.Println("Checking/Downloading index files...")
+			log.Info("Checking/Downloading index files...")
 		}
 
 		err := S.DownloadIndex(DB)
