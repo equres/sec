@@ -15,7 +15,6 @@ var migrations embed.FS
 var templates embed.FS
 
 func main() {
-
 	cmd.GlobalMigrationsFS = migrations
 	cmd.GlobalTemplatesFS = templates
 

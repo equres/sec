@@ -14,10 +14,11 @@ import (
 	"strings"
 	"time"
 
+	log "github.com/sirupsen/logrus"
+
 	"github.com/equres/sec/pkg/config"
 	"github.com/equres/sec/pkg/secreq"
 	"github.com/jmoiron/sqlx"
-	"github.com/sirupsen/logrus"
 )
 
 type Downloader struct {
@@ -50,7 +51,7 @@ func (d Downloader) FileCorrect(db *sqlx.DB, fullurl string) (bool, error) {
 	isFileInCache, err := d.FileInCache(filepath.Join(d.Config.Main.CacheDir, parsedURL.Path))
 	if err != nil {
 		if d.Verbose {
-			logrus.Info("File is not in cache: ")
+			log.Info("File is not in cache: ")
 		}
 		return false, nil
 	}
@@ -62,7 +63,7 @@ func (d Downloader) FileCorrect(db *sqlx.DB, fullurl string) (bool, error) {
 
 	if isFileInCache != nil && !isConsistent {
 		if d.Verbose {
-			logrus.Info("File in cache not consistent: ")
+			log.Info("File in cache not consistent: ")
 		}
 		return false, err
 	}
@@ -122,12 +123,12 @@ func (d Downloader) FileConsistent(db *sqlx.DB, file fs.FileInfo, fullurl string
 	}
 
 	if d.Debug {
-		fmt.Println()
+		log.Info()
 		headers, err := httputil.DumpResponse(resp, false)
 		if err != nil {
 			return false, err
 		}
-		logrus.Debug(string(headers))
+		log.Info(string(headers))
 	}
 
 	if d.IsEtag {
@@ -178,12 +179,12 @@ func (d Downloader) DownloadFile(db *sqlx.DB, fullurl string) error {
 	}
 
 	if d.Debug {
-		fmt.Println()
+		log.Info()
 		headers, err := httputil.DumpResponse(resp, false)
 		if err != nil {
 			return err
 		}
-		logrus.Debug(string(headers))
+		log.Info(string(headers))
 	}
 
 	responseBody, err := ioutil.ReadAll(resp.Body)
@@ -191,7 +192,7 @@ func (d Downloader) DownloadFile(db *sqlx.DB, fullurl string) error {
 		return err
 	}
 
-	fmt.Println("Status Code:", resp.StatusCode)
+	log.Info("Status Code:", resp.StatusCode)
 	if IsErrorPage(string(responseBody)) {
 		return fmt.Errorf("requested file but received an error instead")
 	}

@@ -21,11 +21,12 @@ import (
 	"strings"
 	"time"
 
+	log "github.com/sirupsen/logrus"
+
 	"github.com/equres/sec/pkg/config"
 	"github.com/equres/sec/pkg/download"
 	"github.com/gocarina/gocsv"
 	"github.com/jmoiron/sqlx"
-	"github.com/sirupsen/logrus"
 	"golang.org/x/net/html/charset"
 	"jaytaylor.com/html2text"
 )
@@ -340,7 +341,7 @@ func (s *SEC) DownloadTickerFile(db *sqlx.DB, path string) error {
 	fullURL := baseURL.ResolveReference(pathURL).String()
 
 	if s.Verbose {
-		logrus.Info(fmt.Sprintf("Checking for file %v: ", filepath.Base(pathURL.Path)))
+		log.Info(fmt.Sprintf("Checking for file %v: ", filepath.Base(pathURL.Path)))
 	}
 
 	isFileCorrect, err := downloader.FileCorrect(db, fullURL)
@@ -354,11 +355,11 @@ func (s *SEC) DownloadTickerFile(db *sqlx.DB, path string) error {
 	}
 
 	if s.Verbose && isFileCorrect {
-		logrus.Info("\u2713")
+		log.Info("\u2713")
 	}
 	if !isFileCorrect {
 		if s.Verbose {
-			logrus.Info("Downloading file...: ")
+			log.Info("Downloading file...: ")
 		}
 		err = downloader.DownloadFile(db, fullURL)
 		if err != nil {
@@ -366,7 +367,7 @@ func (s *SEC) DownloadTickerFile(db *sqlx.DB, path string) error {
 		}
 
 		if s.Verbose {
-			logrus.Info(time.Now().Format("2006-01-02 03:04:05"))
+			log.Info(time.Now().Format("2006-01-02 03:04:05"))
 		}
 		time.Sleep(rateLimit)
 	}
@@ -405,7 +406,7 @@ func (s *SEC) NoExchangeTickersGet(db *sqlx.DB) error {
 	}
 
 	if s.Verbose {
-		logrus.Info("Indexing file company_tickers.json: ")
+		log.Info("Indexing file company_tickers.json: ")
 	}
 
 	for _, v := range allCompanyTickers {
@@ -429,7 +430,7 @@ func (s *SEC) NoExchangeTickersGet(db *sqlx.DB) error {
 	}
 
 	if s.Verbose {
-		logrus.Info("\u2713")
+		log.Info("\u2713")
 	}
 	return nil
 }
@@ -455,7 +456,7 @@ func (s *SEC) ExchangeTickersGet(db *sqlx.DB) error {
 	}
 
 	if s.Verbose {
-		logrus.Info("Indexing file company_tickers_exchange.json: ")
+		log.Info("Indexing file company_tickers_exchange.json: ")
 	}
 
 	for _, v := range fileExchange.Data {
@@ -486,7 +487,7 @@ func (s *SEC) ExchangeTickersGet(db *sqlx.DB) error {
 		}
 	}
 	if s.Verbose {
-		logrus.Info("\u2713")
+		log.Info("\u2713")
 	}
 	return nil
 }
@@ -539,19 +540,19 @@ func (s *SEC) DownloadIndex(db *sqlx.DB) error {
 		}
 
 		if s.Verbose {
-			logrus.Info(fmt.Sprintf("Checking file '%v' in disk: ", filepath.Base(fileURL)))
+			log.Info(fmt.Sprintf("Checking file '%v' in disk: ", filepath.Base(fileURL)))
 		}
 		isFileCorrect, err := downloader.FileCorrect(db, fileURL)
 		if err != nil {
 			return err
 		}
 		if s.Verbose && isFileCorrect {
-			logrus.Info("\u2713")
+			log.Info("\u2713")
 		}
 
 		if !isFileCorrect {
 			if s.Verbose {
-				logrus.Info("Downloading file...: ")
+				log.Info("Downloading file...: ")
 			}
 
 			err = downloader.DownloadFile(db, fileURL)
@@ -559,7 +560,7 @@ func (s *SEC) DownloadIndex(db *sqlx.DB) error {
 				return err
 			}
 			if s.Verbose {
-				logrus.Info(time.Now().Format("2006-01-02 03:04:05"))
+				log.Info(time.Now().Format("2006-01-02 03:04:05"))
 			}
 			time.Sleep(rateLimit)
 		}
@@ -670,8 +671,8 @@ func (s *SEC) SecItemFileUpsert(db *sqlx.DB, item Item) error {
 		filePath := filepath.Join(s.Config.Main.CacheDir, fileUrl.Path)
 		_, err = os.Stat(filePath)
 		if err != nil {
-			logrus.Warn("inserted into database all downloaded files, run sec dow data then run sec index again to insert all enabled months/years")
-			return nil
+			log.Info("inserted into database all downloaded files, run sec dow data then run sec index again to insert all enabled months/years")
+			return fmt.Errorf("inserted into database all downloaded files, run sec dow data then run sec index again to insert all enabled months/years")
 		}
 
 		xbrlFile, err := os.Open(filePath)
@@ -805,11 +806,11 @@ func (s *SEC) DownloadXbrlFileContent(db *sqlx.DB, files []XbrlFile, config conf
 
 		*currentCount++
 		if !s.Verbose {
-			logrus.Info(fmt.Sprintf("\r[%d/%d files already downloaded]. Will download %d remaining files. Pass --verbose to see progress report", *currentCount, totalCount, (totalCount - *currentCount)))
+			log.Info(fmt.Sprintf("\r[%d/%d files already downloaded]. Will download %d remaining files. Pass --verbose to see progress report", *currentCount, totalCount, (totalCount - *currentCount)))
 		}
 
 		if s.Verbose {
-			logrus.Info(fmt.Sprintf("[%d/%d] %s downloaded...\n", *currentCount, totalCount, time.Now().Format("2006-01-02 03:04:05")))
+			log.Info(fmt.Sprintf("[%d/%d] %s downloaded...\n", *currentCount, totalCount, time.Now().Format("2006-01-02 03:04:05")))
 		}
 		time.Sleep(rateLimit)
 	}
@@ -819,17 +820,17 @@ func (s *SEC) DownloadXbrlFileContent(db *sqlx.DB, files []XbrlFile, config conf
 
 func CheckRSSAvailability(year int, month int) (err error) {
 	if year < XMLStartYear {
-		logrus.Error(fmt.Sprintf("the earliest available XML is %d/%d", XMLStartYear, XMLStartMonth))
+		log.Info(fmt.Sprintf("the earliest available XML is %d/%d", XMLStartYear, XMLStartMonth))
 		return nil
 	}
 
 	if year == XMLStartYear && month > 0 && month < XMLStartMonth {
-		logrus.Info(fmt.Sprintf("the earliest available XML is %d/%d", XMLStartYear, XMLStartMonth))
+		log.Info(fmt.Sprintf("the earliest available XML is %d/%d", XMLStartYear, XMLStartMonth))
 		return nil
 	}
 
 	if year > time.Now().Year() || month < 0 || month > 12 || (year == time.Now().Year() && month > int(time.Now().Month())) {
-		logrus.Info(fmt.Sprintf("the latest available XML is %d/%d", time.Now().Year(), time.Now().Month()))
+		log.Info(fmt.Sprintf("the latest available XML is %d/%d", time.Now().Year(), time.Now().Month()))
 		return nil
 	}
 
@@ -989,14 +990,14 @@ func (s *SEC) CreateFilesFromZIP(zipPath string, files []*zip.File) error {
 func (s *SEC) CreateFileFromZIP(file *zip.File, filePath string) error {
 	out, err := os.Create(filePath)
 	if err != nil {
-		logrus.Error("error in creating file for ZIP content file")
+		log.Info("error in creating file for ZIP content file")
 		return err
 	}
 	defer out.Close()
 
 	reader, err := file.Open()
 	if err != nil {
-		logrus.Error("error in opening file from inside ZIP")
+		log.Info("error in opening file from inside ZIP")
 		return err
 	}
 	defer reader.Close()
@@ -1004,13 +1005,13 @@ func (s *SEC) CreateFileFromZIP(file *zip.File, filePath string) error {
 	buf := bytes.Buffer{}
 	_, err = buf.ReadFrom(reader)
 	if err != nil {
-		logrus.Error("error reading ZIP file content in buffer")
+		log.Info("error reading ZIP file content in buffer")
 		return err
 	}
 
 	_, err = io.Copy(out, &buf)
 	if err != nil {
-		logrus.Error("error copying buffer content to file")
+		log.Info("error copying buffer content to file")
 		return err
 	}
 
@@ -1030,7 +1031,7 @@ func (s *SEC) FormatFilePathDate(basepath string, year int, month int) (string, 
 
 func (s *SEC) DownloadAllItemFiles(db *sqlx.DB, rssFile RSSFile, worklist []Worklist) error {
 	if s.Verbose {
-		logrus.Info("Calculating number of XBRL Files in the index files: ")
+		log.Info("Calculating number of XBRL Files in the index files: ")
 	}
 
 	totalCount, err := s.TotalXbrlFileCountGet(worklist, s.Config.Main.CacheDir)
@@ -1038,7 +1039,7 @@ func (s *SEC) DownloadAllItemFiles(db *sqlx.DB, rssFile RSSFile, worklist []Work
 		return err
 	}
 	if s.Verbose {
-		logrus.Info(totalCount)
+		log.Info(totalCount)
 	}
 
 	currentCount := 0
@@ -1068,7 +1069,7 @@ func (s *SEC) ForEachWorklist(db *sqlx.DB, implementFunc func(*sqlx.DB, RSSFile,
 		}
 
 		if s.Verbose {
-			logrus.Info(verboseMessage)
+			log.Info(verboseMessage)
 		}
 
 		err = implementFunc(db, rssFile, worklist)
@@ -1094,29 +1095,26 @@ func (s *SEC) DownloadZIPFiles(db *sqlx.DB, rssFile RSSFile, worklist []Worklist
 	totalCount := len(rssFile.Channel.Item)
 	currentCount := 0
 	for _, v1 := range rssFile.Channel.Item {
-		if v1.Enclosure.URL != "" {
+		isFileCorrect, err := downloader.FileCorrect(db, v1.Enclosure.URL)
+		if err != nil {
+			return err
+		}
 
-			isFileCorrect, err := downloader.FileCorrect(db, v1.Enclosure.URL)
+		if !isFileCorrect {
+			err = downloader.DownloadFile(db, v1.Enclosure.URL)
 			if err != nil {
 				return err
 			}
+			time.Sleep(rateLimit)
+		}
 
-			if !isFileCorrect {
-				err = downloader.DownloadFile(db, v1.Enclosure.URL)
-				if err != nil {
-					return err
-				}
-				time.Sleep(rateLimit)
-			}
+		currentCount++
+		if !s.Verbose {
+			log.Info(fmt.Sprintf("\r[%d/%d files already downloaded]. Will download %d remaining files. Pass --verbose to see progress report", currentCount, totalCount, (totalCount - currentCount)))
+		}
 
-			currentCount++
-			if !s.Verbose {
-				logrus.Info(fmt.Sprintf("\r[%d/%d files already downloaded]. Will download %d remaining files. Pass --verbose to see progress report", currentCount, totalCount, (totalCount - currentCount)))
-			}
-
-			if s.Verbose {
-				logrus.Info(fmt.Sprintf("[%d/%d] %s downloaded...\n", currentCount, totalCount, time.Now().Format("2006-01-02 03:04:05")))
-			}
+		if s.Verbose {
+			log.Info(fmt.Sprintf("[%d/%d] %s downloaded...\n", currentCount, totalCount, time.Now().Format("2006-01-02 03:04:05")))
 		}
 	}
 	return nil
@@ -1126,6 +1124,9 @@ func (s *SEC) IndexZIPFileContent(db *sqlx.DB, rssFile RSSFile, worklist []Workl
 	totalCount := len(rssFile.Channel.Item)
 	currentCount := 0
 	for _, v1 := range rssFile.Channel.Item {
+		if v1.Enclosure.URL == "" {
+			continue
+		}
 		parsedURL, err := url.Parse(v1.Enclosure.URL)
 		if err != nil {
 			return err
@@ -1135,7 +1136,7 @@ func (s *SEC) IndexZIPFileContent(db *sqlx.DB, rssFile RSSFile, worklist []Workl
 		zipCachePath := filepath.Join(s.Config.Main.CacheDir, zipPath)
 		_, err = os.Stat(zipCachePath)
 		if err != nil {
-			logrus.Error("please run sec dowz to download all ZIP files then run sec indexz again to index them")
+			log.Info("please run sec dowz to download all ZIP files then run sec indexz again to index them")
 			return err
 		}
 
@@ -1152,7 +1153,7 @@ func (s *SEC) IndexZIPFileContent(db *sqlx.DB, rssFile RSSFile, worklist []Workl
 		currentCount++
 
 		if s.Verbose {
-			logrus.Info(fmt.Sprintf("[%d/%d] %s inserted for current file...\n", currentCount, totalCount, time.Now().Format("2006-01-02 03:04:05")))
+			log.Info(fmt.Sprintf("[%d/%d] %s inserted for current file...\n", currentCount, totalCount, time.Now().Format("2006-01-02 03:04:05")))
 		}
 	}
 	return nil
@@ -1171,7 +1172,7 @@ func (s *SEC) UnzipFiles(db *sqlx.DB, rssFile RSSFile, worklist []Worklist) erro
 		zipCachePath := filepath.Join(s.Config.Main.CacheDir, zipPath)
 		_, err = os.Stat(zipCachePath)
 		if err != nil {
-			logrus.Error("please run sec dowz to download all ZIP files then run sec indexz again to index them")
+			log.Info("please run sec dowz to download all ZIP files then run sec indexz again to index them")
 			return err
 		}
 
@@ -1181,13 +1182,13 @@ func (s *SEC) UnzipFiles(db *sqlx.DB, rssFile RSSFile, worklist []Worklist) erro
 
 		reader, err := zip.OpenReader(zipCachePath)
 		if err != nil {
-			logrus.Error("error opening the file:", zipCachePath)
+			log.Info("error opening the file:", zipCachePath)
 			return err
 		}
 
 		err = s.CreateFilesFromZIP(zipPath, reader.File)
 		if err != nil {
-			logrus.Error("error creating files from ZIP:", zipPath)
+			log.Info("error creating files from ZIP:", zipPath)
 			return err
 		}
 
@@ -1195,7 +1196,7 @@ func (s *SEC) UnzipFiles(db *sqlx.DB, rssFile RSSFile, worklist []Worklist) erro
 
 		currentCount++
 		if s.Verbose {
-			logrus.Info(fmt.Sprintf("[%d/%d] %s unpacked...\n", currentCount, totalCount, time.Now().Format("2006-01-02 03:04:05")))
+			log.Info(fmt.Sprintf("[%d/%d] %s unpacked...\n", currentCount, totalCount, time.Now().Format("2006-01-02 03:04:05")))
 		}
 	}
 	return nil
@@ -1211,7 +1212,7 @@ func (s *SEC) InsertAllSecItemFile(db *sqlx.DB, rssFile RSSFile, worklist []Work
 		}
 		currentCount++
 		if s.Verbose {
-			logrus.Info(fmt.Sprintf("[%d/%d] %s inserted for current file...\n", currentCount, totalCount, time.Now().Format("2006-01-02 03:04:05")))
+			log.Info(fmt.Sprintf("[%d/%d] %s inserted for current file...\n", currentCount, totalCount, time.Now().Format("2006-01-02 03:04:05")))
 		}
 	}
 	return nil
@@ -1251,26 +1252,26 @@ func (s *SEC) DownloadFinancialStatementDataSets(db *sqlx.DB) error {
 		}
 		fileURL := baseURL.ResolveReference(pathURL).String()
 		if s.Verbose {
-			logrus.Info(fmt.Sprintf("Checking file '%v' in disk: ", filepath.Base(fileURL)))
+			log.Info(fmt.Sprintf("Checking file '%v' in disk: ", filepath.Base(fileURL)))
 		}
 		isFileCorrect, err := downloader.FileCorrect(db, fileURL)
 		if err != nil {
 			return err
 		}
 		if s.Verbose && isFileCorrect {
-			logrus.Info("\u2713")
+			log.Info("\u2713")
 		}
 
 		if !isFileCorrect {
 			if s.Verbose {
-				logrus.Info("Downloading file...: ")
+				log.Info("Downloading file...: ")
 			}
 			err = downloader.DownloadFile(db, fileURL)
 			if err != nil {
 				return err
 			}
 			if s.Verbose {
-				logrus.Info(time.Now().Format("2006-01-02 03:04:05"))
+				log.Info(time.Now().Format("2006-01-02 03:04:05"))
 			}
 			time.Sleep(rateLimit)
 		}
@@ -1286,7 +1287,7 @@ func (s *SEC) IndexFinancialStatementDataSets(db *sqlx.DB) error {
 	}
 	for _, v := range files {
 		if s.Verbose {
-			logrus.Info(fmt.Sprintf("Indexing file %v: ", v.Name()))
+			log.Info(fmt.Sprintf("Indexing file %v: ", v.Name()))
 		}
 		reader, err := zip.OpenReader(filepath.Join(filesPath, v.Name()))
 		if err != nil {
@@ -1299,7 +1300,7 @@ func (s *SEC) IndexFinancialStatementDataSets(db *sqlx.DB) error {
 			return err
 		}
 		if s.Verbose {
-			logrus.Info("\u2713")
+			log.Info("\u2713")
 		}
 	}
 	return nil
@@ -1358,7 +1359,7 @@ func (s *SEC) FinancialStatementDataSetsZIPUpsert(db *sqlx.DB, pathname string, 
 		}
 
 		if s.Verbose {
-			logrus.Info(fmt.Sprintf("Indexing file %v\n", fileName))
+			log.Info(fmt.Sprintf("Indexing file %v\n", fileName))
 		}
 
 		reader, err := file.Open()

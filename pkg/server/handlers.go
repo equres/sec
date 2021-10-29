@@ -11,9 +11,10 @@ import (
 	"strings"
 	"time"
 
+	log "github.com/sirupsen/logrus"
+
 	"github.com/equres/sec/pkg/sec"
 	"github.com/gorilla/mux"
-	"github.com/sirupsen/logrus"
 )
 
 func (s Server) GenerateRouter() *mux.Router {
@@ -151,12 +152,12 @@ func (s Server) RenderTemplate(w http.ResponseWriter, tmplName string, data inte
 func getIntVar(vars map[string]string, varName string) (int, error) {
 	varStr, ok := vars[varName]
 	if !ok {
-		logrus.Error("please choose a proper year and month")
+		log.Info("please choose a proper year and month")
 		return 0, errors.New("please choose a proper year and month")
 	}
 	value, err := strconv.Atoi(varStr)
 	if err != nil {
-		logrus.Error("please choose a proper year and month")
+		log.Info("please choose a proper year and month")
 		return 0, errors.New("please choose a proper year and month")
 	}
 	return value, nil

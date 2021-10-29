@@ -6,9 +6,10 @@ import (
 	"sort"
 	"time"
 
+	log "github.com/sirupsen/logrus"
+
 	"github.com/equres/sec/pkg/database"
 	"github.com/equres/sec/pkg/sec"
-	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 )
 
@@ -26,7 +27,7 @@ to quickly create a Cobra application.`,
 		return database.CheckMigration(RootConfig)
 	},
 	RunE: func(cmd *cobra.Command, args []string) error {
-		logrus.Info("Year/Month that will be downloaded:")
+		log.Info("Year/Month that will be downloaded:")
 
 		worklist, err := sec.WorklistWillDownloadGet(DB)
 		if err != nil {
@@ -52,7 +53,7 @@ to quickly create a Cobra application.`,
 		}
 
 		for k := range years {
-			fmt.Print(k, " [")
+			log.Info(k, " [")
 			for i := 1; i <= 12; i++ {
 				date, err := time.Parse("2006-1", fmt.Sprintf("%d-%d", k, i))
 				if err != nil {
@@ -61,12 +62,12 @@ to quickly create a Cobra application.`,
 				formatted := date.Format("2006-01")
 
 				if _, ok := worklistMap[formatted]; ok && worklistMap[formatted].WillDownload {
-					fmt.Printf("+%d ", i)
+					log.Info(fmt.Sprintf("+%d ", i))
 					continue
 				}
-				fmt.Printf("-%d ", i)
+				log.Info(fmt.Sprintf("-%d ", i))
 			}
-			fmt.Println("]")
+			log.Info("]")
 		}
 
 		return nil
