@@ -164,6 +164,13 @@
         - { src: 'patterndb.d' }
         - { src: 'scl.conf' }
         - { src: 'syslog-ng.conf' }
+    - name: Reload Syslog-ng Service
+      become: yes
+      become_user: root
+      become_method: sudo
+      ansible.builtin.service:
+        name: syslog-ng
+        state: reloaded
     - name: Get /mnt/sec/db Directory Data
       become: yes
       become_user: postgres
