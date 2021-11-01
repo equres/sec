@@ -86,6 +86,7 @@
           - apt-transport-https
           - caddy
           - monit
+          - syslog-ng
     - name: Create /mnt/sec/db Directory
       become: yes
       become_user: root
@@ -153,6 +154,16 @@
       ansible.builtin.service:
         name: monit
         state: reloaded
+    - name: Copy Syslog-ng Config Files
+      become: yes
+      become_user: root
+      become_method: sudo
+      copy: src=./etc/syslog-ng/{{ item.src }} dest=/etc/syslog-ng
+      with_items:
+        - { src: 'conf.d' }
+        - { src: 'patterndb.d' }
+        - { src: 'scl.conf' }
+        - { src: 'syslog-ng.conf' }
     - name: Get /mnt/sec/db Directory Data
       become: yes
       become_user: postgres
