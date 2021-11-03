@@ -87,6 +87,16 @@
           - caddy
           - monit
           - syslog-ng
+    - name: Create /mnt/sec Directory
+      become: yes
+      become_user: root
+      become_method: sudo
+      file:
+        path: /mnt/sec
+        state: directory
+        owner: sec
+        group: sec
+        mode: '0755'
     - name: Create /mnt/sec/db Directory
       become: yes
       become_user: root
