@@ -1,0 +1,14 @@
+name: Artifacts Cleanup
+on:
+  push:
+    branches:
+      - '*'
+
+jobs:
+  delete-artifacts:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: kolpav/purge-artifacts-action@v1
+        with:
+          token: $
+          expire-in: 0
