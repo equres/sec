@@ -96,6 +96,16 @@
         state: directory
         owner: postgres
         group: postgres
+    - name: Create /var/log/sec Directory
+      become: yes
+      become_user: root
+      become_method: sudo
+      file:
+        path: /var/log/sec
+        state: directory
+        owner: root
+        group: syslog
+        mode: 0755
     - name: Copy Postgres Config Files
       become: yes
       become_user: root
