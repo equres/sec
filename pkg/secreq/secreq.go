@@ -2,7 +2,9 @@ package secreq
 
 import (
 	"fmt"
+	"math/rand"
 	"net/http"
+	"net/url"
 	"time"
 
 	log "github.com/sirupsen/logrus"
@@ -15,6 +17,29 @@ type SECReq struct {
 	IsContentLength bool
 }
 
+var Proxies = []string{
+	"23.229.92.223:8800",
+	"23.229.79.68:8800",
+	"23.229.92.238:8800",
+	"185.234.6.119:8800",
+	"23.229.79.85:8800",
+	"23.229.92.213:8800",
+	"185.234.6.63:8800",
+	"23.229.79.91:8800",
+	"23.229.79.105:8800",
+	"23.229.92.248:8800",
+	"206.214.82.233:8800",
+	"192.126.228.11:8800",
+	"206.214.82.27:8800",
+	"206.214.82.51:8800",
+	"192.126.225.28:8800",
+	"192.126.228.110:8800",
+	"192.126.228.199:8800",
+	"192.126.228.25:8800",
+	"206.214.82.208:8800",
+	"192.126.225.159:8800",
+}
+
 func (sr *SECReq) SendRequest(retryLimit int, rateLimit time.Duration, fullurl string) (*http.Response, error) {
 	var resp *http.Response
 	var etag string
@@ -23,13 +48,24 @@ func (sr *SECReq) SendRequest(retryLimit int, rateLimit time.Duration, fullurl s
 	currentRetryLimit := retryLimit
 	for currentRetryLimit > 0 {
 		currentRetryLimit--
+
+		// Choose a random proxy and use in HTTP client
+		rand.Seed(time.Now().Unix())
+		proxyNum := rand.Intn(len(Proxies))
+		proxyUrl, err := url.Parse(fmt.Sprintf("http://%v", Proxies[proxyNum]))
+		if err != nil {
+			return nil, err
+		}
+
+		client := &http.Client{Transport: &http.Transport{Proxy: http.ProxyURL(proxyUrl)}}
+
 		req, err := http.NewRequest(sr.RequestType, fullurl, nil)
 		if err != nil {
 			return nil, err
 		}
 		req.Header.Set("User-Agent", sr.UserAgent)
 
-		resp, err = new(http.Client).Do(req)
+		resp, err = client.Do(req)
 		if err != nil {
 			return nil, err
 		}
