@@ -28,15 +28,18 @@ func (sr *SECReq) SendRequest(retryLimit int, rateLimit time.Duration, fullurl s
 	for currentRetryLimit > 0 {
 		currentRetryLimit--
 
-		// Choose a random proxy and use in HTTP client
-		rand.Seed(time.Now().Unix())
-		proxyNum := rand.Intn(len(sr.Config.Proxies.Addresses))
-		proxyUrl, err := url.Parse(fmt.Sprintf("http://%v", sr.Config.Proxies.Addresses[proxyNum]))
-		if err != nil {
-			return nil, err
-		}
+		client := &http.Client{}
+		if len(sr.Config.Proxies.Addresses) > 0 {
+			// Choose a random proxy and use in HTTP client
+			rand.Seed(time.Now().Unix())
+			proxyNum := rand.Intn(len(sr.Config.Proxies.Addresses))
+			proxyUrl, err := url.Parse(fmt.Sprintf("http://%v", sr.Config.Proxies.Addresses[proxyNum]))
+			if err != nil {
+				return nil, err
+			}
 
-		client := &http.Client{Transport: &http.Transport{Proxy: http.ProxyURL(proxyUrl)}}
+			client = &http.Client{Transport: &http.Transport{Proxy: http.ProxyURL(proxyUrl)}}
+		}
 
 		req, err := http.NewRequest(sr.RequestType, fullurl, nil)
 		if err != nil {
