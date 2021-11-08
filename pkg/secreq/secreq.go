@@ -7,6 +7,7 @@ import (
 	"net/url"
 	"time"
 
+	"github.com/equres/sec/pkg/config"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -15,29 +16,7 @@ type SECReq struct {
 	RequestType     string
 	IsEtag          bool
 	IsContentLength bool
-}
-
-var Proxies = []string{
-	"23.229.92.223:8800",
-	"23.229.79.68:8800",
-	"23.229.92.238:8800",
-	"185.234.6.119:8800",
-	"23.229.79.85:8800",
-	"23.229.92.213:8800",
-	"185.234.6.63:8800",
-	"23.229.79.91:8800",
-	"23.229.79.105:8800",
-	"23.229.92.248:8800",
-	"206.214.82.233:8800",
-	"192.126.228.11:8800",
-	"206.214.82.27:8800",
-	"206.214.82.51:8800",
-	"192.126.225.28:8800",
-	"192.126.228.110:8800",
-	"192.126.228.199:8800",
-	"192.126.228.25:8800",
-	"206.214.82.208:8800",
-	"192.126.225.159:8800",
+	Config          config.Config
 }
 
 func (sr *SECReq) SendRequest(retryLimit int, rateLimit time.Duration, fullurl string) (*http.Response, error) {
@@ -51,8 +30,8 @@ func (sr *SECReq) SendRequest(retryLimit int, rateLimit time.Duration, fullurl s
 
 		// Choose a random proxy and use in HTTP client
 		rand.Seed(time.Now().Unix())
-		proxyNum := rand.Intn(len(Proxies))
-		proxyUrl, err := url.Parse(fmt.Sprintf("http://%v", Proxies[proxyNum]))
+		proxyNum := rand.Intn(len(sr.Config.Proxies.Addresses))
+		proxyUrl, err := url.Parse(fmt.Sprintf("http://%v", sr.Config.Proxies.Addresses[proxyNum]))
 		if err != nil {
 			return nil, err
 		}
@@ -97,16 +76,18 @@ func (sr *SECReq) SendRequest(retryLimit int, rateLimit time.Duration, fullurl s
 	return resp, nil
 }
 
-func NewSECReqHEAD() *SECReq {
+func NewSECReqHEAD(cfg config.Config) *SECReq {
 	return &SECReq{
 		UserAgent:   "Equres LLC, wojciech@koszek.com",
 		RequestType: http.MethodHead,
+		Config:      cfg,
 	}
 }
 
-func NewSECReqGET() *SECReq {
+func NewSECReqGET(cfg config.Config) *SECReq {
 	return &SECReq{
 		UserAgent:   "Equres LLC, wojciech@koszek.com",
 		RequestType: http.MethodGet,
+		Config:      cfg,
 	}
 }
