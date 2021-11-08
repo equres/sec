@@ -8,6 +8,12 @@
         - option: data_directory
           value: "/mnt/sec/db"
   tasks:
+    - name: Set Timezone To Los Angeles
+      become: yes
+      become_user: root
+      become_method: sudo
+      community.general.timezone:
+        name: America/Los_Angeles
     - name: Create SEC Group
       become: yes
       become_user: root
