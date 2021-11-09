@@ -12,6 +12,7 @@ type Config struct {
 	Database  DatabaseConfig
 	Main      MainConfig
 	IndexMode IndexModeConfig
+	Proxies   ProxiesConfig
 }
 
 type DatabaseConfig struct {
@@ -35,6 +36,10 @@ type MainConfig struct {
 type IndexModeConfig struct {
 	FinancialStatementDataSets string `mapstructure:"financialstatementdatasets"`
 	CompanyFacts               string `mapstructure:"companyfacts"`
+}
+
+type ProxiesConfig struct {
+	Addresses []string `mapstructure:"addresses"`
 }
 
 func LoadConfig(path string) (config Config, err error) {

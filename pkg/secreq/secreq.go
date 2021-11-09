@@ -2,9 +2,12 @@ package secreq
 
 import (
 	"fmt"
+	"math/rand"
 	"net/http"
+	"net/url"
 	"time"
 
+	"github.com/equres/sec/pkg/config"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -13,6 +16,7 @@ type SECReq struct {
 	RequestType     string
 	IsEtag          bool
 	IsContentLength bool
+	Config          config.Config
 }
 
 func (sr *SECReq) SendRequest(retryLimit int, rateLimit time.Duration, fullurl string) (*http.Response, error) {
@@ -23,13 +27,27 @@ func (sr *SECReq) SendRequest(retryLimit int, rateLimit time.Duration, fullurl s
 	currentRetryLimit := retryLimit
 	for currentRetryLimit > 0 {
 		currentRetryLimit--
+
+		client := &http.Client{}
+		if len(sr.Config.Proxies.Addresses) > 0 {
+			// Choose a random proxy and use in HTTP client
+			rand.Seed(time.Now().Unix())
+			proxyNum := rand.Intn(len(sr.Config.Proxies.Addresses))
+			proxyUrl, err := url.Parse(fmt.Sprintf("http://%v", sr.Config.Proxies.Addresses[proxyNum]))
+			if err != nil {
+				return nil, err
+			}
+
+			client = &http.Client{Transport: &http.Transport{Proxy: http.ProxyURL(proxyUrl)}}
+		}
+
 		req, err := http.NewRequest(sr.RequestType, fullurl, nil)
 		if err != nil {
 			return nil, err
 		}
 		req.Header.Set("User-Agent", sr.UserAgent)
 
-		resp, err = new(http.Client).Do(req)
+		resp, err = client.Do(req)
 		if err != nil {
 			return nil, err
 		}
@@ -61,16 +79,18 @@ func (sr *SECReq) SendRequest(retryLimit int, rateLimit time.Duration, fullurl s
 	return resp, nil
 }
 
-func NewSECReqHEAD() *SECReq {
+func NewSECReqHEAD(cfg config.Config) *SECReq {
 	return &SECReq{
 		UserAgent:   "Equres LLC, wojciech@koszek.com",
 		RequestType: http.MethodHead,
+		Config:      cfg,
 	}
 }
 
-func NewSECReqGET() *SECReq {
+func NewSECReqGET(cfg config.Config) *SECReq {
 	return &SECReq{
 		UserAgent:   "Equres LLC, wojciech@koszek.com",
 		RequestType: http.MethodGet,
+		Config:      cfg,
 	}
 }

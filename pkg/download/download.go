@@ -113,7 +113,7 @@ func (d Downloader) FileConsistent(db *sqlx.DB, file fs.FileInfo, fullurl string
 		download = downloads[0]
 	}
 
-	req := secreq.NewSECReqHEAD()
+	req := secreq.NewSECReqHEAD(d.Config)
 	req.IsEtag = d.IsEtag
 	req.IsContentLength = d.IsContentLength
 
@@ -169,7 +169,7 @@ func (d Downloader) DownloadFile(db *sqlx.DB, fullurl string) error {
 		return err
 	}
 
-	req := secreq.NewSECReqGET()
+	req := secreq.NewSECReqGET(d.Config)
 	req.IsEtag = d.IsEtag
 	req.IsContentLength = d.IsContentLength
 
