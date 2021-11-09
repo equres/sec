@@ -42,7 +42,7 @@ func NewDownloader(cfg config.Config) *Downloader {
 	}
 }
 
-func (d Downloader) FileCorrect(db *sqlx.DB, fullurl string) (bool, error) {
+func (d Downloader) FileCorrect(db *sqlx.DB, fullurl string, size int) (bool, error) {
 	parsedURL, err := url.Parse(fullurl)
 	if err != nil {
 		return false, err
@@ -56,7 +56,7 @@ func (d Downloader) FileCorrect(db *sqlx.DB, fullurl string) (bool, error) {
 		return false, nil
 	}
 
-	isConsistent, err := d.FileConsistent(db, isFileInCache, fullurl)
+	isConsistent, err := d.FileConsistent(db, isFileInCache, fullurl, size)
 	if err != nil {
 		return false, err
 	}
@@ -79,17 +79,9 @@ func (d Downloader) FileInCache(path string) (fs.FileInfo, error) {
 	return filestat, nil
 }
 
-func (d Downloader) FileConsistent(db *sqlx.DB, file fs.FileInfo, fullurl string) (bool, error) {
+func (d Downloader) FileConsistent(db *sqlx.DB, file fs.FileInfo, fullurl string, size int) (bool, error) {
 	var downloads []Download
-	retryLimit, err := strconv.Atoi(d.Config.Main.RetryLimit)
-	if err != nil {
-		return false, err
-	}
-
-	rateLimit, err := time.ParseDuration(d.Config.Main.RateLimitMs + "ms")
-	if err != nil {
-		return false, err
-	}
+	var err error
 
 	if d.IsEtag {
 		err = db.Select(&downloads, "SELECT url, etag, size FROM sec.downloads WHERE url = $1", fullurl)
@@ -108,45 +100,10 @@ func (d Downloader) FileConsistent(db *sqlx.DB, file fs.FileInfo, fullurl string
 		return false, nil
 	}
 
-	var download Download
-	if len(downloads) > 0 {
-		download = downloads[0]
-	}
+	download := downloads[0]
 
-	req := secreq.NewSECReqHEAD(d.Config)
-	req.IsEtag = d.IsEtag
-	req.IsContentLength = d.IsContentLength
-
-	resp, err := req.SendRequest(retryLimit, rateLimit, fullurl)
-	if err != nil {
-		return false, err
-	}
-
-	if d.Debug {
-		log.Info()
-		headers, err := httputil.DumpResponse(resp, false)
-		if err != nil {
-			return false, err
-		}
-		log.Info(string(headers))
-	}
-
-	if d.IsEtag {
-		etag := resp.Header.Get("eTag")
-		if download.Etag != etag {
-			return false, nil
-		}
-	}
-
-	if d.IsContentLength {
-		contentLengthHeader := resp.Header.Get("Content-Length")
-		contentLength, err := strconv.Atoi(contentLengthHeader)
-		if err != nil {
-			return false, err
-		}
-		if download.Size != contentLength {
-			return false, nil
-		}
+	if download.Size != size {
+		return false, nil
 	}
 
 	return true, nil
