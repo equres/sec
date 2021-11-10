@@ -122,6 +122,15 @@
         owner: root
         group: syslog
         mode: 0755
+    - name: Copy FStab File
+      become: yes
+      become_user: root
+      become_method: sudo
+      ansible.builtin.copy:
+        src: ./etc/fstab
+        dest: /etc/fstab
+        owner: root
+        mode: '0700'
     - name: Copy Postgres Config Files
       become: yes
       become_user: root
