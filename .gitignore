@@ -25,3 +25,6 @@ infra/.vagrant/
 config.yml
 
 infra/.env
+
+sec
+sec.linux
