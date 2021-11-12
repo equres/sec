@@ -672,8 +672,6 @@ func (s *SEC) SecItemFileUpsert(db *sqlx.DB, item Item) error {
 		filePath := filepath.Join(s.Config.Main.CacheDir, fileUrl.Path)
 		_, err = os.Stat(filePath)
 		if err == nil {
-			// log.Info("inserted into database all downloaded files, run sec dow data then run sec index again to insert all enabled months/years")
-			// return fmt.Errorf("inserted into database all downloaded files, run sec dow data then run sec index again to insert all enabled months/years")
 			xbrlFile, err := os.Open(filePath)
 			if err != nil {
 				return err
