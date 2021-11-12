@@ -1076,6 +1076,11 @@ func (s *SEC) ForEachWorklist(db *sqlx.DB, implementFunc func(*sqlx.DB, RSSFile,
 			return err
 		}
 
+		_, err = os.Stat(fileURL)
+		if err != nil {
+			return fmt.Errorf("please run sec dow index to download all index files first")
+		}
+
 		rssFile, err := s.ParseRSSGoXML(fileURL)
 		if err != nil {
 			return err
