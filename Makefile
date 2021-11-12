@@ -2,6 +2,7 @@ all: clean build
 
 build:
 	go build
+	GOARCH=amd64 GOOS=linux go build -o sec.linux
 
 run:
 	./sec $(action)
