@@ -692,6 +692,8 @@ func (s *SEC) SecItemFileUpsert(db *sqlx.DB, item Item) error {
 					}
 				}
 			}
+		} else {
+			log.Errorf("Could not find/index the file %v", filePath)
 		}
 
 		_, err = db.Exec(`
