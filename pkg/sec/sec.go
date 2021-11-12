@@ -668,33 +668,32 @@ func (s *SEC) SecItemFileUpsert(db *sqlx.DB, item Item) error {
 			return err
 		}
 
+		var fileBody string
 		filePath := filepath.Join(s.Config.Main.CacheDir, fileUrl.Path)
 		_, err = os.Stat(filePath)
-		if err != nil {
-			log.Info("inserted into database all downloaded files, run sec dow data then run sec index again to insert all enabled months/years")
-			return fmt.Errorf("inserted into database all downloaded files, run sec dow data then run sec index again to insert all enabled months/years")
-		}
+		if err == nil {
+			xbrlFile, err := os.Open(filePath)
+			if err != nil {
+				return err
+			}
+			defer xbrlFile.Close()
 
-		xbrlFile, err := os.Open(filePath)
-		if err != nil {
-			return err
-		}
-		defer xbrlFile.Close()
+			data, err := ioutil.ReadAll(xbrlFile)
+			if err != nil {
+				return err
+			}
 
-		data, err := ioutil.ReadAll(xbrlFile)
-		if err != nil {
-			return err
-		}
-
-		var fileBody string
-		if s.IsFileIndexable(filePath) {
-			fileBody = string(data)
-			if s.IsFileTypeHTML(filePath) {
-				fileBody, err = html2text.FromString(string(data))
-				if err != nil {
-					return err
+			if s.IsFileIndexable(filePath) {
+				fileBody = string(data)
+				if s.IsFileTypeHTML(filePath) {
+					fileBody, err = html2text.FromString(string(data))
+					if err != nil {
+						return err
+					}
 				}
 			}
+		} else {
+			log.Errorf("Could not find/index the file %v", filePath)
 		}
 
 		_, err = db.Exec(`
