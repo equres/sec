@@ -1,1 +1,3 @@
-LABEL=cloudimg-rootfs	/	 ext4	defaults	0 1
+UUID=4851ac9b-8afb-4429-b2de-c4f111cbd8e4	/	ext4	defaults	0	1
+
+UUID=585381c1-8075-4616-99b2-b3c68ab45566	swap	swap	defaults	0	0
