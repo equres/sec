@@ -75,7 +75,7 @@ jobs:
       - name: Copy Config File
         run: |
           sudo mkdir ~/.config/.sec/
-          sudo cp ./ci/config.yaml ~/.config/.sec/config.yaml
+          sudo cp ./ci/config.yaml ~/.config/sec/config.yaml
 
       - name: Run Migration
         run: make migrateup
