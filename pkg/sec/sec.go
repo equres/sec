@@ -1167,14 +1167,16 @@ func (s *SEC) IndexZIPFileContent(db *sqlx.DB, rssFile RSSFile, worklist []Workl
 
 		reader, err := zip.OpenReader(zipCachePath)
 		if err != nil {
-			return err
+			log.Errorf("Could not access the file %v", zipCachePath)
+			continue
 		}
-		defer reader.Close()
 
 		err = s.ZIPContentUpsert(db, zipPath, reader.File)
 		if err != nil {
 			return err
 		}
+
+		reader.Close()
 		currentCount++
 
 		if s.Verbose {
