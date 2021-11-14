@@ -344,7 +344,12 @@ func (s *SEC) DownloadTickerFile(db *sqlx.DB, path string) error {
 		log.Info(fmt.Sprintf("Checking for file %v: ", filepath.Base(pathURL.Path)))
 	}
 
-	isFileCorrect, err := downloader.FileCorrect(db, fullURL, 0)
+	etag, err := downloader.GetFileETag(fullURL)
+	if err != nil {
+		return err
+	}
+
+	isFileCorrect, err := downloader.FileCorrect(db, fullURL, 0, etag)
 	if err != nil {
 		return err
 	}
@@ -542,7 +547,13 @@ func (s *SEC) DownloadIndex(db *sqlx.DB) error {
 		if s.Verbose {
 			log.Info(fmt.Sprintf("Checking file '%v' in disk: ", filepath.Base(fileURL)))
 		}
-		isFileCorrect, err := downloader.FileCorrect(db, fileURL, 0)
+
+		etag, err := downloader.GetFileETag(fileURL)
+		if err != nil {
+			return err
+		}
+
+		isFileCorrect, err := downloader.FileCorrect(db, fileURL, 0, etag)
 		if err != nil {
 			return err
 		}
@@ -794,7 +805,7 @@ func (s *SEC) DownloadXbrlFileContent(db *sqlx.DB, files []XbrlFile, config conf
 		if err != nil {
 			return err
 		}
-		isFileCorrect, err := downloader.FileCorrect(db, v.URL, size)
+		isFileCorrect, err := downloader.FileCorrect(db, v.URL, size, "")
 		if err != nil {
 			return err
 		}
@@ -1119,7 +1130,7 @@ func (s *SEC) DownloadZIPFiles(db *sqlx.DB, rssFile RSSFile, worklist []Worklist
 				return err
 			}
 
-			isFileCorrect, err := downloader.FileCorrect(db, v1.Enclosure.URL, size)
+			isFileCorrect, err := downloader.FileCorrect(db, v1.Enclosure.URL, size, "")
 			if err != nil {
 				return err
 			}
@@ -1281,7 +1292,7 @@ func (s *SEC) DownloadFinancialStatementDataSets(db *sqlx.DB) error {
 		if s.Verbose {
 			log.Info(fmt.Sprintf("Checking file '%v' in disk: ", filepath.Base(fileURL)))
 		}
-		isFileCorrect, err := downloader.FileCorrect(db, fileURL, 0)
+		isFileCorrect, err := downloader.FileCorrect(db, fileURL, 0, "")
 		if err != nil {
 			return err
 		}
