@@ -42,7 +42,7 @@ func NewDownloader(cfg config.Config) *Downloader {
 	}
 }
 
-func (d Downloader) FileCorrect(db *sqlx.DB, fullurl string, size int) (bool, error) {
+func (d Downloader) FileCorrect(db *sqlx.DB, fullurl string, size int, etag string) (bool, error) {
 	parsedURL, err := url.Parse(fullurl)
 	if err != nil {
 		return false, err
@@ -56,7 +56,7 @@ func (d Downloader) FileCorrect(db *sqlx.DB, fullurl string, size int) (bool, er
 		return false, nil
 	}
 
-	isConsistent, err := d.FileConsistent(db, isFileInCache, fullurl, size)
+	isConsistent, err := d.FileConsistent(db, isFileInCache, fullurl, size, etag)
 	if err != nil {
 		return false, err
 	}
@@ -79,7 +79,32 @@ func (d Downloader) FileInCache(path string) (fs.FileInfo, error) {
 	return filestat, nil
 }
 
-func (d Downloader) FileConsistent(db *sqlx.DB, file fs.FileInfo, fullurl string, size int) (bool, error) {
+func (d Downloader) GetFileETag(fullURL string) (string, error) {
+	req := secreq.NewSECReqHEAD(d.Config)
+	req.IsEtag = true
+	req.IsContentLength = false
+
+	retryLimit, err := strconv.Atoi(d.Config.Main.RetryLimit)
+	if err != nil {
+		return "", err
+	}
+
+	rateLimit, err := strconv.Atoi(d.Config.Main.RateLimitMs)
+	if err != nil {
+		return "", err
+	}
+
+	resp, err := req.SendRequest(retryLimit, time.Duration(rateLimit), fullURL)
+	if err != nil {
+		return "", err
+	}
+
+	etag := resp.Header.Get("eTag")
+
+	return etag, nil
+}
+
+func (d Downloader) FileConsistent(db *sqlx.DB, file fs.FileInfo, fullurl string, size int, etag string) (bool, error) {
 	var downloads []Download
 	var err error
 
@@ -102,7 +127,12 @@ func (d Downloader) FileConsistent(db *sqlx.DB, file fs.FileInfo, fullurl string
 
 	download := downloads[0]
 
+	if etag != "" && download.Etag == etag {
+		return true, nil
+	}
+
 	if download.Size != size {
+		fmt.Println(download.Size, "vs", size)
 		return false, nil
 	}
 
