@@ -12,7 +12,10 @@ run:
 	./sec $(action)
 
 clean:
-	gofmt -w -l -e .
+	rm -rf sec sec.linux
+
+# this should be called "stylecheck"
+#	gofmt -w -l -e .
 
 lint:
 	golangci-lint run

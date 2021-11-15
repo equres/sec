@@ -3,6 +3,7 @@ package main
 
 import (
 	"embed"
+	"fmt"
 
 	"github.com/equres/sec/cmd"
 	_ "github.com/lib/pq"
@@ -22,6 +23,8 @@ var (
 func main() {
 	cmd.GlobalMigrationsFS = migrations
 	cmd.GlobalTemplatesFS = templates
+
+	fmt.Printf("SHA1 version: %s  Build time: %s\n", GlobalSHA1Ver, GlobalBuildTime)
 
 	// Start CLI
 	cmd.Execute()
