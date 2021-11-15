@@ -47,7 +47,7 @@ jobs:
       - uses: actions/cache@v2
         with:
           path: ./sec
-          key: ${{ runner.os }}-sec-binary
+          key: ${{ runner.os }}-${{ steps.get-date.outputs.date }}-sec-binary
   functional-tests:
     needs: build
     runs-on: ubuntu-latest
@@ -97,7 +97,7 @@ jobs:
           ./sec dlist
   deploy: 
     needs: functional-tests
-    if: github.ref == 'refs/heads/main'
+    # if: github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v2
