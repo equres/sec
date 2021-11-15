@@ -117,6 +117,8 @@ jobs:
 
       - name: Copy App to Production Server
         run: |
+          set -x
+          set -e
           uname -a
           pwd
           ls -la
@@ -127,5 +129,14 @@ jobs:
           eval `ssh-agent -s`
           ssh-keyscan -H equres.com >> ~/.ssh/known_hosts
           ssh-add
+
+          echo "New program MD5"
+          openssl md5 sec
+          echo "Old program MD5"
+          ssh sec@equres.com openssl md5 sec
+
+          echo "Moving things"
           ssh sec@equres.com mv sec sec.old
+
+          echo "Uploading the new binary"
           scp ./sec sec@equres.com:/home/sec/sec.new
