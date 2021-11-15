@@ -133,7 +133,7 @@ jobs:
           echo "New program MD5"
           openssl md5 sec
           echo "Old program MD5"
-          ssh sec@equres.com openssl md5 sec
+          ssh sec@equres.com 'openssl md5 sec'
 
           echo "Moving things"
           ssh sec@equres.com mv sec sec.old
