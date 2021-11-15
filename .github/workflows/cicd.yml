@@ -43,6 +43,9 @@ jobs:
 
       - name: Generate MD5 Checksum
         run: openssl md5 sec
+
+      - name: View Dirs/Files
+        run: ls -la
       
       - uses: actions/cache@v2
         with:
@@ -95,6 +98,9 @@ jobs:
         run: | 
           ./sec de 2021/06
           ./sec dlist
+      
+      - name: View Dirs/Files Again
+        run: ls -la
   deploy: 
     needs: functional-tests
     # if: github.ref == 'refs/heads/main'
