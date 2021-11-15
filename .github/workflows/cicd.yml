@@ -47,7 +47,7 @@ jobs:
       - uses: actions/cache@v2
         with:
           path: ./sec
-          key: ${{ runner.os }}-${{ steps.get-date.outputs.date }}-sec-binary
+          key: sec-binary
   functional-tests:
     needs: build
     runs-on: ubuntu-latest
