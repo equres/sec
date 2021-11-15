@@ -18,5 +18,6 @@ func main() {
 	cmd.GlobalMigrationsFS = migrations
 	cmd.GlobalTemplatesFS = templates
 
+	// Start CLI
 	cmd.Execute()
 }
