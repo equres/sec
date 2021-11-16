@@ -31,8 +31,8 @@ func (s Server) GenerateRouter() *mux.Router {
 
 func (s Server) HandlerHome(w http.ResponseWriter, r *http.Request) {
 	var err error
-	content := make(map[string]interface{})
 
+	content := make(map[string]interface{})
 	content["Years"], err = sec.UniqueYearsInWorklist(s.DB)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
@@ -133,6 +133,9 @@ func (s Server) RenderTemplate(w http.ResponseWriter, tmplName string, data inte
 	funcMap := template.FuncMap{
 		"formatAccession": func(accession string) string {
 			return strings.ReplaceAll(accession, "-", "")
+		},
+		"AppVersion": func() string {
+			return fmt.Sprintf("%s %s", s.SHA1Ver, s.BuildTime)
 		},
 	}
 

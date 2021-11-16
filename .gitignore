@@ -19,7 +19,7 @@ unzipped_cache
 infra/.vagrant/
 
 # executable
-./sec
+sec
 
 # config
 config.yml

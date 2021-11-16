@@ -35,19 +35,22 @@ jobs:
           stable: 'false'
           go-version: '1.16'
         
-      - name: Delete Old Apps
-        run: rm ./sec
+      - name: Clean the previous build
+        run: make clean
         
       - name: Build App
         run: make build
 
       - name: Generate MD5 Checksum
         run: openssl md5 sec
+
+      - name: View Dirs/Files
+        run: ls -la
       
       - uses: actions/cache@v2
         with:
           path: ./sec
-          key: ${{ runner.os }}-sec-binary
+          key: ${{ runner.os }}-${{ hashFiles('./pkg') }}-sec-binary
   functional-tests:
     needs: build
     runs-on: ubuntu-latest
@@ -74,14 +77,20 @@ jobs:
         with:
           stable: 'false'
           go-version: '1.16'
+
+      - uses: actions/cache@v2
+        with:
+          path: ./sec
+          key: ${{ runner.os }}-${{ hashFiles('./pkg') }}-sec-binary
       
       - name: Changing Permissions For SEC Binary
         run: chmod 755 ./sec
 
       - name: Copy Config File
         run: |
-          sudo mkdir ~/.config/sec/
-          sudo cp ./ci/config.yaml ~/.config/sec/config.yaml
+          mkdir ~/.config/sec/
+          cp ./ci/config.yaml ~/.config/sec/config.yaml
+
 
       - name: Run Migration
         run: make migrateup
@@ -95,6 +104,9 @@ jobs:
         run: | 
           ./sec de 2021/06
           ./sec dlist
+      
+      - name: View Dirs/Files Again
+        run: ls -la
   deploy: 
     needs: functional-tests
     if: github.ref == 'refs/heads/main'
@@ -105,12 +117,19 @@ jobs:
         with:
           stable: 'false'
           go-version: '1.16'
+
+      - uses: actions/cache@v2
+        with:
+          path: ./sec
+          key: ${{ runner.os }}-${{ hashFiles('./pkg') }}-sec-binary
       
       - name: Changing Permissions For SEC Binary
         run: chmod 755 ./sec
 
       - name: Copy App to Production Server
         run: |
+          set -x
+          set -e
           uname -a
           pwd
           ls -la
@@ -121,5 +140,14 @@ jobs:
           eval `ssh-agent -s`
           ssh-keyscan -H equres.com >> ~/.ssh/known_hosts
           ssh-add
+
+          echo "New program MD5"
+          openssl md5 sec
+          echo "Old program MD5"
+          ssh sec@equres.com 'openssl md5 sec'
+
+          echo "Moving things"
           ssh sec@equres.com mv sec sec.old
+
+          echo "Uploading the new binary"
           scp ./sec sec@equres.com:/home/sec/sec.new
