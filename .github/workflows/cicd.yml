@@ -90,9 +90,11 @@ jobs:
         run: |
           mkdir ~/.config/sec/
           cp ./ci/config.yaml ~/.config/sec/config.yaml
+          ./sec
 
-          #- name: Run Migration
-          #  run: make migrateup
+
+      - name: Run Migration
+        run: make migrateup
 
       - name: Install PostgreSQL
         run: |
