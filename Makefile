@@ -3,7 +3,7 @@ all: clean build
 TIME=$(shell date +'%Y-%m-%d_%T')
 GITVER=$(shell git rev-parse HEAD)
 GO=go
-GOFLAGS=-ldflags="-X 'main.GlobalSHA1Ver=$(GITVER)' -X 'main.GlobalBuildTime=$(TIME)'"
+GOFLAGS=-ldflags="-X 'github.com/equres/sec/pkg/server.GlobalSHA1Ver=$(GITVER)' -X 'github.com/equres/sec/pkg/server.GlobalBuildTime=$(TIME)'"
 
 build:
 	$(GO) build $(GOFLAGS)
