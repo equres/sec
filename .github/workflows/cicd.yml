@@ -77,6 +77,11 @@ jobs:
         with:
           stable: 'false'
           go-version: '1.16'
+
+      - uses: actions/cache@v2
+        with:
+          path: ./sec
+          key: ${{ runner.os }}-sec-binary
       
       - name: Changing Permissions For SEC Binary
         run: chmod 755 ./sec
