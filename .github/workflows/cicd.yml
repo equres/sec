@@ -81,11 +81,15 @@ jobs:
       - name: View Dirs/Files Again
         run: ls -la
 
+      - name: Compress the binary
+        run: xz sec
+
       - name: Upload Artifact
         uses: actions/upload-artifact@v2
         with:
           name: prog_artifacts
           path: |
+            sec.xz
             sec
             Makefile
             .host.conf
