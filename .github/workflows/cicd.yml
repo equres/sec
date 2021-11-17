@@ -6,7 +6,7 @@ on:
       - '*'
 jobs:
   build_and_test:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-20.04
 
     services:
       postgres:
@@ -94,7 +94,7 @@ jobs:
   deploy: 
     needs: build_and_test
     if: github.ref == 'refs/heads/main'
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-20.04
 
     steps:
 
