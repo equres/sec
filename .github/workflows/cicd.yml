@@ -88,6 +88,7 @@ jobs:
           path: |
             sec
             Makefile
+            .host.conf
           retention-days: 1
 
   deploy: 
