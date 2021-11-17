@@ -88,6 +88,9 @@ jobs:
         with:
           path: .
           key: ${{ runner.os }}-${{ hashFiles('./pkg') }}-sec-binary
+
+      - name: Showing stuff after restoring
+        run: ls -la
       
       - name: Changing Permissions For SEC Binary
         run: chmod 755 ./sec
