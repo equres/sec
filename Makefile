@@ -7,8 +7,8 @@ GOFLAGS=-ldflags="-X 'github.com/equres/sec/pkg/server.GlobalSHA1Ver=$(GITVER)' 
 
 build:
 	gofmt -w *.go
-	$(GO) build $(GOFLAGS) -o wm *.go
-	GOARCH=amd64 GOOS=linux $(GO) build $(GOFLAGS) -o wm.linux
+	$(GO) build $(GOFLAGS) -o sec *.go
+	GOARCH=amd64 GOOS=linux $(GO) build $(GOFLAGS) -o sec.linux
 
 run:
 	./sec $(action)
