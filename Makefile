@@ -6,7 +6,9 @@ GO=go
 GOFLAGS=-ldflags="-X 'github.com/equres/sec/pkg/server.GlobalSHA1Ver=$(GITVER)' -X 'github.com/equres/sec/pkg/server.GlobalBuildTime=$(TIME)'"
 
 build:
-	$(GO) build $(GOFLAGS)
+	gofmt -w *.go
+	$(GO) build $(GOFLAGS) -o wm *.go
+	GOARCH=amd64 GOOS=linux $(GO) build $(GOFLAGS) -o wm.linux
 
 run:
 	./sec $(action)
