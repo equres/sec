@@ -34,9 +34,15 @@ jobs:
         with:
           stable: 'false'
           go-version: '1.16'
+
+      - name: Before cleaning
+        run: ls -la
         
       - name: Clean the previous build
         run: make clean
+
+      - name: After cleaning
+        run: ls -la
         
       - name: Build App
         run: make build
@@ -49,7 +55,7 @@ jobs:
       
       - uses: actions/cache@v2
         with:
-          path: ./sec
+          path: .
           key: ${{ runner.os }}-${{ hashFiles('./pkg') }}-sec-binary
   functional-tests:
     needs: build
@@ -80,7 +86,7 @@ jobs:
 
       - uses: actions/cache@v2
         with:
-          path: ./sec
+          path: .
           key: ${{ runner.os }}-${{ hashFiles('./pkg') }}-sec-binary
       
       - name: Changing Permissions For SEC Binary
@@ -120,7 +126,7 @@ jobs:
 
       - uses: actions/cache@v2
         with:
-          path: ./sec
+          path: .
           key: ${{ runner.os }}-${{ hashFiles('./pkg') }}-sec-binary
       
       - name: Changing Permissions For SEC Binary
