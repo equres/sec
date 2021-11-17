@@ -90,7 +90,6 @@ jobs:
           name: prog_artifacts
           path: |
             sec.xz
-            sec
             Makefile
             .host.conf
           retention-days: 1
@@ -106,6 +105,9 @@ jobs:
         uses: actions/download-artifact@v2
         with:
           name: prog_artifacts
+
+      - name: Uncompress stuff
+        run: unxz sec.xz
 
       - name: Setup SSH
         run: |
