@@ -104,12 +104,12 @@ jobs:
 
       - name: Setup SSH
         run: |
-	  mkdir -p ~/.ssh
+          mkdir -p ~/.ssh
           echo "${{ secrets.SECPROD_PRIV_KEY }}" > ~/.ssh/id_rsa
-	  chmod 700 ~/.ssh/id_rsa
-	  eval `ssh-agent -s`
-	  ssh-keyscan -H `cat .host.cfg` >> ~/.ssh/known_hosts
-	  ssh-add
+          chmod 700 ~/.ssh/id_rsa
+          eval `ssh-agent -s`
+          ssh-keyscan -H `cat .host.cfg` >> ~/.ssh/known_hosts
+          ssh-add
 
       - name: Copy App to Production Server
         run: make deploy
