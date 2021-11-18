@@ -5,55 +5,9 @@ on:
     branches:
       - '*'
 jobs:
-  format:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v2
-      - uses: actions/setup-go@v2
-        with:
-          stable: 'false'
-          go-version: '1.16'
-        
-      - name: Clean Up Code
-        run: make clean
-  golangci:
-    needs: format
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v2
-      - name: golangci-lint
-        uses: golangci/golangci-lint-action@v2
-        with:
-          version: 'latest'
-  build:
-    needs: golangci
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v2
-      - uses: actions/setup-go@v2
-        with:
-          stable: 'false'
-          go-version: '1.16'
-        
-      - name: Clean the previous build
-        run: make clean
-        
-      - name: Build App
-        run: make build
+  build_and_test:
+    runs-on: ubuntu-20.04
 
-      - name: Generate MD5 Checksum
-        run: openssl md5 sec
-
-      - name: View Dirs/Files
-        run: ls -la
-      
-      - uses: actions/cache@v2
-        with:
-          path: ./sec
-          key: ${{ runner.os }}-${{ hashFiles('./pkg') }}-sec-binary
-  functional-tests:
-    needs: build
-    runs-on: ubuntu-latest
     services:
       postgres:
         image: postgres:latest
@@ -72,25 +26,44 @@ jobs:
           - 5432:5432
 
     steps:
+
       - uses: actions/checkout@v2
+
       - uses: actions/setup-go@v2
         with:
           stable: 'false'
           go-version: '1.16'
 
-      - uses: actions/cache@v2
+      - name: golangci-lint
+        uses: golangci/golangci-lint-action@v2
         with:
-          path: ./sec
-          key: ${{ runner.os }}-${{ hashFiles('./pkg') }}-sec-binary
-      
-      - name: Changing Permissions For SEC Binary
-        run: chmod 755 ./sec
+          version: 'latest'
+        
+      - name: Clean Up Code
+        run: make clean
 
+      - name: Before cleaning
+        run: ls -la
+        
+      - name: Clean the previous build
+        run: make clean
+
+      - name: After cleaning
+        run: ls -la
+        
+      - name: Build App
+        run: make build
+
+      - name: Generate MD5 Checksum
+        run: openssl md5 sec
+
+      - name: View Dirs/Files
+        run: ls -la
+      
       - name: Copy Config File
         run: |
           mkdir ~/.config/sec/
           cp ./ci/config.yaml ~/.config/sec/config.yaml
-
 
       - name: Run Migration
         run: make migrateup
@@ -107,47 +80,43 @@ jobs:
       
       - name: View Dirs/Files Again
         run: ls -la
+
+      - name: Compress the binary
+        run: xz sec
+
+      - name: Upload Artifact
+        uses: actions/upload-artifact@v2
+        with:
+          name: prog_artifacts
+          path: |
+            sec.xz
+            Makefile
+            .host.conf
+          retention-days: 1
+
   deploy: 
-    needs: functional-tests
+    needs: build_and_test
     if: github.ref == 'refs/heads/main'
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-20.04
+
     steps:
-      - uses: actions/checkout@v2
-      - uses: actions/setup-go@v2
-        with:
-          stable: 'false'
-          go-version: '1.16'
 
-      - uses: actions/cache@v2
+      - name: Download a single artifact
+        uses: actions/download-artifact@v2
         with:
-          path: ./sec
-          key: ${{ runner.os }}-${{ hashFiles('./pkg') }}-sec-binary
-      
-      - name: Changing Permissions For SEC Binary
-        run: chmod 755 ./sec
+          name: prog_artifacts
 
-      - name: Copy App to Production Server
+      - name: Uncompress stuff
+        run: unxz sec.xz
+
+      - name: Setup SSH
         run: |
-          set -x
-          set -e
-          uname -a
-          pwd
-          ls -la
-          whoami
           mkdir -p ~/.ssh
           echo "${{ secrets.SECPROD_PRIV_KEY }}" > ~/.ssh/id_rsa
           chmod 700 ~/.ssh/id_rsa
           eval `ssh-agent -s`
-          ssh-keyscan -H equres.com >> ~/.ssh/known_hosts
+          ssh-keyscan -H `cat .host.conf` >> ~/.ssh/known_hosts
           ssh-add
 
-          echo "New program MD5"
-          openssl md5 sec
-          echo "Old program MD5"
-          ssh sec@equres.com 'openssl md5 sec'
-
-          echo "Moving things"
-          ssh sec@equres.com mv sec sec.old
-
-          echo "Uploading the new binary"
-          scp ./sec sec@equres.com:/home/sec/sec.new
+      - name: Copy App to Production Server
+        run: make deploy
