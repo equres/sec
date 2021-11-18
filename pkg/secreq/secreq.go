@@ -49,7 +49,11 @@ func (sr *SECReq) SendRequest(retryLimit int, rateLimit time.Duration, fullurl s
 
 		resp, err = client.Do(req)
 		if err != nil {
-			return nil, err
+			if currentRetryLimit == 0 {
+				return nil, err
+			}
+			time.Sleep(5 * time.Minute)
+			continue
 		}
 
 		if sr.IsEtag {
