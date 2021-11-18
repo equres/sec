@@ -1,0 +1,1 @@
+echo backup failed - $(date) >> backup_error.txt
