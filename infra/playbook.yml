@@ -150,11 +150,16 @@
       become_user: root
       become_method: sudo
       copy: src=./etc/caddy/Caddyfile dest=/etc/caddy
-    - name: Copy Backup File
+    - name: Copy Backup Store File
       become: yes
       become_user: root
       become_method: sudo
-      copy: src=./root/sec_backup.sh dest=/root
+      copy: src=./root/backup_store.sh dest=/root
+    - name: Copy Backup Restore File
+      become: yes
+      become_user: root
+      become_method: sudo
+      copy: src=./root/backup_restore.sh dest=/root
     - name: Reload Caddy Service
       become: yes
       become_user: root
