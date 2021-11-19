@@ -1,0 +1,1 @@
+./backup_store.sh; ./backup_restore.sh; ./backup_verify.sh;
