@@ -38,7 +38,15 @@ jobs:
         uses: golangci/golangci-lint-action@v2
         with:
           version: 'latest'
-        
+
+      - name: Set TimeZone To LA
+        uses: szenius/set-timezone@v1.0
+        with:
+          timezoneLinux: "America/Los_Angeles"
+
+      - name: Check Date
+        run: date
+
       - name: Clean Up Code
         run: make clean
 
@@ -100,6 +108,10 @@ jobs:
     runs-on: ubuntu-20.04
 
     steps:
+      - name: Set TimeZone To LA
+        uses: szenius/set-timezone@v1.0
+        with:
+          timezoneLinux: "America/Los_Angeles"
 
       - name: Download a single artifact
         uses: actions/download-artifact@v2
