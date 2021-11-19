@@ -44,9 +44,6 @@ jobs:
         with:
           timezoneLinux: "America/Los_Angeles"
 
-      - name: Check Date
-        run: date
-
       - name: Clean Up Code
         run: make clean
 
