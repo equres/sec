@@ -25,6 +25,7 @@ func (sr *SECReq) SendRequest(retryLimit int, rateLimit time.Duration, fullurl s
 	var contentLength string
 
 	currentRetryLimit := retryLimit
+	waitIfFail := 2
 	for currentRetryLimit > 0 {
 		currentRetryLimit--
 
@@ -49,7 +50,9 @@ func (sr *SECReq) SendRequest(retryLimit int, rateLimit time.Duration, fullurl s
 
 		resp, err = client.Do(req)
 		if err != nil {
-			return nil, err
+			time.Sleep(time.Duration(waitIfFail) * time.Second)
+			waitIfFail *= 2
+			continue
 		}
 
 		if sr.IsEtag {

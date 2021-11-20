@@ -23,4 +23,4 @@ fi
 
 ssh $USER@$HOST sudo apt-get install -y python3
 ansible ${ANSIBLE_OPTS} -u $USER -i ${HOST}, all -m ping
-ansible-playbook --become-user="$USER" -i hosts.yml  -e "ansible_python_interpreter=/usr/bin/python3 host_names=$HOST ssh_user=$USER" playbook.yml
+ansible-playbook --become-user="$USER" -i hosts.yml  -e "ansible_python_interpreter=/usr/bin/python3 host_names=$HOST ssh_user=$USER" playbook.yml --vault-password-file ./.vault_password.txt
