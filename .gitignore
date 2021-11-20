@@ -26,3 +26,4 @@ sec.linux
 config.yml
 
 infra/.env
+infra/.vault_password.txt

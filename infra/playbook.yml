@@ -93,6 +93,7 @@
           - caddy
           - monit
           - syslog-ng
+          - lftp
     - name: Create /mnt/sec Directory
       become: yes
       become_user: root
@@ -149,6 +150,16 @@
       become_user: root
       become_method: sudo
       copy: src=./etc/caddy/Caddyfile dest=/etc/caddy
+    - name: Copy Backup Files
+      become: yes
+      become_user: root
+      become_method: sudo
+      copy: src=./root/{{ item.src }} dest=/root/
+      with_items:
+        - { src: 'backup_store.sh' }
+        - { src: 'backup_restore.sh' }
+        - { src: 'backup_verify.sh' }
+        - { src: '.creds' }
     - name: Reload Caddy Service
       become: yes
       become_user: root
@@ -273,3 +284,12 @@
         dest: /home/sec/.ssh/authorized_keys
         owner: sec
         mode: '0644'
+    - name: Run Backup Script Everyday at 3 AM
+      become: yes
+      become_user: root
+      become_method: sudo
+      ansible.builtin.cron:
+        name: "Backup ZIP & XML"
+        minute: "0"
+        hour: "3"
+        job: "/root/sec_backup.sh | logger"
