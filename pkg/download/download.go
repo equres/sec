@@ -2,6 +2,7 @@ package download
 
 import (
 	"bytes"
+	"encoding/json"
 	"fmt"
 	"io"
 	"io/fs"
@@ -34,6 +35,12 @@ type Download struct {
 	URL  string
 	Etag string
 	Size int
+}
+
+type DownloadEvent struct {
+	Event  string `json:"event"`
+	File   string `json:"file"`
+	Status string `json:"status"`
 }
 
 func NewDownloader(cfg config.Config) *Downloader {
@@ -162,6 +169,11 @@ func (d Downloader) DownloadFile(db *sqlx.DB, fullurl string) error {
 
 	resp, err := req.SendRequest(retryLimit, rateLimit, fullurl)
 	if err != nil {
+		eventErr := d.CreateEvent(db, cachePath, "failed")
+		if eventErr != nil {
+			return eventErr
+		}
+
 		return err
 	}
 
@@ -181,6 +193,10 @@ func (d Downloader) DownloadFile(db *sqlx.DB, fullurl string) error {
 
 	log.Info("Status Code:", resp.StatusCode)
 	if IsErrorPage(string(responseBody)) {
+		eventErr := d.CreateEvent(db, cachePath, "failed")
+		if eventErr != nil {
+			return eventErr
+		}
 		return fmt.Errorf("requested file but received an error instead")
 	}
 
@@ -192,6 +208,11 @@ func (d Downloader) DownloadFile(db *sqlx.DB, fullurl string) error {
 	err = SaveFile(cachePath, responseBody)
 	if err != nil {
 		return err
+	}
+
+	eventErr := d.CreateEvent(db, cachePath, "success")
+	if eventErr != nil {
+		return eventErr
 	}
 
 	if d.IsEtag {
@@ -260,6 +281,24 @@ func IndexContentLength(db sqlx.DB, fullurl string, size int64) error {
 		ON CONFLICT (url) 
 		DO UPDATE SET url=EXCLUDED.url, size=EXCLUDED.size, updated_at=NOW() 
 		WHERE downloads.url=EXCLUDED.url;`, fullurl, size)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (d Downloader) CreateEvent(db *sqlx.DB, file string, status string) error {
+	event := DownloadEvent{
+		Event:  "download",
+		File:   file,
+		Status: status,
+	}
+	eventJson, err := json.Marshal(event)
+	if err != nil {
+		return err
+	}
+	_, err = db.Exec(`INSERT INTO sec.events (ev, created_at) VALUES ($1, NOW())`, eventJson)
 	if err != nil {
 		return err
 	}
