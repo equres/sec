@@ -986,6 +986,53 @@ func (s *SEC) SearchByFillingDate(db *sqlx.DB, startdate time.Time, enddate time
 	return secItemFiles, nil
 }
 
+func (s *SEC) GetFillingDaysFromMonthYear(db *sqlx.DB, year int, month int) ([]int, error) {
+	days := []int{}
+	err := db.Select(&days, `
+	SELECT DISTINCT EXTRACT(day from fillingdate)
+	FROM sec.secItemFile 
+	WHERE EXTRACT(year from fillingdate) = $1
+	AND EXTRACT(month from fillingdate) = $2
+	`, year, month)
+	if err != nil {
+		return nil, err
+	}
+	return days, nil
+}
+
+func (s *SEC) GetFillingCompaniesFromYearMonthDay(db *sqlx.DB, year int, month int, day int) ([]SECItemFile, error) {
+	items := []SECItemFile{}
+	err := db.Select(&items, `
+	SELECT DISTINCT companyname, ciknumber
+	FROM sec.secItemFile 
+	WHERE EXTRACT(year from fillingdate) = $1
+	AND EXTRACT(month from fillingdate) = $2
+	AND EXTRACT(day from fillingdate) = $3
+	`, year, month, day)
+	if err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+func (s *SEC) SearchFillingsByYearMonthDayCIK(db *sqlx.DB, year int, month int, day int, cik int) ([]SECItemFile, error) {
+	secItemFiles := []SECItemFile{}
+	err := db.Select(&secItemFiles, `
+	SELECT sec.tickers.ticker, sec.secItemFile.title, sec.secItemFile.companyname, sec.secItemFile.ciknumber, sec.secItemFile. accessionnumber, sec.secItemFile.xbrlfile 
+	FROM sec.secItemFile 
+	LEFT JOIN sec.tickers
+	ON sec.secitemfile.ciknumber = sec.tickers.cik
+	WHERE EXTRACT(year from fillingdate) = $1
+	AND EXTRACT(month from fillingdate) = $2
+	AND EXTRACT(day from fillingdate) = $3
+	AND sec.secItemFile.cikNumber = $4;
+	`, year, month, day, cik)
+	if err != nil {
+		return nil, err
+	}
+	return secItemFiles, nil
+}
+
 func (s *SEC) CreateFilesFromZIP(zipPath string, files []*zip.File) error {
 	unpackedCachePath := filepath.Dir(filepath.Join(s.Config.Main.CacheDirUnpacked, zipPath))
 	for _, file := range files {

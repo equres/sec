@@ -1,0 +1,23 @@
+{{ template "base" .}}
+
+{{ define "content"}}
+    <h3>Year: {{ .Year }}</h3>
+    <h3>Month: {{ .Month }}</h3>
+    <h3>Day: {{ .Day }}</h3>
+    <table class="table">
+        <thead>
+            <tr>
+                <th>CIK</th>
+                <th>Company Name</th>
+            </tr>
+        </thead>
+        <tbody>
+            {{ range .Companies }}
+                <tr>
+                    <td><a href="/fillings/{{ $.Year }}/{{ $.Month }}/{{ $.Day }}/{{ .CIKNumber }}">{{ .CIKNumber }}</a></td>
+                    <td>{{ .CompanyName }}</td>
+                </tr>
+            {{ end }}
+        </tbody>
+    </table>
+{{ end }}

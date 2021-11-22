@@ -3,6 +3,7 @@
 {{ define "content"}}
     <h3>Year: {{ .Year }}</h3>
     <h3>Month: {{ .Month }}</h3>
+    <h3>Day: {{ .Day }}</h3>
     <table class="table">
         <thead>
             <tr>
@@ -14,7 +15,6 @@
             </tr>
         </thead>
         <tbody>
-            <!-- title, companyname, ciknumber, accessionnumber, xbrlfile -->
             {{ range .Fillings }}
                 <tr>
                     <td>{{ .Title }}</td>
