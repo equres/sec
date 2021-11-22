@@ -132,6 +132,15 @@
         dest: /etc/fstab
         owner: root
         mode: '0700'
+    - name: Copy SEC Config File
+      become: yes
+      become_user: root
+      become_method: sudo
+      ansible.builtin.copy:
+        src: ./.config/sec/config.yaml
+        dest: /home/sec/.config/sec/config.yaml
+        owner: sec
+        mode: '0700'
     - name: Copy Postgres Config Files
       become: yes
       become_user: root
