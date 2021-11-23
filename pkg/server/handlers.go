@@ -20,10 +20,10 @@ func (s Server) GenerateRouter() *mux.Router {
 	router := mux.NewRouter()
 
 	router.HandleFunc("/", s.HandlerHome).Methods("GET")
-	router.HandleFunc("/fillings/{year}", s.HandlerMonthsPage).Methods("GET")
-	router.HandleFunc("/fillings/{year}/{month}", s.HandlerDaysPage).Methods("GET")
-	router.HandleFunc("/fillings/{year}/{month}/{day}", s.HandlerCompaniesPage).Methods("GET")
-	router.HandleFunc("/fillings/{year}/{month}/{day}/{cik}", s.HandlerFillingsPage).Methods("GET")
+	router.HandleFunc("/filings/{year}", s.HandlerMonthsPage).Methods("GET")
+	router.HandleFunc("/filings/{year}/{month}", s.HandlerDaysPage).Methods("GET")
+	router.HandleFunc("/filings/{year}/{month}/{day}", s.HandlerCompaniesPage).Methods("GET")
+	router.HandleFunc("/filings/{year}/{month}/{day}/{cik}", s.HandlerFilingsPage).Methods("GET")
 	router.HandleFunc("/api/v1/uptime", s.HandlerUptime).Methods("GET")
 	router.PathPrefix("/").HandlerFunc(s.HandlerFiles)
 
@@ -101,7 +101,7 @@ func (s Server) HandlerDaysPage(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	days, err := secVar.GetFillingDaysFromMonthYear(s.DB, year, month)
+	days, err := secVar.GetFilingDaysFromMonthYear(s.DB, year, month)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
@@ -143,7 +143,7 @@ func (s Server) HandlerCompaniesPage(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	companies, err := secVar.GetFillingCompaniesFromYearMonthDay(s.DB, year, month, day)
+	companies, err := secVar.GetFilingCompaniesFromYearMonthDay(s.DB, year, month, day)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
@@ -161,7 +161,7 @@ func (s Server) HandlerCompaniesPage(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func (s Server) HandlerFillingsPage(w http.ResponseWriter, r *http.Request) {
+func (s Server) HandlerFilingsPage(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 
 	year, err := getIntVar(vars, "year")
@@ -191,7 +191,7 @@ func (s Server) HandlerFillingsPage(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	fillings, err := secVar.SearchFillingsByYearMonthDayCIK(s.DB, year, month, day, cik)
+	filings, err := secVar.SearchFilingsByYearMonthDayCIK(s.DB, year, month, day, cik)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
@@ -202,9 +202,9 @@ func (s Server) HandlerFillingsPage(w http.ResponseWriter, r *http.Request) {
 	content["Month"] = month
 	content["Day"] = day
 	content["CIK"] = cik
-	content["Fillings"] = fillings
+	content["Filings"] = filings
 
-	err = s.RenderTemplate(w, "fillings.page.gohtml", content)
+	err = s.RenderTemplate(w, "filings.page.gohtml", content)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 	}

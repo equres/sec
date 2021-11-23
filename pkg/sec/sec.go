@@ -971,7 +971,7 @@ func (s *SEC) ZIPContentUpsert(db *sqlx.DB, pathname string, files []*zip.File) 
 	return nil
 }
 
-func (s *SEC) SearchByFillingDate(db *sqlx.DB, startdate time.Time, enddate time.Time) ([]SECItemFile, error) {
+func (s *SEC) SearchByFilingDate(db *sqlx.DB, startdate time.Time, enddate time.Time) ([]SECItemFile, error) {
 	secItemFiles := []SECItemFile{}
 	err := db.Select(&secItemFiles, `
 	SELECT sec.tickers.ticker, sec.secItemFile.title, sec.secItemFile.companyname, sec.secItemFile.ciknumber, sec.secItemFile. accessionnumber, sec.secItemFile.xbrlfile 
@@ -986,7 +986,7 @@ func (s *SEC) SearchByFillingDate(db *sqlx.DB, startdate time.Time, enddate time
 	return secItemFiles, nil
 }
 
-func (s *SEC) GetFillingDaysFromMonthYear(db *sqlx.DB, year int, month int) ([]int, error) {
+func (s *SEC) GetFilingDaysFromMonthYear(db *sqlx.DB, year int, month int) ([]int, error) {
 	days := []int{}
 	err := db.Select(&days, `
 	SELECT DISTINCT EXTRACT(day from fillingdate)
@@ -1000,7 +1000,7 @@ func (s *SEC) GetFillingDaysFromMonthYear(db *sqlx.DB, year int, month int) ([]i
 	return days, nil
 }
 
-func (s *SEC) GetFillingCompaniesFromYearMonthDay(db *sqlx.DB, year int, month int, day int) ([]SECItemFile, error) {
+func (s *SEC) GetFilingCompaniesFromYearMonthDay(db *sqlx.DB, year int, month int, day int) ([]SECItemFile, error) {
 	items := []SECItemFile{}
 	err := db.Select(&items, `
 	SELECT DISTINCT companyname, ciknumber
@@ -1015,7 +1015,7 @@ func (s *SEC) GetFillingCompaniesFromYearMonthDay(db *sqlx.DB, year int, month i
 	return items, nil
 }
 
-func (s *SEC) SearchFillingsByYearMonthDayCIK(db *sqlx.DB, year int, month int, day int, cik int) ([]SECItemFile, error) {
+func (s *SEC) SearchFilingsByYearMonthDayCIK(db *sqlx.DB, year int, month int, day int, cik int) ([]SECItemFile, error) {
 	secItemFiles := []SECItemFile{}
 	err := db.Select(&secItemFiles, `
 	SELECT sec.tickers.ticker, sec.secItemFile.title, sec.secItemFile.companyname, sec.secItemFile.ciknumber, sec.secItemFile. accessionnumber, sec.secItemFile.xbrlfile 
