@@ -26,7 +26,7 @@ var findCmd = &cobra.Command{
 			return err
 		}
 
-		secitemfiles, err := S.SearchByFillingDate(DB, date, date)
+		secitemfiles, err := S.SearchByFilingDate(DB, date, date)
 		if err != nil {
 			return err
 		}

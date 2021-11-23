@@ -4,7 +4,7 @@
     <h3>Year: {{ .Year }}</h3>
     <ul>
         {{ range .Months }}
-            <li><a href="/search/{{ $.Year }}/{{ . }}">{{ . }}</a></li>
+            <li><a href="/filings/{{ $.Year }}/{{ . }}">{{ . }}</a></li>
         {{ end}}
     </ul>
 {{ end }}

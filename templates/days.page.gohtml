@@ -1,0 +1,20 @@
+{{ template "base" .}}
+
+{{ define "content"}}
+    <h3>Year: {{ .Year }}</h3>
+    <h3>Month: {{ .Month }}</h3>
+    <table class="table">
+        <thead>
+            <tr>
+                <th>Day</th>
+            </tr>
+        </thead>
+        <tbody>
+            {{ range .Days }}
+                <tr>
+                    <td><a href="/filings/{{ $.Year }}/{{ $.Month }}/{{ . }}">{{ . }}</a></td>
+                </tr>
+            {{ end }}
+        </tbody>
+    </table>
+{{ end }}
