@@ -7,9 +7,9 @@ import (
 )
 
 var (
-	event  string
-	job    string
-	status string
+	GlobalEventInput  string
+	GlobalJobInput    string
+	GlobalStatusInput string
 )
 
 // eventCmd represents the dd command
@@ -21,7 +21,7 @@ var eventCmd = &cobra.Command{
 		return database.CheckMigration(RootConfig)
 	},
 	RunE: func(cmd *cobra.Command, args []string) error {
-		return S.CreateOtherEvent(DB, event, job, status)
+		return database.CreateOtherEvent(DB, GlobalEventInput, GlobalJobInput, GlobalStatusInput)
 	},
 }
 
@@ -36,7 +36,7 @@ func init() {
 
 	// Cobra supports local flags which will only run when this command
 	// is called directly, e.g.:
-	eventCmd.Flags().StringVar(&event, "event", "cron", "event name")
-	eventCmd.Flags().StringVar(&job, "job", "cron", "job name")
-	eventCmd.Flags().StringVar(&status, "status", "cron", "success")
+	eventCmd.Flags().StringVar(&GlobalEventInput, "event", "cron", "event name")
+	eventCmd.Flags().StringVar(&GlobalJobInput, "job", "cron", "job name")
+	eventCmd.Flags().StringVar(&GlobalStatusInput, "status", "success", "status (success/failed)")
 }

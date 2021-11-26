@@ -2,7 +2,6 @@ package download
 
 import (
 	"bytes"
-	"encoding/json"
 	"fmt"
 	"io"
 	"io/fs"
@@ -18,6 +17,7 @@ import (
 	log "github.com/sirupsen/logrus"
 
 	"github.com/equres/sec/pkg/config"
+	"github.com/equres/sec/pkg/database"
 	"github.com/equres/sec/pkg/secreq"
 	"github.com/jmoiron/sqlx"
 )
@@ -35,12 +35,6 @@ type Download struct {
 	URL  string
 	Etag string
 	Size int
-}
-
-type DownloadEvent struct {
-	Event  string `json:"event"`
-	File   string `json:"file"`
-	Status string `json:"status"`
 }
 
 func NewDownloader(cfg config.Config) *Downloader {
@@ -169,7 +163,7 @@ func (d Downloader) DownloadFile(db *sqlx.DB, fullurl string) error {
 
 	resp, err := req.SendRequest(retryLimit, rateLimit, fullurl)
 	if err != nil {
-		eventErr := d.CreateEvent(db, cachePath, "failed")
+		eventErr := database.CreateDownloadEvent(db, cachePath, "failed")
 		if eventErr != nil {
 			return eventErr
 		}
@@ -193,7 +187,7 @@ func (d Downloader) DownloadFile(db *sqlx.DB, fullurl string) error {
 
 	log.Info("Status Code:", resp.StatusCode)
 	if IsErrorPage(string(responseBody)) {
-		eventErr := d.CreateEvent(db, cachePath, "failed")
+		eventErr := database.CreateDownloadEvent(db, cachePath, "failed")
 		if eventErr != nil {
 			return eventErr
 		}
@@ -210,7 +204,7 @@ func (d Downloader) DownloadFile(db *sqlx.DB, fullurl string) error {
 		return err
 	}
 
-	eventErr := d.CreateEvent(db, cachePath, "success")
+	eventErr := database.CreateDownloadEvent(db, cachePath, "success")
 	if eventErr != nil {
 		return eventErr
 	}
@@ -281,24 +275,6 @@ func IndexContentLength(db sqlx.DB, fullurl string, size int64) error {
 		ON CONFLICT (url) 
 		DO UPDATE SET url=EXCLUDED.url, size=EXCLUDED.size, updated_at=NOW() 
 		WHERE downloads.url=EXCLUDED.url;`, fullurl, size)
-	if err != nil {
-		return err
-	}
-
-	return nil
-}
-
-func (d Downloader) CreateEvent(db *sqlx.DB, file string, status string) error {
-	event := DownloadEvent{
-		Event:  "download",
-		File:   file,
-		Status: status,
-	}
-	eventJson, err := json.Marshal(event)
-	if err != nil {
-		return err
-	}
-	_, err = db.Exec(`INSERT INTO sec.events (ev, created_at) VALUES ($1, NOW())`, eventJson)
 	if err != nil {
 		return err
 	}

@@ -24,6 +24,7 @@ import (
 	log "github.com/sirupsen/logrus"
 
 	"github.com/equres/sec/pkg/config"
+	"github.com/equres/sec/pkg/database"
 	"github.com/equres/sec/pkg/download"
 	"github.com/gocarina/gocsv"
 	"github.com/jmoiron/sqlx"
@@ -232,18 +233,6 @@ type PRE struct {
 	Plabel  string `csv:"plabel"`
 }
 
-type IndexEvent struct {
-	Event  string `json:"event"`
-	File   string `json:"file"`
-	Status string `json:"status"`
-}
-
-type OtherEvent struct {
-	Event  string `json:"event"`
-	Job    string `json:"job"`
-	Status string `json:"status"`
-}
-
 // Ticker Struct Based on JSON
 type SecTicker struct {
 	Cik      int    `json:"cik_str"`
@@ -429,7 +418,7 @@ func (s *SEC) NoExchangeTickersGet(db *sqlx.DB) error {
 	for _, v := range allCompanyTickers {
 		err = SaveCIK(db, v.Cik)
 		if err != nil {
-			eventErr := s.CreateIndexEvent(db, "company_tickers.json", "failed")
+			eventErr := database.CreateIndexEvent(db, "company_tickers.json", "failed")
 			if eventErr != nil {
 				return eventErr
 			}
@@ -446,7 +435,7 @@ func (s *SEC) NoExchangeTickersGet(db *sqlx.DB) error {
 		}
 		err := sec.Save(db)
 		if err != nil {
-			eventErr := s.CreateIndexEvent(db, "company_tickers.json", "failed")
+			eventErr := database.CreateIndexEvent(db, "company_tickers.json", "failed")
 			if eventErr != nil {
 				return eventErr
 			}
@@ -457,7 +446,7 @@ func (s *SEC) NoExchangeTickersGet(db *sqlx.DB) error {
 	if s.Verbose {
 		log.Info("\u2713")
 	}
-	eventErr := s.CreateIndexEvent(db, "company_tickers.json", "success")
+	eventErr := database.CreateIndexEvent(db, "company_tickers.json", "success")
 	if eventErr != nil {
 		return eventErr
 	}
@@ -492,7 +481,7 @@ func (s *SEC) ExchangeTickersGet(db *sqlx.DB) error {
 	for _, v := range fileExchange.Data {
 		err = SaveCIK(db, int(v[0].(float64)))
 		if err != nil {
-			eventErr := s.CreateIndexEvent(db, "company_tickers_exchange.json", "failed")
+			eventErr := database.CreateIndexEvent(db, "company_tickers_exchange.json", "failed")
 			if eventErr != nil {
 				return eventErr
 			}
@@ -517,7 +506,7 @@ func (s *SEC) ExchangeTickersGet(db *sqlx.DB) error {
 		}
 		err := sec.Save(db)
 		if err != nil {
-			eventErr := s.CreateIndexEvent(db, "company_tickers_exchange.json", "failed")
+			eventErr := database.CreateIndexEvent(db, "company_tickers_exchange.json", "failed")
 			if eventErr != nil {
 				return eventErr
 			}
@@ -527,7 +516,7 @@ func (s *SEC) ExchangeTickersGet(db *sqlx.DB) error {
 	if s.Verbose {
 		log.Info("\u2713")
 	}
-	eventErr := s.CreateIndexEvent(db, "company_tickers_exchange.json", "success")
+	eventErr := database.CreateIndexEvent(db, "company_tickers_exchange.json", "success")
 	if eventErr != nil {
 		return eventErr
 	}
@@ -753,14 +742,14 @@ func (s *SEC) SecItemFileUpsert(db *sqlx.DB, item Item) error {
 		WHERE secItemFile.xbrlsequence=EXCLUDED.xbrlsequence AND secItemFile.xbrlfile=EXCLUDED.xbrlfile AND secItemFile.xbrltype=EXCLUDED.xbrltype AND secItemFile.xbrlsize=EXCLUDED.xbrlsize AND secItemFile.xbrldescription=EXCLUDED.xbrldescription AND secItemFile.xbrlinlinexbrl=EXCLUDED.xbrlinlinexbrl AND secItemFile.xbrlurl=EXCLUDED.xbrlurl AND secItemFile.xbrlbody=EXCLUDED.xbrlbody;`,
 			item.Title, item.Link, item.Guid, item.Enclosure.URL, enclosureLength, item.Enclosure.Type, item.Description, item.PubDate, item.XbrlFiling.CompanyName, item.XbrlFiling.FormType, item.XbrlFiling.FilingDate, cikNumber, item.XbrlFiling.AccessionNumber, item.XbrlFiling.FileNumber, item.XbrlFiling.AcceptanceDatetime, item.XbrlFiling.Period, item.XbrlFiling.AssistantDirector, assignedSic, fiscalYearEnd, xbrlSequence, v.File, v.Type, xbrlSize, v.Description, xbrlInline, v.URL, fileBody)
 		if err != nil {
-			eventErr := s.CreateIndexEvent(db, filePath, "failed")
+			eventErr := database.CreateIndexEvent(db, filePath, "failed")
 			if eventErr != nil {
 				return eventErr
 			}
 			return err
 		}
 
-		eventErr := s.CreateIndexEvent(db, filePath, "success")
+		eventErr := database.CreateIndexEvent(db, filePath, "success")
 		if eventErr != nil {
 			return eventErr
 		}
@@ -1011,7 +1000,7 @@ func (s *SEC) ZIPContentUpsert(db *sqlx.DB, pathname string, files []*zip.File) 
 		ON CONFLICT (cikNumber, accessionNumber, xbrlFile, xbrlSize)
 		DO NOTHING;`, cik, accession, file.Name, int(file.FileInfo().Size()), xbrlBody)
 		if err != nil {
-			eventErr := s.CreateIndexEvent(db, pathname, "failed")
+			eventErr := database.CreateIndexEvent(db, pathname, "failed")
 			if eventErr != nil {
 				return eventErr
 			}
@@ -1019,7 +1008,7 @@ func (s *SEC) ZIPContentUpsert(db *sqlx.DB, pathname string, files []*zip.File) 
 		}
 	}
 
-	eventErr := s.CreateIndexEvent(db, pathname, "success")
+	eventErr := database.CreateIndexEvent(db, pathname, "success")
 	if eventErr != nil {
 		return eventErr
 	}
@@ -1239,14 +1228,14 @@ func (s *SEC) IndexZIPFileContent(db *sqlx.DB, rssFile RSSFile, worklist []Workl
 
 		err = s.ZIPContentUpsert(db, zipPath, reader.File)
 		if err != nil {
-			eventErr := s.CreateIndexEvent(db, zipCachePath, "failed")
+			eventErr := database.CreateIndexEvent(db, zipCachePath, "failed")
 			if eventErr != nil {
 				return eventErr
 			}
 			return err
 		}
 
-		eventErr := s.CreateIndexEvent(db, zipCachePath, "success")
+		eventErr := database.CreateIndexEvent(db, zipCachePath, "success")
 		if eventErr != nil {
 			return eventErr
 		}
@@ -1399,7 +1388,7 @@ func (s *SEC) IndexFinancialStatementDataSets(db *sqlx.DB) error {
 
 		err = s.FinancialStatementDataSetsZIPUpsert(db, filesPath, reader.File)
 		if err != nil {
-			eventErr := s.CreateIndexEvent(db, filesPath, "failed")
+			eventErr := database.CreateIndexEvent(db, filesPath, "failed")
 			if eventErr != nil {
 				return eventErr
 			}
@@ -1408,7 +1397,7 @@ func (s *SEC) IndexFinancialStatementDataSets(db *sqlx.DB) error {
 		if s.Verbose {
 			log.Info("\u2713")
 		}
-		eventErr := s.CreateIndexEvent(db, filesPath, "success")
+		eventErr := database.CreateIndexEvent(db, filesPath, "success")
 		if eventErr != nil {
 			return eventErr
 		}
@@ -1474,7 +1463,7 @@ func (s *SEC) FinancialStatementDataSetsZIPUpsert(db *sqlx.DB, pathname string, 
 
 		reader, err := file.Open()
 		if err != nil {
-			eventErr := s.CreateIndexEvent(db, pathname, "failed")
+			eventErr := database.CreateIndexEvent(db, pathname, "failed")
 			if eventErr != nil {
 				return eventErr
 			}
@@ -1487,7 +1476,7 @@ func (s *SEC) FinancialStatementDataSetsZIPUpsert(db *sqlx.DB, pathname string, 
 			return err
 		}
 	}
-	eventErr := s.CreateIndexEvent(db, pathname, "failed")
+	eventErr := database.CreateIndexEvent(db, pathname, "failed")
 	if eventErr != nil {
 		return eventErr
 	}
@@ -1653,41 +1642,5 @@ func (s *SEC) PreDataUpsert(db *sqlx.DB, reader io.ReadCloser) (err error) {
 			return err
 		}
 	}
-	return nil
-}
-
-func (s SEC) CreateIndexEvent(db *sqlx.DB, file string, status string) error {
-	event := IndexEvent{
-		Event:  "index",
-		File:   file,
-		Status: status,
-	}
-	eventJson, err := json.Marshal(event)
-	if err != nil {
-		return err
-	}
-	_, err = db.Exec(`INSERT INTO sec.events (ev, created_at) VALUES ($1, NOW())`, eventJson)
-	if err != nil {
-		return err
-	}
-
-	return nil
-}
-
-func (s SEC) CreateOtherEvent(db *sqlx.DB, eventName string, job string, status string) error {
-	event := OtherEvent{
-		Event:  eventName,
-		Job:    job,
-		Status: status,
-	}
-	eventJson, err := json.Marshal(event)
-	if err != nil {
-		return err
-	}
-	_, err = db.Exec(`INSERT INTO sec.events (ev, created_at) VALUES ($1, NOW())`, eventJson)
-	if err != nil {
-		return err
-	}
-
 	return nil
 }
