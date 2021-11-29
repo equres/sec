@@ -94,6 +94,7 @@
           - monit
           - syslog-ng
           - lftp
+          - redis
     - name: Create /mnt/sec Directory
       become: yes
       become_user: root
