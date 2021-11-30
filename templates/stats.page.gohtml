@@ -1,0 +1,24 @@
+{{ template "base" .}}
+
+{{ define "content"}}
+    <table class="table">
+        <thead>
+            <tr>
+                <th>Year/Month</th>
+                <th>Day</th>
+                <th>Download OK</th>
+                <th>Download Failed</th>
+            </tr>
+        </thead>
+        <tbody>
+            {{ range .Stats }}
+                <tr>
+                    <td>{{ .YearMonth }}</td>
+                    <td>{{ .Day }}</td>
+                    <td>{{ .DownloadOK }}</td>
+                    <td>{{ .DownloadFailed }}</td>
+                </tr>
+            {{ end }}
+        </tbody>
+    </table>
+{{ end }}

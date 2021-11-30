@@ -6,6 +6,7 @@ import (
 	"io"
 	"io/fs"
 	"io/ioutil"
+	"net/http"
 	"net/http/httputil"
 	"net/url"
 	"os"
@@ -16,6 +17,7 @@ import (
 
 	log "github.com/sirupsen/logrus"
 
+	"github.com/equres/sec/pkg/cache"
 	"github.com/equres/sec/pkg/config"
 	"github.com/equres/sec/pkg/secreq"
 	"github.com/jmoiron/sqlx"
@@ -139,7 +141,9 @@ func (d Downloader) FileConsistent(db *sqlx.DB, file fs.FileInfo, fullurl string
 	return true, nil
 }
 
-func (d Downloader) DownloadFile(db *sqlx.DB, fullurl string) error {
+func (d Downloader) DownloadFile(db *sqlx.DB, fullurl string, date string) error {
+	pool := cache.CreateRedisPool()
+
 	retryLimit, err := strconv.Atoi(d.Config.Main.RetryLimit)
 	if err != nil {
 		return err
@@ -177,6 +181,18 @@ func (d Downloader) DownloadFile(db *sqlx.DB, fullurl string) error {
 	responseBody, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
 		return err
+	}
+
+	if resp.StatusCode == http.StatusOK {
+		err := cache.UpdateDownloadStat(pool, date, true)
+		if err != nil {
+			return err
+		}
+	} else {
+		err := cache.UpdateDownloadStat(pool, date, false)
+		if err != nil {
+			return err
+		}
 	}
 
 	log.Info("Status Code:", resp.StatusCode)

@@ -375,7 +375,7 @@ func (s *SEC) DownloadTickerFile(db *sqlx.DB, path string) error {
 		if s.Verbose {
 			log.Info("Downloading file...: ")
 		}
-		err = downloader.DownloadFile(db, fullURL)
+		err = downloader.DownloadFile(db, fullURL, "")
 		if err != nil {
 			return err
 		}
@@ -575,7 +575,7 @@ func (s *SEC) DownloadIndex(db *sqlx.DB) error {
 				log.Info("Downloading file...: ")
 			}
 
-			err = downloader.DownloadFile(db, fileURL)
+			err = downloader.DownloadFile(db, fileURL, "")
 			if err != nil {
 				return err
 			}
@@ -824,7 +824,7 @@ func (s *SEC) DownloadXbrlFileContent(db *sqlx.DB, files []XbrlFile, config conf
 		}
 
 		if !isFileCorrect {
-			err = downloader.DownloadFile(db, v.URL)
+			err = downloader.DownloadFile(db, v.URL, "")
 			if err != nil {
 				return err
 			}
@@ -1195,7 +1195,7 @@ func (s *SEC) DownloadZIPFiles(db *sqlx.DB, rssFile RSSFile, worklist []Worklist
 			}
 
 			if !isFileCorrect {
-				err = downloader.DownloadFile(db, v1.Enclosure.URL)
+				err = downloader.DownloadFile(db, v1.Enclosure.URL, v1.XbrlFiling.FilingDate)
 				if err != nil {
 					return err
 				}
@@ -1363,7 +1363,7 @@ func (s *SEC) DownloadFinancialStatementDataSets(db *sqlx.DB) error {
 			if s.Verbose {
 				log.Info("Downloading file...: ")
 			}
-			err = downloader.DownloadFile(db, fileURL)
+			err = downloader.DownloadFile(db, fileURL, "")
 			if err != nil {
 				return err
 			}

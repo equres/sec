@@ -12,6 +12,7 @@ import (
 
 	log "github.com/sirupsen/logrus"
 
+	"github.com/equres/sec/pkg/cache"
 	"github.com/equres/sec/pkg/sec"
 	"github.com/gorilla/mux"
 )
@@ -24,6 +25,7 @@ func (s Server) GenerateRouter() *mux.Router {
 	router.HandleFunc("/filings/{year}/{month}", s.HandlerDaysPage).Methods("GET")
 	router.HandleFunc("/filings/{year}/{month}/{day}", s.HandlerCompaniesPage).Methods("GET")
 	router.HandleFunc("/filings/{year}/{month}/{day}/{cik}", s.HandlerFilingsPage).Methods("GET")
+	router.HandleFunc("/stats", s.HandlerStatsPage).Methods("GET")
 	router.HandleFunc("/api/v1/uptime", s.HandlerUptime).Methods("GET")
 	router.PathPrefix("/").HandlerFunc(s.HandlerFiles)
 
@@ -205,6 +207,24 @@ func (s Server) HandlerFilingsPage(w http.ResponseWriter, r *http.Request) {
 	content["Filings"] = filings
 
 	err = s.RenderTemplate(w, "filings.page.gohtml", content)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+	}
+}
+
+func (s Server) HandlerStatsPage(w http.ResponseWriter, r *http.Request) {
+	pool := cache.CreateRedisPool()
+
+	stats, err := cache.GetAllStats(pool)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+
+	content := make(map[string]interface{})
+	content["Stats"] = stats
+
+	err = s.RenderTemplate(w, "stats.page.gohtml", content)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 	}
