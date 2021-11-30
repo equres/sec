@@ -4,6 +4,7 @@ package database
 
 import (
 	"embed"
+	"encoding/json"
 
 	log "github.com/sirupsen/logrus"
 
@@ -13,6 +14,24 @@ import (
 	"github.com/jmoiron/sqlx"
 	"github.com/johejo/golang-migrate-extra/source/iofs"
 )
+
+type IndexEvent struct {
+	Event  string `json:"event"`
+	File   string `json:"file"`
+	Status string `json:"status"`
+}
+
+type DownloadEvent struct {
+	Event  string `json:"event"`
+	File   string `json:"file"`
+	Status string `json:"status"`
+}
+
+type OtherEvent struct {
+	Event  string `json:"event"`
+	Job    string `json:"job"`
+	Status string `json:"status"`
+}
 
 func ConnectDB(config config.Config) (*sqlx.DB, error) {
 	// Connect to DB
@@ -90,5 +109,59 @@ func CheckMigration(config config.Config) error {
 		log.Info("looks like you're running sec for the first time. Please initialize the database with sec migrate up")
 		return err
 	}
+	return nil
+}
+
+func CreateIndexEvent(db *sqlx.DB, file string, status string) error {
+	event := IndexEvent{
+		Event:  "index",
+		File:   file,
+		Status: status,
+	}
+	eventJson, err := json.Marshal(event)
+	if err != nil {
+		return err
+	}
+	_, err = db.Exec(`INSERT INTO sec.events (ev) VALUES ($1)`, eventJson)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func CreateDownloadEvent(db *sqlx.DB, file string, status string) error {
+	event := DownloadEvent{
+		Event:  "download",
+		File:   file,
+		Status: status,
+	}
+	eventJson, err := json.Marshal(event)
+	if err != nil {
+		return err
+	}
+	_, err = db.Exec(`INSERT INTO sec.events (ev) VALUES ($1)`, eventJson)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func CreateOtherEvent(db *sqlx.DB, eventName string, job string, status string) error {
+	event := OtherEvent{
+		Event:  eventName,
+		Job:    job,
+		Status: status,
+	}
+	eventJson, err := json.Marshal(event)
+	if err != nil {
+		return err
+	}
+	_, err = db.Exec(`INSERT INTO sec.events (ev) VALUES ($1)`, eventJson)
+	if err != nil {
+		return err
+	}
+
 	return nil
 }

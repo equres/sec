@@ -17,6 +17,7 @@ import (
 	log "github.com/sirupsen/logrus"
 
 	"github.com/equres/sec/pkg/config"
+	"github.com/equres/sec/pkg/database"
 	"github.com/equres/sec/pkg/secreq"
 	"github.com/jmoiron/sqlx"
 )
@@ -162,6 +163,11 @@ func (d Downloader) DownloadFile(db *sqlx.DB, fullurl string) error {
 
 	resp, err := req.SendRequest(retryLimit, rateLimit, fullurl)
 	if err != nil {
+		eventErr := database.CreateDownloadEvent(db, cachePath, "failed")
+		if eventErr != nil {
+			return eventErr
+		}
+
 		return err
 	}
 
@@ -181,6 +187,10 @@ func (d Downloader) DownloadFile(db *sqlx.DB, fullurl string) error {
 
 	log.Info("Status Code:", resp.StatusCode)
 	if IsErrorPage(string(responseBody)) {
+		eventErr := database.CreateDownloadEvent(db, cachePath, "failed")
+		if eventErr != nil {
+			return eventErr
+		}
 		return fmt.Errorf("requested file but received an error instead")
 	}
 
@@ -192,6 +202,11 @@ func (d Downloader) DownloadFile(db *sqlx.DB, fullurl string) error {
 	err = SaveFile(cachePath, responseBody)
 	if err != nil {
 		return err
+	}
+
+	eventErr := database.CreateDownloadEvent(db, cachePath, "success")
+	if eventErr != nil {
+		return eventErr
 	}
 
 	if d.IsEtag {
