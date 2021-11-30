@@ -49,7 +49,11 @@ func UpdateDownloadStat(pool *redis.Pool, dateString string, isSuccesful bool) e
 	}
 
 	stats := SecStatDownload{}
-	redis.ScanStruct(redisStats, &stats)
+	err = redis.ScanStruct(redisStats, &stats)
+	if err != nil {
+		return err
+	}
+
 	stats.YearMonth = fmt.Sprintf("%v/%v", date.Year(), int(date.Month()))
 	stats.Day = date.Day()
 	if isSuccesful {
@@ -89,7 +93,10 @@ func GetAllStats(pool *redis.Pool) ([]SecStatDownload, error) {
 		}
 
 		val := SecStatDownload{}
-		redis.ScanStruct(redisStats, &val)
+		err = redis.ScanStruct(redisStats, &val)
+		if err != nil {
+			return nil, err
+		}
 
 		stats = append(stats, val)
 	}
