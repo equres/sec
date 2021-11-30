@@ -47,21 +47,6 @@
       ansible.builtin.apt_key:
         url: https://www.postgresql.org/media/keys/ACCC4CF8.asc
         state: present
-    - name: Update Caddy From Apt (1/2)
-      become: yes
-      become_user: root
-      become_method: sudo
-      ansible.builtin.apt_key:
-        url: "https://dl.cloudsmith.io/public/caddy/stable/gpg.key"
-        state: present
-    - name: Update Caddy From Apt (2/2)
-      become: yes
-      become_user: root
-      become_method: sudo
-      get_url:
-        url=https://dl.cloudsmith.io/public/caddy/stable/debian.deb.txt
-        dest=/etc/apt/sources.list.d/caddy-stable.list
-        mode=0600
     - name: Install Necessities
       become: yes
       become_user: root
@@ -90,11 +75,12 @@
           - debian-keyring 
           - debian-archive-keyring 
           - apt-transport-https
-          - caddy
           - monit
           - syslog-ng
           - lftp
           - redis
+          - nginx
+          - certbot
     - name: Create /mnt/sec Directory
       become: yes
       become_user: root
@@ -155,11 +141,11 @@
         - { src: 'pg_ident.conf' }
         - { src: 'postgresql.conf' }
         - { src: 'start.conf' }
-    - name: Copy Caddy Config File
+    - name: Copy Nginx Config File
       become: yes
       become_user: root
       become_method: sudo
-      copy: src=./etc/caddy/Caddyfile dest=/etc/caddy
+      copy: src=./etc/nginx/nginx.conf dest=/etc/nginx/
     - name: Copy Backup Files
       become: yes
       become_user: root
@@ -170,12 +156,12 @@
         - { src: 'backup_restore.sh' }
         - { src: 'backup_verify.sh' }
         - { src: '.creds' }
-    - name: Reload Caddy Service
+    - name: Reload Nginx Service
       become: yes
       become_user: root
       become_method: sudo
       ansible.builtin.service:
-        name: caddy
+        name: nginx
         state: reloaded
     - name: Copy Monit Config File
       become: yes
