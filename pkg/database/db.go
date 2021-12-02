@@ -165,3 +165,26 @@ func CreateOtherEvent(db *sqlx.DB, eventName string, job string, status string) 
 
 	return nil
 }
+
+func SkipFile(db *sqlx.DB, fullurl string) error {
+	_, err := db.Exec(`INSERT INTO sec.skipped_files (url) VALUES ($1)`, fullurl)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func IsSkippedFile(db *sqlx.DB, fullurl string) (bool, error) {
+	var skippedFiles []string
+	err := db.Select(&skippedFiles, "SELECT url FROM sec.skipped_files WHERE url = $1", fullurl)
+	if err != nil {
+		return true, err
+	}
+
+	if len(skippedFiles) > 0 {
+		return true, err
+	}
+
+	return false, nil
+}

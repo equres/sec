@@ -23,6 +23,7 @@ func (sr *SECReq) SendRequest(retryLimit int, rateLimit time.Duration, fullurl s
 	var resp *http.Response
 	var etag string
 	var contentLength string
+	var notFoundErrorCount int
 
 	currentRetryLimit := retryLimit
 	waitIfFail := 2
@@ -50,6 +51,13 @@ func (sr *SECReq) SendRequest(retryLimit int, rateLimit time.Duration, fullurl s
 
 		resp, err = client.Do(req)
 		if err != nil {
+			if resp.StatusCode == http.StatusNotFound {
+				if notFoundErrorCount == 5 {
+					return nil, fmt.Errorf("404")
+				}
+
+				notFoundErrorCount++
+			}
 			time.Sleep(time.Duration(waitIfFail) * time.Second)
 			waitIfFail *= 2
 			continue
