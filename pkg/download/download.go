@@ -2,6 +2,7 @@ package download
 
 import (
 	"bytes"
+	"errors"
 	"fmt"
 	"io"
 	"io/fs"
@@ -141,6 +142,16 @@ func (d Downloader) FileConsistent(db *sqlx.DB, file fs.FileInfo, fullurl string
 }
 
 func (d Downloader) DownloadFile(db *sqlx.DB, fullurl string) error {
+	isSkippedFile, err := database.IsSkippedFile(db, fullurl)
+	if err != nil {
+		return err
+	}
+
+	if isSkippedFile {
+		log.Info("Skipped downloading the file: ", fullurl)
+		return nil
+	}
+
 	retryLimit, err := strconv.Atoi(d.Config.Main.RetryLimit)
 	if err != nil {
 		return err
@@ -168,7 +179,14 @@ func (d Downloader) DownloadFile(db *sqlx.DB, fullurl string) error {
 			return eventErr
 		}
 
-		return err
+		if !errors.Is(err, fmt.Errorf("404")) {
+			return err
+		}
+
+		err = database.SkipFile(db, fullurl)
+		if err != nil {
+			return err
+		}
 	}
 
 	if d.Debug {
