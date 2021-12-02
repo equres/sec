@@ -179,11 +179,11 @@ func (d Downloader) DownloadFile(db *sqlx.DB, fullurl string) error {
 			return eventErr
 		}
 
-		if !errors.Is(err, fmt.Errorf("404")) {
+		if err.Error() == errors.New("404").Error() {
 			return err
 		}
 
-		err = database.SkipFile(db, fullurl)
+		err = database.SkipFileInsert(db, fullurl)
 		if err != nil {
 			return err
 		}
