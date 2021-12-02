@@ -166,7 +166,7 @@ func CreateOtherEvent(db *sqlx.DB, eventName string, job string, status string) 
 	return nil
 }
 
-func SkipFile(db *sqlx.DB, fullurl string) error {
+func SkipFileInsert(db *sqlx.DB, fullurl string) error {
 	_, err := db.Exec(`INSERT INTO sec.skipped_files (url) VALUES ($1)`, fullurl)
 	if err != nil {
 		return err
