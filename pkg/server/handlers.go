@@ -12,7 +12,6 @@ import (
 
 	log "github.com/sirupsen/logrus"
 
-	"github.com/equres/sec/pkg/cache"
 	"github.com/equres/sec/pkg/sec"
 	"github.com/gorilla/mux"
 )
@@ -213,16 +212,19 @@ func (s Server) HandlerFilingsPage(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s Server) HandlerStatsPage(w http.ResponseWriter, r *http.Request) {
-	pool := cache.CreateRedisPool()
-
-	stats, err := cache.GetAllStats(pool)
+	failedCount, err := sec.GetFailedDownloadEventCount(s.DB)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
-		return
+	}
+
+	successCount, err := sec.GetSuccessfulDownloadEventCount(s.DB)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
 	}
 
 	content := make(map[string]interface{})
-	content["Stats"] = stats
+	content["FailedDownloadsCount"] = failedCount
+	content["SuccessfulDownloadsCount"] = successCount
 
 	err = s.RenderTemplate(w, "stats.page.gohtml", content)
 	if err != nil {

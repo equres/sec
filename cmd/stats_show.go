@@ -4,7 +4,7 @@ package cmd
 import (
 	log "github.com/sirupsen/logrus"
 
-	"github.com/equres/sec/pkg/cache"
+	"github.com/equres/sec/pkg/sec"
 	"github.com/spf13/cobra"
 )
 
@@ -14,17 +14,17 @@ var statsShowCmd = &cobra.Command{
 	Short: "Show the download stats",
 	Long:  `Show the download stats`,
 	RunE: func(cmd *cobra.Command, args []string) error {
-		pool := cache.CreateRedisPool()
-
-		stats, err := cache.GetAllStats(pool)
+		failedCount, err := sec.GetFailedDownloadEventCount(DB)
+		if err != nil {
+			return err
+		}
+		successCount, err := sec.GetSuccessfulDownloadEventCount(DB)
 		if err != nil {
 			return err
 		}
 
-		log.Info("Year/Month - Day - DownloadOK - DownloadFailed")
-		for _, stat := range stats {
-			log.Info(stat.YearMonth, " - ", stat.Day, " - ", stat.DownloadOK, " - ", stat.DownloadFailed)
-		}
+		log.Info("Total DownloadOK - Total DownloadFailed")
+		log.Info(successCount, " - ", failedCount)
 		return nil
 	},
 }
