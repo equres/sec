@@ -52,7 +52,7 @@ func (sr *SECReq) SendRequest(retryLimit int, rateLimit time.Duration, fullurl s
 		req.Header.Set("User-Agent", sr.UserAgent)
 
 		resp, err = client.Do(req)
-		if resp.StatusCode == http.StatusNotFound {
+		if resp != nil && resp.StatusCode == http.StatusNotFound {
 			if notFoundErrorCount == NotFoundErrorCountLimit {
 				log.Info("Could not find the file: ", fullurl)
 				return nil, fmt.Errorf("404")
