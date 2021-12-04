@@ -24,6 +24,7 @@ type IndexEvent struct {
 type DownloadEvent struct {
 	Event  string `json:"event"`
 	File   string `json:"file"`
+	URL    string `json:"url"`
 	Status string `json:"status"`
 }
 
@@ -130,10 +131,11 @@ func CreateIndexEvent(db *sqlx.DB, file string, status string) error {
 	return nil
 }
 
-func CreateDownloadEvent(db *sqlx.DB, file string, status string) error {
+func CreateDownloadEvent(db *sqlx.DB, file string, url string, status string) error {
 	event := DownloadEvent{
 		Event:  "download",
 		File:   file,
+		URL:    url,
 		Status: status,
 	}
 	eventJson, err := json.Marshal(event)
@@ -164,4 +166,27 @@ func CreateOtherEvent(db *sqlx.DB, eventName string, job string, status string) 
 	}
 
 	return nil
+}
+
+func SkipFileInsert(db *sqlx.DB, fullurl string) error {
+	_, err := db.Exec(`INSERT INTO sec.skipped_files (url) VALUES ($1)`, fullurl)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func IsSkippedFile(db *sqlx.DB, fullurl string) (bool, error) {
+	var skippedFiles []string
+	err := db.Select(&skippedFiles, "SELECT url FROM sec.skipped_files WHERE url = $1", fullurl)
+	if err != nil {
+		return true, err
+	}
+
+	if len(skippedFiles) > 0 {
+		return true, err
+	}
+
+	return false, nil
 }
