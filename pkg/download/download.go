@@ -152,6 +152,8 @@ func (d Downloader) DownloadFile(db *sqlx.DB, fullurl string) error {
 		return nil
 	}
 
+	log.Info("Downloading the file: ", fullurl)
+
 	retryLimit, err := strconv.Atoi(d.Config.Main.RetryLimit)
 	if err != nil {
 		return err
@@ -174,7 +176,7 @@ func (d Downloader) DownloadFile(db *sqlx.DB, fullurl string) error {
 
 	resp, err := req.SendRequest(retryLimit, rateLimit, fullurl)
 	if err != nil {
-		eventErr := database.CreateDownloadEvent(db, cachePath, "failed")
+		eventErr := database.CreateDownloadEvent(db, cachePath, fullurl, "failed")
 		if eventErr != nil {
 			return eventErr
 		}
@@ -205,7 +207,7 @@ func (d Downloader) DownloadFile(db *sqlx.DB, fullurl string) error {
 
 	log.Info("Status Code:", resp.StatusCode)
 	if IsErrorPage(string(responseBody)) {
-		eventErr := database.CreateDownloadEvent(db, cachePath, "failed")
+		eventErr := database.CreateDownloadEvent(db, cachePath, fullurl, "failed")
 		if eventErr != nil {
 			return eventErr
 		}
@@ -222,7 +224,7 @@ func (d Downloader) DownloadFile(db *sqlx.DB, fullurl string) error {
 		return err
 	}
 
-	eventErr := database.CreateDownloadEvent(db, cachePath, "success")
+	eventErr := database.CreateDownloadEvent(db, cachePath, fullurl, "success")
 	if eventErr != nil {
 		return eventErr
 	}
