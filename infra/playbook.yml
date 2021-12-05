@@ -94,6 +94,7 @@
           - monit
           - syslog-ng
           - lftp
+          - redis
     - name: Create /mnt/sec Directory
       become: yes
       become_user: root
@@ -168,6 +169,7 @@
         - { src: 'backup_store.sh' }
         - { src: 'backup_restore.sh' }
         - { src: 'backup_verify.sh' }
+        - { src: 'backup_do.sh' }
         - { src: '.creds' }
     - name: Reload Caddy Service
       become: yes
@@ -301,4 +303,4 @@
         name: "Backup ZIP & XML"
         minute: "0"
         hour: "3"
-        job: "/root/sec_backup.sh | logger"
+        job: "/root/backup_do.sh | logger"

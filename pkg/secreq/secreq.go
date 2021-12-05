@@ -19,10 +19,13 @@ type SECReq struct {
 	Config          config.Config
 }
 
+const NotFoundErrorCountLimit = 5
+
 func (sr *SECReq) SendRequest(retryLimit int, rateLimit time.Duration, fullurl string) (*http.Response, error) {
 	var resp *http.Response
 	var etag string
 	var contentLength string
+	var notFoundErrorCount int
 
 	currentRetryLimit := retryLimit
 	waitIfFail := 2
@@ -49,6 +52,14 @@ func (sr *SECReq) SendRequest(retryLimit int, rateLimit time.Duration, fullurl s
 		req.Header.Set("User-Agent", sr.UserAgent)
 
 		resp, err = client.Do(req)
+		if resp != nil && resp.StatusCode == http.StatusNotFound {
+			if notFoundErrorCount == NotFoundErrorCountLimit {
+				log.Info("Could not find the file: ", fullurl)
+				return nil, fmt.Errorf("404")
+			}
+
+			notFoundErrorCount++
+		}
 		if err != nil {
 			time.Sleep(time.Duration(waitIfFail) * time.Second)
 			waitIfFail *= 2

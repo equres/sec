@@ -2,6 +2,7 @@ package download
 
 import (
 	"bytes"
+	"errors"
 	"fmt"
 	"io"
 	"io/fs"
@@ -17,6 +18,7 @@ import (
 	log "github.com/sirupsen/logrus"
 
 	"github.com/equres/sec/pkg/config"
+	"github.com/equres/sec/pkg/database"
 	"github.com/equres/sec/pkg/secreq"
 	"github.com/jmoiron/sqlx"
 )
@@ -140,6 +142,18 @@ func (d Downloader) FileConsistent(db *sqlx.DB, file fs.FileInfo, fullurl string
 }
 
 func (d Downloader) DownloadFile(db *sqlx.DB, fullurl string, date string) error {
+	isSkippedFile, err := database.IsSkippedFile(db, fullurl)
+	if err != nil {
+		return err
+	}
+
+	if isSkippedFile {
+		log.Info("Skipped downloading the file: ", fullurl)
+		return nil
+	}
+
+	log.Info("Downloading the file: ", fullurl)
+
 	retryLimit, err := strconv.Atoi(d.Config.Main.RetryLimit)
 	if err != nil {
 		return err
@@ -162,7 +176,19 @@ func (d Downloader) DownloadFile(db *sqlx.DB, fullurl string, date string) error
 
 	resp, err := req.SendRequest(retryLimit, rateLimit, fullurl)
 	if err != nil {
-		return err
+		eventErr := database.CreateDownloadEvent(db, cachePath, fullurl, "failed")
+		if eventErr != nil {
+			return eventErr
+		}
+
+		if err.Error() == errors.New("404").Error() {
+			return err
+		}
+
+		err = database.SkipFileInsert(db, fullurl)
+		if err != nil {
+			return err
+		}
 	}
 
 	if d.Debug {
@@ -181,6 +207,10 @@ func (d Downloader) DownloadFile(db *sqlx.DB, fullurl string, date string) error
 
 	log.Info("Status Code:", resp.StatusCode)
 	if IsErrorPage(string(responseBody)) {
+		eventErr := database.CreateDownloadEvent(db, cachePath, fullurl, "failed")
+		if eventErr != nil {
+			return eventErr
+		}
 		return fmt.Errorf("requested file but received an error instead")
 	}
 
@@ -192,6 +222,11 @@ func (d Downloader) DownloadFile(db *sqlx.DB, fullurl string, date string) error
 	err = SaveFile(cachePath, responseBody)
 	if err != nil {
 		return err
+	}
+
+	eventErr := database.CreateDownloadEvent(db, cachePath, fullurl, "success")
+	if eventErr != nil {
+		return eventErr
 	}
 
 	if d.IsEtag {

@@ -4,6 +4,7 @@ package database
 
 import (
 	"embed"
+	"encoding/json"
 
 	log "github.com/sirupsen/logrus"
 
@@ -13,6 +14,25 @@ import (
 	"github.com/jmoiron/sqlx"
 	"github.com/johejo/golang-migrate-extra/source/iofs"
 )
+
+type IndexEvent struct {
+	Event  string `json:"event"`
+	File   string `json:"file"`
+	Status string `json:"status"`
+}
+
+type DownloadEvent struct {
+	Event  string `json:"event"`
+	File   string `json:"file"`
+	URL    string `json:"url"`
+	Status string `json:"status"`
+}
+
+type OtherEvent struct {
+	Event  string `json:"event"`
+	Job    string `json:"job"`
+	Status string `json:"status"`
+}
 
 func ConnectDB(config config.Config) (*sqlx.DB, error) {
 	// Connect to DB
@@ -91,4 +111,82 @@ func CheckMigration(config config.Config) error {
 		return err
 	}
 	return nil
+}
+
+func CreateIndexEvent(db *sqlx.DB, file string, status string) error {
+	event := IndexEvent{
+		Event:  "index",
+		File:   file,
+		Status: status,
+	}
+	eventJson, err := json.Marshal(event)
+	if err != nil {
+		return err
+	}
+	_, err = db.Exec(`INSERT INTO sec.events (ev) VALUES ($1)`, eventJson)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func CreateDownloadEvent(db *sqlx.DB, file string, url string, status string) error {
+	event := DownloadEvent{
+		Event:  "download",
+		File:   file,
+		URL:    url,
+		Status: status,
+	}
+	eventJson, err := json.Marshal(event)
+	if err != nil {
+		return err
+	}
+	_, err = db.Exec(`INSERT INTO sec.events (ev) VALUES ($1)`, eventJson)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func CreateOtherEvent(db *sqlx.DB, eventName string, job string, status string) error {
+	event := OtherEvent{
+		Event:  eventName,
+		Job:    job,
+		Status: status,
+	}
+	eventJson, err := json.Marshal(event)
+	if err != nil {
+		return err
+	}
+	_, err = db.Exec(`INSERT INTO sec.events (ev) VALUES ($1)`, eventJson)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func SkipFileInsert(db *sqlx.DB, fullurl string) error {
+	_, err := db.Exec(`INSERT INTO sec.skipped_files (url) VALUES ($1)`, fullurl)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func IsSkippedFile(db *sqlx.DB, fullurl string) (bool, error) {
+	var skippedFiles []string
+	err := db.Select(&skippedFiles, "SELECT url FROM sec.skipped_files WHERE url = $1", fullurl)
+	if err != nil {
+		return true, err
+	}
+
+	if len(skippedFiles) > 0 {
+		return true, err
+	}
+
+	return false, nil
 }
