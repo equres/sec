@@ -91,6 +91,16 @@
         owner: sec
         group: sec
         mode: '0755'
+    - name: Create /.config/sec Directory
+      become: yes
+      become_user: root
+      become_method: sudo
+      file:
+        path: /home/sec/.config/sec
+        state: directory
+        owner: sec
+        group: sec
+        mode: '0755'
     - name: Create /mnt/sec/db Directory
       become: yes
       become_user: root
@@ -141,11 +151,24 @@
         - { src: 'pg_ident.conf' }
         - { src: 'postgresql.conf' }
         - { src: 'start.conf' }
-    - name: Copy Nginx Config File
+    - name: Copy Nginx Main File
       become: yes
       become_user: root
       become_method: sudo
       copy: src=./etc/nginx/nginx.conf dest=/etc/nginx/
+    - name: Copy Nginx Config File
+      become: yes
+      become_user: root
+      become_method: sudo
+      copy: src=./etc/nginx/sites-available/equres.conf dest=/etc/nginx/sites-available/
+    - name: Create Symbolic link For Nginx Config
+      become: yes
+      become_user: root
+      become_method: sudo
+      file:
+        src: /etc/nginx/sites-available/equres.conf
+        dest: /etc/nginx/sites-enabled/equres.conf
+        state: link
     - name: Copy Backup Files
       become: yes
       become_user: root
@@ -163,7 +186,7 @@
       become_method: sudo
       ansible.builtin.service:
         name: nginx
-        state: reloaded
+        state: restarted
     - name: Copy Monit Config File
       become: yes
       become_user: root
