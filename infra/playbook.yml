@@ -81,6 +81,7 @@
           - redis
           - nginx
           - certbot
+          - python3-certbot-nginx
     - name: Create /mnt/sec Directory
       become: yes
       become_user: root
@@ -160,14 +161,14 @@
       become: yes
       become_user: root
       become_method: sudo
-      copy: src=./etc/nginx/sites-available/equres.conf dest=/etc/nginx/sites-available/
+      copy: src=./etc/nginx/sites-available/equres.com.conf dest=/etc/nginx/sites-available/
     - name: Create Symbolic link For Nginx Config
       become: yes
       become_user: root
       become_method: sudo
       file:
-        src: /etc/nginx/sites-available/equres.conf
-        dest: /etc/nginx/sites-enabled/equres.conf
+        src: /etc/nginx/sites-available/equres.com.conf
+        dest: /etc/nginx/sites-enabled/equres.com.conf
         state: link
     - name: Copy Backup Files
       become: yes
@@ -180,6 +181,11 @@
         - { src: 'backup_verify.sh' }
         - { src: 'backup_do.sh' }
         - { src: '.creds' }
+    - name: Generate SSL Certificate
+      become: yes
+      become_user: root
+      become_method: sudo
+      shell: certbot --nginx -d equres.com -d www.equres.com
     - name: Reload Nginx Service
       become: yes
       become_user: root
@@ -304,6 +310,15 @@
         dest: /home/sec/.ssh/authorized_keys
         owner: sec
         mode: '0644'
+    - name: Get Updated SSL Certificate Cron Job
+      become: yes
+      become_user: root
+      become_method: sudo
+      ansible.builtin.cron:
+        name: "Update SSL Certificate"
+        minute: "0"
+        hour: "12"
+        job: "/usr/bin/certbot renew --quiet | logger"
     - name: Run Backup Script Everyday at 3 AM
       become: yes
       become_user: root
