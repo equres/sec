@@ -1,0 +1,18 @@
+{{ template "base" .}}
+
+{{ define "content"}}
+    <table class="table">
+        <thead>
+            <tr>
+                <th>Total Download OK</th>
+                <th>Total Download Failed</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr>
+                <td>{{ .SuccessfulDownloadsCount }}</td>
+                <td>{{ .FailedDownloadsCount }}</td>
+            </tr>
+        </tbody>
+    </table>
+{{ end }}
