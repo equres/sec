@@ -141,7 +141,7 @@ func (d Downloader) FileConsistent(db *sqlx.DB, file fs.FileInfo, fullurl string
 	return true, nil
 }
 
-func (d Downloader) DownloadFile(db *sqlx.DB, fullurl string, date string) error {
+func (d Downloader) DownloadFile(db *sqlx.DB, fullurl string) error {
 	isSkippedFile, err := database.IsSkippedFile(db, fullurl)
 	if err != nil {
 		return err
