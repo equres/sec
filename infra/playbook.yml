@@ -92,6 +92,14 @@
         owner: sec
         group: sec
         mode: '0755'
+    - name: Create /var/www/equres Directory
+      become: yes
+      become_user: root
+      become_method: sudo
+      file:
+        path: /var/www/equres
+        state: directory
+        mode: '0755'
     - name: Create /.config/sec Directory
       become: yes
       become_user: root
@@ -162,6 +170,11 @@
       become_user: root
       become_method: sudo
       copy: src=./etc/nginx/sites-available/equres.com.conf dest=/etc/nginx/sites-available/
+    - name: Copy Nginx SSL Config File
+      become: yes
+      become_user: root
+      become_method: sudo
+      copy: src=./etc/nginx/sites-available/ssl_config.conf dest=/etc/nginx/sites-available/
     - name: Create Symbolic link For Nginx Config
       become: yes
       become_user: root
@@ -181,11 +194,6 @@
         - { src: 'backup_verify.sh' }
         - { src: 'backup_do.sh' }
         - { src: '.creds' }
-    - name: Generate SSL Certificate
-      become: yes
-      become_user: root
-      become_method: sudo
-      shell: certbot --nginx -d equres.com -d www.equres.com
     - name: Reload Nginx Service
       become: yes
       become_user: root
@@ -193,6 +201,11 @@
       ansible.builtin.service:
         name: nginx
         state: restarted
+    - name: Generate SSL Certificate
+      become: yes
+      become_user: root
+      become_method: sudo
+      shell: certbot certonly --nginx -d equres.com -d www.equres.com -m hazem.xbox@gmail.com -n
     - name: Copy Monit Config File
       become: yes
       become_user: root
