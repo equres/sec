@@ -174,13 +174,13 @@
       ansible.builtin.service:
         name: nginx
         state: stopped
-      when: not certs_dir.stats.exists
+      when: not certs_dir.stat.exists
     - name: Generate SSL Certificate
       become: yes
       become_user: root
       become_method: sudo
       shell: certbot certonly --standalone -d equres.com -d www.equres.com -m wojciech@koszek.com -n
-      when: not certs_dir.stats.exists
+      when: not certs_dir.stat.exists
     - name: Copy Nginx Main File
       become: yes
       become_user: root
