@@ -160,6 +160,27 @@
         - { src: 'pg_ident.conf' }
         - { src: 'postgresql.conf' }
         - { src: 'start.conf' }
+    - name: Get SSL Certificates Dir
+      become: yes
+      become_user: root
+      become_method: sudo
+      stat:
+        path: /etc/letsencrypt/live
+      register: certs_dir
+    - name: Stop Nginx Service
+      become: yes
+      become_user: root
+      become_method: sudo
+      ansible.builtin.service:
+        name: nginx
+        state: stopped
+      when: not certs_dir.stats.exists
+    - name: Generate SSL Certificate
+      become: yes
+      become_user: root
+      become_method: sudo
+      shell: certbot certonly --standalone -d equres.com -d www.equres.com -m wojciech@koszek.com -n
+      when: not certs_dir.stats.exists
     - name: Copy Nginx Main File
       become: yes
       become_user: root
@@ -201,11 +222,6 @@
       ansible.builtin.service:
         name: nginx
         state: restarted
-    - name: Generate SSL Certificate
-      become: yes
-      become_user: root
-      become_method: sudo
-      shell: certbot certonly --nginx -d equres.com -d www.equres.com -m hazem.xbox@gmail.com -n
     - name: Copy Monit Config File
       become: yes
       become_user: root
@@ -331,7 +347,7 @@
         name: "Update SSL Certificate"
         minute: "0"
         hour: "12"
-        job: "/usr/bin/certbot renew --quiet | logger"
+        job: "/usr/bin/certbot renew --webroot | logger"
     - name: Run Backup Script Everyday at 3 AM
       become: yes
       become_user: root
