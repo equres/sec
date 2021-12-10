@@ -204,6 +204,13 @@
         src: /etc/nginx/sites-available/equres.com.conf
         dest: /etc/nginx/sites-enabled/equres.com.conf
         state: link
+    - name: Reload Nginx Service
+      become: yes
+      become_user: root
+      become_method: sudo
+      ansible.builtin.service:
+        name: nginx
+        state: restarted
     - name: Copy Backup Files
       become: yes
       become_user: root
@@ -215,13 +222,6 @@
         - { src: 'backup_verify.sh' }
         - { src: 'backup_do.sh' }
         - { src: '.creds' }
-    - name: Reload Nginx Service
-      become: yes
-      become_user: root
-      become_method: sudo
-      ansible.builtin.service:
-        name: nginx
-        state: restarted
     - name: Copy Monit Config File
       become: yes
       become_user: root
@@ -347,7 +347,7 @@
         name: "Update SSL Certificate"
         minute: "0"
         hour: "12"
-        job: "/usr/bin/certbot renew --webroot | logger"
+        job: "/usr/bin/certbot renew --pre-hook "service nginx stop" --post-hook "service nginx start" | logger"
     - name: Run Backup Script Everyday at 3 AM
       become: yes
       become_user: root
