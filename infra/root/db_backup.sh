@@ -1,0 +1,1 @@
+pg_basebackup -D /home/sec/db_backup && tar -zcf db_backup.tar.gz /home/sec/db_backup
