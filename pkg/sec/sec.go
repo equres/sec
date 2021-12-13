@@ -1703,3 +1703,31 @@ func (s *SEC) PreDataUpsert(db *sqlx.DB, reader io.ReadCloser) (err error) {
 	}
 	return nil
 }
+
+func GetFailedDownloadEventCount(db *sqlx.DB) (int, error) {
+	var count []int
+	err := db.Select(&count, "SELECT COUNT(*) FROM sec.events WHERE ev ->> 'event' = 'download' AND ev ->> 'status' = 'failed'")
+	if err != nil {
+		return 0, err
+	}
+
+	if len(count) > 0 {
+		return count[0], nil
+	}
+
+	return 0, nil
+}
+
+func GetSuccessfulDownloadEventCount(db *sqlx.DB) (int, error) {
+	var count []int
+	err := db.Select(&count, "SELECT COUNT(*) FROM sec.events WHERE ev ->> 'event' = 'download' AND ev ->> 'status' = 'success'")
+	if err != nil {
+		return 0, err
+	}
+
+	if len(count) > 0 {
+		return count[0], nil
+	}
+
+	return 0, nil
+}

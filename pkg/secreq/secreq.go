@@ -60,7 +60,7 @@ func (sr *SECReq) SendRequest(retryLimit int, rateLimit time.Duration, fullurl s
 
 			notFoundErrorCount++
 		}
-		if err != nil {
+		if err != nil || resp.StatusCode == http.StatusServiceUnavailable {
 			time.Sleep(time.Duration(waitIfFail) * time.Second)
 			waitIfFail *= 2
 			continue

@@ -24,6 +24,7 @@ func (s Server) GenerateRouter() *mux.Router {
 	router.HandleFunc("/filings/{year}/{month}", s.HandlerDaysPage).Methods("GET")
 	router.HandleFunc("/filings/{year}/{month}/{day}", s.HandlerCompaniesPage).Methods("GET")
 	router.HandleFunc("/filings/{year}/{month}/{day}/{cik}", s.HandlerFilingsPage).Methods("GET")
+	router.HandleFunc("/stats", s.HandlerStatsPage).Methods("GET")
 	router.HandleFunc("/api/v1/uptime", s.HandlerUptime).Methods("GET")
 	router.PathPrefix("/").HandlerFunc(s.HandlerFiles)
 
@@ -205,6 +206,27 @@ func (s Server) HandlerFilingsPage(w http.ResponseWriter, r *http.Request) {
 	content["Filings"] = filings
 
 	err = s.RenderTemplate(w, "filings.page.gohtml", content)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+	}
+}
+
+func (s Server) HandlerStatsPage(w http.ResponseWriter, r *http.Request) {
+	failedCount, err := sec.GetFailedDownloadEventCount(s.DB)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+	}
+
+	successCount, err := sec.GetSuccessfulDownloadEventCount(s.DB)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+	}
+
+	content := make(map[string]interface{})
+	content["FailedDownloadsCount"] = failedCount
+	content["SuccessfulDownloadsCount"] = successCount
+
+	err = s.RenderTemplate(w, "stats.page.gohtml", content)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 	}
