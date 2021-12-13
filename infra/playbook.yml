@@ -347,7 +347,7 @@
         name: "Update SSL Certificate"
         minute: "0"
         hour: "12"
-        job: "/usr/bin/certbot renew --pre-hook "service nginx stop" --post-hook "service nginx start" | logger"
+        job: '/usr/bin/certbot renew --pre-hook "service nginx stop" --post-hook "service nginx start"'
     - name: Run Backup Script Everyday at 3 AM
       become: yes
       become_user: root
