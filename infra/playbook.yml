@@ -191,11 +191,6 @@
       become_user: root
       become_method: sudo
       copy: src=./etc/nginx/sites-available/equres.com.conf dest=/etc/nginx/sites-available/
-    - name: Copy Nginx SSL Config File
-      become: yes
-      become_user: root
-      become_method: sudo
-      copy: src=./etc/nginx/sites-available/ssl_config.conf dest=/etc/nginx/sites-available/
     - name: Create Symbolic link For Nginx Config
       become: yes
       become_user: root
