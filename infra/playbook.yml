@@ -47,21 +47,6 @@
       ansible.builtin.apt_key:
         url: https://www.postgresql.org/media/keys/ACCC4CF8.asc
         state: present
-    - name: Update Caddy From Apt (1/2)
-      become: yes
-      become_user: root
-      become_method: sudo
-      ansible.builtin.apt_key:
-        url: "https://dl.cloudsmith.io/public/caddy/stable/gpg.key"
-        state: present
-    - name: Update Caddy From Apt (2/2)
-      become: yes
-      become_user: root
-      become_method: sudo
-      get_url:
-        url=https://dl.cloudsmith.io/public/caddy/stable/debian.deb.txt
-        dest=/etc/apt/sources.list.d/caddy-stable.list
-        mode=0600
     - name: Install Necessities
       become: yes
       become_user: root
@@ -90,17 +75,37 @@
           - debian-keyring 
           - debian-archive-keyring 
           - apt-transport-https
-          - caddy
           - monit
           - syslog-ng
           - lftp
           - redis
+          - nginx
+          - certbot
+          - python3-certbot-nginx
     - name: Create /mnt/sec Directory
       become: yes
       become_user: root
       become_method: sudo
       file:
         path: /mnt/sec
+        state: directory
+        owner: sec
+        group: sec
+        mode: '0755'
+    - name: Create /var/www/equres Directory
+      become: yes
+      become_user: root
+      become_method: sudo
+      file:
+        path: /var/www/equres
+        state: directory
+        mode: '0755'
+    - name: Create /.config/sec Directory
+      become: yes
+      become_user: root
+      become_method: sudo
+      file:
+        path: /home/sec/.config/sec
         state: directory
         owner: sec
         group: sec
@@ -155,11 +160,52 @@
         - { src: 'pg_ident.conf' }
         - { src: 'postgresql.conf' }
         - { src: 'start.conf' }
-    - name: Copy Caddy Config File
+    - name: Get SSL Certificates Dir
       become: yes
       become_user: root
       become_method: sudo
-      copy: src=./etc/caddy/Caddyfile dest=/etc/caddy
+      stat:
+        path: /etc/letsencrypt/live
+      register: certs_dir
+    - name: Stop Nginx Service
+      become: yes
+      become_user: root
+      become_method: sudo
+      ansible.builtin.service:
+        name: nginx
+        state: stopped
+      when: not certs_dir.stat.exists
+    - name: Generate SSL Certificate
+      become: yes
+      become_user: root
+      become_method: sudo
+      shell: certbot certonly --standalone -d equres.com -d www.equres.com -m wojciech@koszek.com -n
+      when: not certs_dir.stat.exists
+    - name: Copy Nginx Main File
+      become: yes
+      become_user: root
+      become_method: sudo
+      copy: src=./etc/nginx/nginx.conf dest=/etc/nginx/
+    - name: Copy Nginx Config File
+      become: yes
+      become_user: root
+      become_method: sudo
+      copy: src=./etc/nginx/sites-available/equres.com.conf dest=/etc/nginx/sites-available/
+    - name: Create Symbolic link For Nginx Config
+      become: yes
+      become_user: root
+      become_method: sudo
+      file:
+        src: /etc/nginx/sites-available/equres.com.conf
+        dest: /etc/nginx/sites-enabled/equres.com.conf
+        state: link
+    - name: Reload Nginx Service
+      become: yes
+      become_user: root
+      become_method: sudo
+      ansible.builtin.service:
+        name: nginx
+        state: restarted
     - name: Copy Backup Files
       become: yes
       become_user: root
@@ -171,13 +217,6 @@
         - { src: 'backup_verify.sh' }
         - { src: 'backup_do.sh' }
         - { src: '.creds' }
-    - name: Reload Caddy Service
-      become: yes
-      become_user: root
-      become_method: sudo
-      ansible.builtin.service:
-        name: caddy
-        state: reloaded
     - name: Copy Monit Config File
       become: yes
       become_user: root
@@ -295,6 +334,15 @@
         dest: /home/sec/.ssh/authorized_keys
         owner: sec
         mode: '0644'
+    - name: Get Updated SSL Certificate Cron Job
+      become: yes
+      become_user: root
+      become_method: sudo
+      ansible.builtin.cron:
+        name: "Update SSL Certificate"
+        minute: "0"
+        hour: "12"
+        job: '/usr/bin/certbot renew --pre-hook "service nginx stop" --post-hook "service nginx start"'
     - name: Run Backup Script Everyday at 3 AM
       become: yes
       become_user: root
