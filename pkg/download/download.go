@@ -58,6 +58,13 @@ func (d Downloader) FileCorrect(db *sqlx.DB, fullurl string, size int, etag stri
 		return false, nil
 	}
 
+	if isFileInCache == nil {
+		if d.Verbose {
+			log.Info("File is not in cache: ")
+		}
+		return false, nil
+	}
+
 	isConsistent, err := d.FileConsistent(db, isFileInCache, fullurl, size, etag)
 	if err != nil {
 		return false, err
@@ -67,7 +74,7 @@ func (d Downloader) FileCorrect(db *sqlx.DB, fullurl string, size int, etag stri
 		if d.Verbose {
 			log.Info("File in cache not consistent: ")
 		}
-		return false, err
+		return false, nil
 	}
 
 	return true, nil
@@ -124,17 +131,20 @@ func (d Downloader) FileConsistent(db *sqlx.DB, file fs.FileInfo, fullurl string
 	}
 
 	if len(downloads) == 0 {
+		if d.Verbose {
+			log.Info("There is no download in the database")
+		}
 		return false, nil
 	}
 
 	download := downloads[0]
 
-	if etag != "" && download.Etag == etag {
+	if d.IsEtag && (etag != "" && download.Etag == etag) {
 		return true, nil
 	}
 
 	if download.Size != size {
-		fmt.Println(download.Size, "vs", size)
+		log.Info("Expected Size:", size, "vs Actual File Size:", download.Size)
 		return false, nil
 	}
 
@@ -234,9 +244,7 @@ func (d Downloader) DownloadFile(db *sqlx.DB, fullurl string) error {
 		if err != nil {
 			return err
 		}
-	}
-
-	if d.IsContentLength {
+	} else {
 		err = IndexContentLength(*db, fullurl, size)
 		if err != nil {
 			return err
