@@ -160,16 +160,25 @@
       become_user: root
       become_method: sudo
       copy: src=./etc/caddy/Caddyfile dest=/etc/caddy
+    - name: Create /root Directory
+      become: yes
+      become_user: root
+      become_method: sudo
+      file:
+        path: /root
+        state: directory
+        mode: '0755'
     - name: Copy Backup Files
       become: yes
       become_user: root
       become_method: sudo
-      copy: src=./root/{{ item.src }} dest=/root/
+      copy: src=./root/{{ item.src }} dest=/root/ mode=0755
       with_items:
         - { src: 'backup_store.sh' }
         - { src: 'backup_restore.sh' }
         - { src: 'backup_verify.sh' }
         - { src: 'backup_do.sh' }
+        - { src: 'db_backup.sh' }
         - { src: '.creds' }
     - name: Reload Caddy Service
       become: yes
