@@ -11,4 +11,6 @@ lftp -c "set ftp:list-options -a;
 set ssl:check-hostname no;
 open ftp://$login:$password@$FTP_server; 
 lcd /home/sec/db_backup;
-mirror --reverse --delete --use-cache --verbose --allow-chown  --allow-suid --no-umask --parallel=2;" | logger
+mkdir db_backup
+cd db_backup/;
+mirror --reverse --delete --use-cache --verbose --allow-chown  --allow-suid --no-umask --parallel=2;"
