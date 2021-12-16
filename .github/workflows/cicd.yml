@@ -57,7 +57,7 @@ jobs:
         run: ls -la
         
       - name: Build App
-        run: make build
+        run: make
 
       - name: Generate MD5 Checksum
         run: openssl md5 sec
@@ -72,11 +72,6 @@ jobs:
 
       - name: Run Migration
         run: make migrateup
-
-      - name: Install PostgreSQL
-        run: |
-          sudo apt-get update
-          sudo apt-get install --yes postgresql-client
 
       - name: Testing Database
         run: | 
