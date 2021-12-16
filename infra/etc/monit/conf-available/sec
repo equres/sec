@@ -20,5 +20,4 @@ CHECK DIRECTORY sec_dir WITH PATH /home/sec
 	if changed timestamp then exec "/bin/echo meh"
 
 CHECK FILE sec_bin_new WITH PATH /home/sec/sec.new
-	if changed timestamp then exec
-		/bin/mv /home/sec/sec /home/sec/sec.old && /bin/cp /home/sec/sec.new /home/sec/sec
+	if changed timestamp then exec "/bin/cp -fp /home/sec/sec.new /home/sec/sec"
