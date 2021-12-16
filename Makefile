@@ -42,7 +42,7 @@ deploy:
 	ssh sec@equres.com 'openssl md5 sec'
 
 	echo "Moving current sec to sec.old"
- 	ssh sec@equres.com mv sec sec.old
+	ssh sec@equres.com mv sec sec.old
 
 	echo "Uploading the new binary file in progress"
 	xz - < ./sec.linux | pv | ssh sec@equres.com 'unxz - > /home/sec/sec.new--inprogress'
