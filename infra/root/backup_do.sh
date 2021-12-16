@@ -1,1 +1,1 @@
-./backup_store.sh && ./backup_restore.sh && ./backup_verify.sh
+./backup_store.sh && ./backup_restore.sh && ./backup_verify.sh && ./db_backup.sh
