@@ -1213,9 +1213,9 @@ func (s *SEC) ForEachWorklist(db *sqlx.DB, implementFunc func(*sqlx.DB, RSSFile,
 	return nil
 }
 
-func (s *SEC) DownloadZIPFiles(db *sqlx.DB, rssFile RSSFile, worklist []Worklist) error {
+func (s *SEC) DownloadZIPFiles(db *sqlx.DB) error {
 	downloader := download.NewDownloader(s.Config)
-	downloader.IsEtag = true
+	downloader.IsContentLength = true
 	downloader.Verbose = s.Verbose
 	downloader.Debug = s.Debug
 
@@ -1224,37 +1224,63 @@ func (s *SEC) DownloadZIPFiles(db *sqlx.DB, rssFile RSSFile, worklist []Worklist
 		return err
 	}
 
-	totalCount := len(rssFile.Channel.Item)
+	worklist, err := WorklistWillDownloadGet(db)
+	if err != nil {
+		return err
+	}
+
+	totalCount, err := s.GetTotalZIPFilesToBeDownloaded(db, worklist)
+	if err != nil {
+		return err
+	}
 	currentCount := 0
-	for _, v1 := range rssFile.Channel.Item {
-		if v1.Enclosure.URL != "" {
-			size, err := strconv.Atoi(v1.Enclosure.Length)
-			if err != nil {
-				return err
-			}
+	for _, v := range worklist {
+		fileURL, err := s.FormatFilePathDate(s.Config.Main.CacheDir, v.Year, v.Month)
+		if err != nil {
+			return err
+		}
 
-			isFileCorrect, err := downloader.FileCorrect(db, v1.Enclosure.URL, size, "")
-			if err != nil {
-				return err
-			}
+		_, err = os.Stat(fileURL)
+		if err != nil {
+			return fmt.Errorf("please run sec dow index to download all index files first")
+		}
 
-			if !isFileCorrect {
-				err = downloader.DownloadFile(db, v1.Enclosure.URL)
+		rssFile, err := s.ParseRSSGoXML(fileURL)
+		if err != nil {
+			return err
+		}
+
+		for _, v1 := range rssFile.Channel.Item {
+			if v1.Enclosure.URL != "" {
+				size, err := strconv.Atoi(v1.Enclosure.Length)
 				if err != nil {
 					return err
 				}
-				time.Sleep(rateLimit)
-			}
 
-			currentCount++
-			if !s.Verbose {
-				log.Info(fmt.Sprintf("\r[%d/%d files already downloaded]. Will download %d remaining files. Pass --verbose to see progress report", currentCount, totalCount, (totalCount - currentCount)))
-			}
+				isFileCorrect, err := downloader.FileCorrect(db, v1.Enclosure.URL, size, "")
+				if err != nil {
+					return err
+				}
 
-			if s.Verbose {
-				log.Info(fmt.Sprintf("[%d/%d] %s downloaded...\n", currentCount, totalCount, time.Now().Format("2006-01-02 03:04:05")))
+				if !isFileCorrect {
+					err = downloader.DownloadFile(db, v1.Enclosure.URL)
+					if err != nil {
+						return err
+					}
+					time.Sleep(rateLimit)
+				}
+
+				currentCount++
+				if !s.Verbose {
+					log.Info(fmt.Sprintf("\r[%d/%d files already downloaded]. Will download %d remaining files. Pass --verbose to see progress report", currentCount, totalCount, (totalCount - currentCount)))
+				}
+
+				if s.Verbose {
+					log.Info(fmt.Sprintf("[%d/%d] %s downloaded...\n", currentCount, totalCount, time.Now().Format("2006-01-02 03:04:05")))
+				}
 			}
 		}
+
 	}
 	return nil
 }
@@ -1730,4 +1756,34 @@ func GetSuccessfulDownloadEventCount(db *sqlx.DB) (int, error) {
 	}
 
 	return 0, nil
+}
+
+func (s SEC) GetTotalZIPFilesToBeDownloaded(db *sqlx.DB, worklist []Worklist) (int, error) {
+	if s.Verbose {
+		log.Info("Getting Number of ZIP Files To Be Downloaded...")
+	}
+
+	var totalZIPFilesToBeDownloaded int
+	for _, v := range worklist {
+		fileURL, err := s.FormatFilePathDate(s.Config.Main.CacheDir, v.Year, v.Month)
+		if err != nil {
+			return 0, err
+		}
+
+		_, err = os.Stat(fileURL)
+		if err != nil {
+			return 0, fmt.Errorf("please run sec dow index to download all index files first")
+		}
+
+		rssFile, err := s.ParseRSSGoXML(fileURL)
+		if err != nil {
+			return 0, err
+		}
+
+		totalZIPFilesToBeDownloaded += len(rssFile.Channel.Item)
+	}
+	if s.Verbose {
+		log.Info("There is a total of ", totalZIPFilesToBeDownloaded, " ZIP files to be downloaded.")
+	}
+	return totalZIPFilesToBeDownloaded, nil
 }

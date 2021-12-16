@@ -26,6 +26,7 @@ type DownloadEvent struct {
 	File   string `json:"file"`
 	URL    string `json:"url"`
 	Status string `json:"status"`
+	Reason string `json:"reason"`
 }
 
 type OtherEvent struct {
@@ -131,12 +132,13 @@ func CreateIndexEvent(db *sqlx.DB, file string, status string) error {
 	return nil
 }
 
-func CreateDownloadEvent(db *sqlx.DB, file string, url string, status string) error {
+func CreateDownloadEvent(db *sqlx.DB, file string, url string, status string, reason string) error {
 	event := DownloadEvent{
 		Event:  "download",
 		File:   file,
 		URL:    url,
 		Status: status,
+		Reason: reason,
 	}
 	eventJson, err := json.Marshal(event)
 	if err != nil {
