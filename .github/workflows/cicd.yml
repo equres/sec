@@ -57,7 +57,7 @@ jobs:
         run: ls -la
         
       - name: Build App
-        run: make build
+        run: make
 
       - name: Generate MD5 Checksum
         run: openssl md5 sec
