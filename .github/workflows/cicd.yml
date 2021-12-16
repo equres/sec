@@ -73,11 +73,6 @@ jobs:
       - name: Run Migration
         run: make migrateup
 
-      - name: Install PostgreSQL
-        run: |
-          sudo apt-get update
-          sudo apt-get install --yes postgresql-client
-
       - name: Testing Database
         run: | 
           ./sec de 2021/06
