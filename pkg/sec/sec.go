@@ -359,7 +359,7 @@ func (s *SEC) DownloadTickerFile(db *sqlx.DB, path string) error {
 		return err
 	}
 
-	isFileCorrect, err := downloader.FileCorrect(db, fullURL, 0, etag)
+	isFileCorrect, err := downloader.FileCorrect(db, fullURL, 0, etag, 0, 0)
 	if err != nil {
 		return err
 	}
@@ -376,7 +376,7 @@ func (s *SEC) DownloadTickerFile(db *sqlx.DB, path string) error {
 		if s.Verbose {
 			log.Info("Downloading file...: ")
 		}
-		err = downloader.DownloadFile(db, fullURL)
+		err = downloader.DownloadFile(db, fullURL, 0, 0)
 		if err != nil {
 			return err
 		}
@@ -588,7 +588,7 @@ func (s *SEC) DownloadIndex(db *sqlx.DB) error {
 			return err
 		}
 
-		isFileCorrect, err := downloader.FileCorrect(db, fileURL, 0, etag)
+		isFileCorrect, err := downloader.FileCorrect(db, fileURL, 0, etag, 0, 0)
 		if err != nil {
 			return err
 		}
@@ -601,7 +601,7 @@ func (s *SEC) DownloadIndex(db *sqlx.DB) error {
 				log.Info("Downloading file...: ")
 			}
 
-			err = downloader.DownloadFile(db, fileURL)
+			err = downloader.DownloadFile(db, fileURL, 0, 0)
 			if err != nil {
 				return err
 			}
@@ -853,13 +853,13 @@ func (s *SEC) DownloadXbrlFileContent(db *sqlx.DB, files []XbrlFile, config conf
 		if err != nil {
 			return err
 		}
-		isFileCorrect, err := downloader.FileCorrect(db, v.URL, size, "")
+		isFileCorrect, err := downloader.FileCorrect(db, v.URL, size, "", 0, 0)
 		if err != nil {
 			return err
 		}
 
 		if !isFileCorrect {
-			err = downloader.DownloadFile(db, v.URL)
+			err = downloader.DownloadFile(db, v.URL, 0, 0)
 			if err != nil {
 				return err
 			}
@@ -1257,13 +1257,13 @@ func (s *SEC) DownloadZIPFiles(db *sqlx.DB) error {
 					return err
 				}
 
-				isFileCorrect, err := downloader.FileCorrect(db, v1.Enclosure.URL, size, "")
+				isFileCorrect, err := downloader.FileCorrect(db, v1.Enclosure.URL, size, "", currentCount, totalCount)
 				if err != nil {
 					return err
 				}
 
 				if !isFileCorrect {
-					err = downloader.DownloadFile(db, v1.Enclosure.URL)
+					err = downloader.DownloadFile(db, v1.Enclosure.URL, currentCount, totalCount)
 					if err != nil {
 						return err
 					}
@@ -1430,7 +1430,7 @@ func (s *SEC) DownloadFinancialStatementDataSets(db *sqlx.DB) error {
 		if s.Verbose {
 			log.Info(fmt.Sprintf("Checking file '%v' in disk: ", filepath.Base(fileURL)))
 		}
-		isFileCorrect, err := downloader.FileCorrect(db, fileURL, 0, "")
+		isFileCorrect, err := downloader.FileCorrect(db, fileURL, 0, "", 0, 0)
 		if err != nil {
 			return err
 		}
@@ -1442,7 +1442,7 @@ func (s *SEC) DownloadFinancialStatementDataSets(db *sqlx.DB) error {
 			if s.Verbose {
 				log.Info("Downloading file...: ")
 			}
-			err = downloader.DownloadFile(db, fileURL)
+			err = downloader.DownloadFile(db, fileURL, 0, 0)
 			if err != nil {
 				return err
 			}
