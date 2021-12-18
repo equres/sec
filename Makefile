@@ -37,7 +37,7 @@ deploy:
 	whoami
 
 	echo "New program MD5"
-	openssl md5 sec
+	openssl md5 sec.linux
 	echo "Old program MD5"
 	ssh sec@equres.com 'if [ -e sec ]; then openssl md5 sec; fi'
 

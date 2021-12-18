@@ -82,14 +82,14 @@ jobs:
         run: ls -la
 
       - name: Compress the binary
-        run: xz sec
+        run: xz sec.linux
 
       - name: Upload Artifact
         uses: actions/upload-artifact@v2
         with:
           name: prog_artifacts
           path: |
-            sec.xz
+            sec.linux.xz
             Makefile
             .host.conf
           retention-days: 1
@@ -111,7 +111,7 @@ jobs:
           name: prog_artifacts
 
       - name: Uncompress stuff
-        run: unxz sec.xz
+        run: unxz sec.linux.xz
 
       - name: Setup SSH
         run: |
