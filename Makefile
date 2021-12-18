@@ -47,5 +47,5 @@ deploy:
 	date
 
 	echo "Rotating binaries (sec -> sec.old, sec.new--inprogress -> sec.new)"
-	ssh sec@equres.com 'mv sec sec.old; mv sec.new--inprogress sec.new'
+	ssh sec@equres.com 'mv sec sec.old; mv sec.new--inprogress sec.new; chmod 755 sec.new sec.old'
 
