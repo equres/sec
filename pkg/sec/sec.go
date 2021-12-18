@@ -337,6 +337,8 @@ func (s *SEC) DownloadTickerFile(db *sqlx.DB, path string) error {
 	downloader.IsEtag = true
 	downloader.Verbose = s.Verbose
 	downloader.Debug = s.Debug
+	downloader.CurrentDownloadCount = 0
+	downloader.TotalDownloadsCount = 1
 
 	baseURL, err := url.Parse(s.BaseURL)
 	if err != nil {
@@ -567,6 +569,8 @@ func (s *SEC) DownloadIndex(db *sqlx.DB) error {
 	downloader.IsEtag = true
 	downloader.Verbose = s.Verbose
 	downloader.Debug = s.Debug
+	downloader.CurrentDownloadCount = 0
+	downloader.TotalDownloadsCount = len(worklist)
 
 	rateLimit, err := time.ParseDuration(fmt.Sprintf("%vms", s.Config.Main.RateLimitMs))
 	if err != nil {
@@ -610,6 +614,8 @@ func (s *SEC) DownloadIndex(db *sqlx.DB) error {
 			}
 			time.Sleep(rateLimit)
 		}
+
+		downloader.CurrentDownloadCount += 1
 	}
 	return nil
 }
@@ -842,6 +848,8 @@ func (s *SEC) DownloadXbrlFileContent(db *sqlx.DB, files []XbrlFile, config conf
 	downloader.IsEtag = true
 	downloader.Verbose = s.Verbose
 	downloader.Debug = s.Debug
+	downloader.CurrentDownloadCount = *currentCount
+	downloader.TotalDownloadsCount = totalCount
 
 	rateLimit, err := time.ParseDuration(fmt.Sprintf("%vms", s.Config.Main.RateLimitMs))
 	if err != nil {
@@ -867,6 +875,7 @@ func (s *SEC) DownloadXbrlFileContent(db *sqlx.DB, files []XbrlFile, config conf
 		}
 
 		*currentCount++
+		downloader.CurrentDownloadCount = *currentCount
 		if !s.Verbose {
 			log.Info(fmt.Sprintf("\r[%d/%d files already downloaded]. Will download %d remaining files. Pass --verbose to see progress report", *currentCount, totalCount, (totalCount - *currentCount)))
 		}
@@ -1234,6 +1243,9 @@ func (s *SEC) DownloadZIPFiles(db *sqlx.DB) error {
 		return err
 	}
 	currentCount := 0
+
+	downloader.CurrentDownloadCount = 0
+	downloader.TotalDownloadsCount = totalCount
 	for _, v := range worklist {
 		fileURL, err := s.FormatFilePathDate(s.Config.Main.CacheDir, v.Year, v.Month)
 		if err != nil {
@@ -1271,6 +1283,7 @@ func (s *SEC) DownloadZIPFiles(db *sqlx.DB) error {
 				}
 
 				currentCount++
+				downloader.CurrentDownloadCount = currentCount
 				if !s.Verbose {
 					log.Info(fmt.Sprintf("\r[%d/%d files already downloaded]. Will download %d remaining files. Pass --verbose to see progress report", currentCount, totalCount, (totalCount - currentCount)))
 				}
@@ -1404,6 +1417,8 @@ func (s *SEC) DownloadFinancialStatementDataSets(db *sqlx.DB) error {
 	downloader.IsContentLength = true
 	downloader.Verbose = s.Verbose
 	downloader.Debug = s.Debug
+	downloader.CurrentDownloadCount = 0
+	downloader.TotalDownloadsCount = len(worklist)
 
 	rateLimit, err := time.ParseDuration(fmt.Sprintf("%vms", s.Config.Main.RateLimitMs))
 	if err != nil {
@@ -1451,6 +1466,8 @@ func (s *SEC) DownloadFinancialStatementDataSets(db *sqlx.DB) error {
 			}
 			time.Sleep(rateLimit)
 		}
+
+		downloader.CurrentDownloadCount += 1
 	}
 	return nil
 }

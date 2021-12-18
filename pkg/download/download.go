@@ -24,12 +24,14 @@ import (
 )
 
 type Downloader struct {
-	RateLimitDuration time.Duration
-	Config            config.Config
-	Verbose           bool
-	Debug             bool
-	IsEtag            bool
-	IsContentLength   bool
+	RateLimitDuration    time.Duration
+	Config               config.Config
+	Verbose              bool
+	Debug                bool
+	IsEtag               bool
+	IsContentLength      bool
+	CurrentDownloadCount int
+	TotalDownloadsCount  int
 }
 
 type Download struct {
@@ -53,14 +55,14 @@ func (d Downloader) FileCorrect(db *sqlx.DB, fullurl string, size int, etag stri
 	isFileInCache, err := d.FileInCache(filepath.Join(d.Config.Main.CacheDir, parsedURL.Path))
 	if err != nil {
 		if d.Verbose {
-			log.Info("File is not in cache: ")
+			log.Info(fmt.Sprintf("File %v progress [%d/%d] not_in_cache", parsedURL, d.CurrentDownloadCount, d.TotalDownloadsCount))
 		}
 		return false, nil
 	}
 
 	if isFileInCache == nil {
 		if d.Verbose {
-			log.Info("File is not in cache: ")
+			log.Info(fmt.Sprintf("File %v progress [%d/%d] not_in_cache", parsedURL, d.CurrentDownloadCount, d.TotalDownloadsCount))
 		}
 		return false, nil
 	}
@@ -72,7 +74,7 @@ func (d Downloader) FileCorrect(db *sqlx.DB, fullurl string, size int, etag stri
 
 	if isFileInCache != nil && !isConsistent {
 		if d.Verbose {
-			log.Info("File in cache not consistent: ")
+			log.Info(fmt.Sprintf("File %v progress [%d/%d] in_cache_not_consistent", parsedURL, d.CurrentDownloadCount, d.TotalDownloadsCount))
 		}
 		return false, nil
 	}
@@ -132,7 +134,7 @@ func (d Downloader) FileConsistent(db *sqlx.DB, file fs.FileInfo, fullurl string
 
 	if len(downloads) == 0 {
 		if d.Verbose {
-			log.Info("There is no download in the database")
+			log.Info(fmt.Sprintf("File %v progress [%d/%d] no_download_in_the_database", fullurl, d.CurrentDownloadCount, d.TotalDownloadsCount))
 		}
 		return false, nil
 	}
@@ -158,11 +160,11 @@ func (d Downloader) DownloadFile(db *sqlx.DB, fullurl string) error {
 	}
 
 	if isSkippedFile {
-		log.Info("Skipped downloading the file: ", fullurl)
+		log.Info(fmt.Sprintf("File %v progress [%d/%d] skipped_downloading", fullurl, d.CurrentDownloadCount, d.TotalDownloadsCount))
 		return nil
 	}
 
-	log.Info("Downloading the file: ", fullurl)
+	log.Info(fmt.Sprintf("File %v progress [%d/%d] currently_downloading", fullurl, d.CurrentDownloadCount, d.TotalDownloadsCount))
 
 	retryLimit, err := strconv.Atoi(d.Config.Main.RetryLimit)
 	if err != nil {
@@ -214,7 +216,7 @@ func (d Downloader) DownloadFile(db *sqlx.DB, fullurl string) error {
 		return err
 	}
 
-	log.Info("Status Code:", resp.StatusCode)
+	log.Info(fmt.Sprintf("File %v progress [%d/%d] status_code_%d", fullurl, d.CurrentDownloadCount, d.TotalDownloadsCount, resp.StatusCode))
 	if IsErrorPage(string(responseBody)) {
 		eventErr := database.CreateDownloadEvent(db, cachePath, fullurl, "failed", fmt.Sprintf("returned error page - Status Code: %v", resp.StatusCode))
 		if eventErr != nil {
