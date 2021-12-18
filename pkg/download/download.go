@@ -24,12 +24,14 @@ import (
 )
 
 type Downloader struct {
-	RateLimitDuration time.Duration
-	Config            config.Config
-	Verbose           bool
-	Debug             bool
-	IsEtag            bool
-	IsContentLength   bool
+	RateLimitDuration    time.Duration
+	Config               config.Config
+	Verbose              bool
+	Debug                bool
+	IsEtag               bool
+	IsContentLength      bool
+	CurrentDownloadCount int
+	TotalDownloadsCount  int
 }
 
 type Download struct {
@@ -44,7 +46,7 @@ func NewDownloader(cfg config.Config) *Downloader {
 	}
 }
 
-func (d Downloader) FileCorrect(db *sqlx.DB, fullurl string, size int, etag string, currentDownloadCount int, totalDownloadsCount int) (bool, error) {
+func (d Downloader) FileCorrect(db *sqlx.DB, fullurl string, size int, etag string) (bool, error) {
 	parsedURL, err := url.Parse(fullurl)
 	if err != nil {
 		return false, err
@@ -53,26 +55,26 @@ func (d Downloader) FileCorrect(db *sqlx.DB, fullurl string, size int, etag stri
 	isFileInCache, err := d.FileInCache(filepath.Join(d.Config.Main.CacheDir, parsedURL.Path))
 	if err != nil {
 		if d.Verbose {
-			log.Info(fmt.Sprintf("File %v progress [%d/%d] not_in_cache", parsedURL, currentDownloadCount, totalDownloadsCount))
+			log.Info(fmt.Sprintf("File %v progress [%d/%d] not_in_cache", parsedURL, d.CurrentDownloadCount, d.TotalDownloadsCount))
 		}
 		return false, nil
 	}
 
 	if isFileInCache == nil {
 		if d.Verbose {
-			log.Info(fmt.Sprintf("File %v progress [%d/%d] not_in_cache", parsedURL, currentDownloadCount, totalDownloadsCount))
+			log.Info(fmt.Sprintf("File %v progress [%d/%d] not_in_cache", parsedURL, d.CurrentDownloadCount, d.TotalDownloadsCount))
 		}
 		return false, nil
 	}
 
-	isConsistent, err := d.FileConsistent(db, isFileInCache, fullurl, size, etag, currentDownloadCount, totalDownloadsCount)
+	isConsistent, err := d.FileConsistent(db, isFileInCache, fullurl, size, etag)
 	if err != nil {
 		return false, err
 	}
 
 	if isFileInCache != nil && !isConsistent {
 		if d.Verbose {
-			log.Info(fmt.Sprintf("File %v progress [%d/%d] in_cache_not_consistent", parsedURL, currentDownloadCount, totalDownloadsCount))
+			log.Info(fmt.Sprintf("File %v progress [%d/%d] in_cache_not_consistent", parsedURL, d.CurrentDownloadCount, d.TotalDownloadsCount))
 		}
 		return false, nil
 	}
@@ -113,7 +115,7 @@ func (d Downloader) GetFileETag(fullURL string) (string, error) {
 	return etag, nil
 }
 
-func (d Downloader) FileConsistent(db *sqlx.DB, file fs.FileInfo, fullurl string, size int, etag string, currentDownloadCount int, totalDownloadsCount int) (bool, error) {
+func (d Downloader) FileConsistent(db *sqlx.DB, file fs.FileInfo, fullurl string, size int, etag string) (bool, error) {
 	var downloads []Download
 	var err error
 
@@ -132,7 +134,7 @@ func (d Downloader) FileConsistent(db *sqlx.DB, file fs.FileInfo, fullurl string
 
 	if len(downloads) == 0 {
 		if d.Verbose {
-			log.Info(fmt.Sprintf("File %v progress [%d/%d] no_download_in_the_database", fullurl, currentDownloadCount, totalDownloadsCount))
+			log.Info(fmt.Sprintf("File %v progress [%d/%d] no_download_in_the_database", fullurl, d.CurrentDownloadCount, d.TotalDownloadsCount))
 		}
 		return false, nil
 	}
@@ -151,18 +153,18 @@ func (d Downloader) FileConsistent(db *sqlx.DB, file fs.FileInfo, fullurl string
 	return true, nil
 }
 
-func (d Downloader) DownloadFile(db *sqlx.DB, fullurl string, currentDownloadCount int, totalDownloadsCount int) error {
+func (d Downloader) DownloadFile(db *sqlx.DB, fullurl string) error {
 	isSkippedFile, err := database.IsSkippedFile(db, fullurl)
 	if err != nil {
 		return err
 	}
 
 	if isSkippedFile {
-		log.Info(fmt.Sprintf("File %v progress [%d/%d] skipped_downloading", fullurl, currentDownloadCount, totalDownloadsCount))
+		log.Info(fmt.Sprintf("File %v progress [%d/%d] skipped_downloading", fullurl, d.CurrentDownloadCount, d.TotalDownloadsCount))
 		return nil
 	}
 
-	log.Info(fmt.Sprintf("File %v progress [%d/%d] currently_downloading", fullurl, currentDownloadCount, totalDownloadsCount))
+	log.Info(fmt.Sprintf("File %v progress [%d/%d] currently_downloading", fullurl, d.CurrentDownloadCount, d.TotalDownloadsCount))
 
 	retryLimit, err := strconv.Atoi(d.Config.Main.RetryLimit)
 	if err != nil {
@@ -214,7 +216,7 @@ func (d Downloader) DownloadFile(db *sqlx.DB, fullurl string, currentDownloadCou
 		return err
 	}
 
-	log.Info(fmt.Sprintf("File %v progress [%d/%d] status_code_%d", fullurl, currentDownloadCount, totalDownloadsCount, resp.StatusCode))
+	log.Info(fmt.Sprintf("File %v progress [%d/%d] status_code_%d", fullurl, d.CurrentDownloadCount, d.TotalDownloadsCount, resp.StatusCode))
 	if IsErrorPage(string(responseBody)) {
 		eventErr := database.CreateDownloadEvent(db, cachePath, fullurl, "failed", fmt.Sprintf("returned error page - Status Code: %v", resp.StatusCode))
 		if eventErr != nil {
