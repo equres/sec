@@ -39,7 +39,7 @@ deploy:
 	echo "New program MD5"
 	openssl md5 sec
 	echo "Old program MD5"
-	ssh sec@equres.com 'openssl md5 sec'
+	ssh sec@equres.com '[ -e sec ] && openssl md5 sec'
 
 	echo "Uploading the new binary file in progress"
 	xz - < ./sec.linux | pv | ssh sec@equres.com 'unxz - > /home/sec/sec.new--inprogress'
