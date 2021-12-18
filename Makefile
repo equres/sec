@@ -41,11 +41,9 @@ deploy:
 	echo "Old program MD5"
 	ssh sec@equres.com 'openssl md5 sec'
 
-	echo "Moving current sec to sec.old"
-	ssh sec@equres.com mv sec sec.old
-
 	echo "Uploading the new binary file in progress"
 	xz - < ./sec.linux | pv | ssh sec@equres.com 'unxz - > /home/sec/sec.new--inprogress'
 
-	echo "Moving freshly uploaded file to sec.new"
-	ssh sec@equres.com mv sec.new--inprogress sec.new
+	echo "Rotating binaries (sec -> sec.old, sec.new--inprogress -> sec.new)"
+	ssh sec@equres.com 'mv sec sec.old; mv sec.new--inprogress sec.new'
+
