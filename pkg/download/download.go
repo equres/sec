@@ -53,14 +53,14 @@ func (d Downloader) FileCorrect(db *sqlx.DB, fullurl string, size int, etag stri
 	isFileInCache, err := d.FileInCache(filepath.Join(d.Config.Main.CacheDir, parsedURL.Path))
 	if err != nil {
 		if d.Verbose {
-			log.Info("File is not in cache: ")
+			log.Info(fmt.Sprintf("File %v not in cache", parsedURL))
 		}
 		return false, nil
 	}
 
 	if isFileInCache == nil {
 		if d.Verbose {
-			log.Info("File is not in cache: ")
+			log.Info(fmt.Sprintf("File %v not in cache", parsedURL))
 		}
 		return false, nil
 	}
@@ -72,7 +72,7 @@ func (d Downloader) FileCorrect(db *sqlx.DB, fullurl string, size int, etag stri
 
 	if isFileInCache != nil && !isConsistent {
 		if d.Verbose {
-			log.Info("File in cache not consistent: ")
+			log.Info(fmt.Sprintf("File %v in cache not consistent", parsedURL))
 		}
 		return false, nil
 	}
@@ -132,7 +132,7 @@ func (d Downloader) FileConsistent(db *sqlx.DB, file fs.FileInfo, fullurl string
 
 	if len(downloads) == 0 {
 		if d.Verbose {
-			log.Info("There is no download in the database")
+			log.Info(fmt.Sprintf("There is no download for %v in the database", fullurl))
 		}
 		return false, nil
 	}
@@ -214,7 +214,7 @@ func (d Downloader) DownloadFile(db *sqlx.DB, fullurl string) error {
 		return err
 	}
 
-	log.Info("Status Code:", resp.StatusCode)
+	log.Info(fmt.Sprintf("File %v Status Code: %v", fullurl, resp.StatusCode))
 	if IsErrorPage(string(responseBody)) {
 		eventErr := database.CreateDownloadEvent(db, cachePath, fullurl, "failed", fmt.Sprintf("returned error page - Status Code: %v", resp.StatusCode))
 		if eventErr != nil {
