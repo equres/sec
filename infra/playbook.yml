@@ -85,7 +85,6 @@
           - awstats
           - libgeoip-dev
           - build-essential
-          - php-fpm
     - name: Create /mnt/sec Directory
       become: yes
       become_user: root
@@ -237,18 +236,18 @@
         path: /var/lib/awstats
         state: directory
         mode: '0755'
-    - name: Create /home/sec/_static Directory
+    - name: Create /home/sec/_stats Directory
       become: yes
       become_user: root
       become_method: sudo
       file:
         owner: sec
-        path: /home/sec/_static
+        path: /home/sec/_stats
         state: directory
         mode: '0755'
     - name: Update AWStats Configs
       become_user: sec
-      shell: perl /usr/lib/cgi-bin/awstats.pl -config=equres.com -output > /home/sec/_static/$(date +%F)-stats.html
+      shell: perl /usr/lib/cgi-bin/awstats.pl -config=equres.com -output > /home/sec/_stats/$(date +%F)-stats.html
     - name: Create /root Directory
       become: yes
       become_user: root
@@ -409,4 +408,4 @@
         name: "Backup ZIP & XML"
         minute: "0"
         hour: "1"
-        job: "perl /usr/lib/cgi-bin/awstats.pl -config=equres.com -output > /home/sec/_static/$(date +%F)-stats.html | logger"
+        job: "perl /usr/lib/cgi-bin/awstats.pl -config=equres.com -output > /home/sec/_stats/$(date +%F)-stats.html | logger"
