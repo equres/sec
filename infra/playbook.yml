@@ -220,11 +220,35 @@
       become_user: root
       become_method: sudo
       copy: src=./etc/awstats/.htpasswd dest=/etc/awstats/
-    - name: Update AWStats Configs
+    - name: Update /usr/lib/cgi-bin Directory Permissions
       become: yes
       become_user: root
       become_method: sudo
-      shell: sudo /usr/lib/cgi-bin/awstats.pl -config=equres.com -update
+      file:
+        owner: sec
+        path: /usr/lib/cgi-bin
+        state: directory
+        mode: '0755'
+    - name: Update /var/lib/awstats Directory Permissions
+      become: yes
+      become_user: root
+      become_method: sudo
+      file:
+        path: /var/lib/awstats
+        state: directory
+        mode: '0755'
+    - name: Create /home/sec/_static Directory
+      become: yes
+      become_user: root
+      become_method: sudo
+      file:
+        owner: sec
+        path: /home/sec/_static
+        state: directory
+        mode: '0755'
+    - name: Update AWStats Configs
+      become_user: sec
+      shell: perl /usr/lib/cgi-bin/awstats.pl -config=equres.com -output > /home/sec/_static/$(date +%F)-stats.html
     - name: Create /root Directory
       become: yes
       become_user: root
@@ -380,3 +404,9 @@
         minute: "0"
         hour: "3"
         job: "/root/backup_do.sh | logger"
+    - name: Generate AWStats HTML File Everyday at 1 AM
+      ansible.builtin.cron:
+        name: "Backup ZIP & XML"
+        minute: "0"
+        hour: "1"
+        job: "perl /usr/lib/cgi-bin/awstats.pl -config=equres.com -output > /home/sec/_static/$(date +%F)-stats.html | logger"
