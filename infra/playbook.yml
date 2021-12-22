@@ -231,9 +231,6 @@
         path: /home/sec/_stats
         state: directory
         mode: '0755'
-    - name: Update AWStats Configs
-      become_user: sec
-      shell: perl /usr/lib/cgi-bin/awstats.pl -config=equres.com -output > /home/sec/_stats/$(date +%F)-stats.html
     - name: Create /root Directory
       become: yes
       become_user: root
