@@ -214,20 +214,6 @@
       become_user: root
       become_method: sudo
       copy: src=./etc/awstats/awstats.equres.com.conf dest=/etc/awstats/
-    - name: Copy AWStats Details File
-      become: yes
-      become_user: root
-      become_method: sudo
-      copy: src=./etc/awstats/.htpasswd dest=/etc/awstats/
-    - name: Update /usr/lib/cgi-bin Directory Permissions
-      become: yes
-      become_user: root
-      become_method: sudo
-      file:
-        owner: sec
-        path: /usr/lib/cgi-bin
-        state: directory
-        mode: '0755'
     - name: Update /var/lib/awstats Directory Permissions
       become: yes
       become_user: root
