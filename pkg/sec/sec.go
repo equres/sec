@@ -1796,14 +1796,9 @@ func (s SEC) GetTotalZIPFilesToBeDownloaded(db *sqlx.DB, worklist []Worklist) (i
 			return 0, err
 		}
 
-		// for _, item := range rssFile.Channel.Item {
-		// 	if item.Enclosure.URL != "" {
-		// 	}
-		// }
 		totalZIPFilesToBeDownloaded += len(rssFile.Channel.Item)
-
-		// totalZIPFilesToBeDownloaded += len(rssFile.Channel.Item)
 	}
+
 	if s.Verbose {
 		log.Info("There is a total of ", totalZIPFilesToBeDownloaded, " ZIP files to be downloaded.")
 	}
