@@ -1,0 +1,1 @@
+/home/sec/sec dow index --verbose --syslog; /home/sec/sec dowz --verbose --syslog; /home/sec/sec index --verbose --syslog; /home/sec/sec indexz --verbose --syslog
