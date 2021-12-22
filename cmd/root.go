@@ -90,8 +90,10 @@ func initConfig() {
 		}
 	}
 
+	log.SetOutput(os.Stdout)
+
 	if SyslogEnabled {
-		hook, err := logrus_syslog.NewSyslogHook("", "", syslog.LOG_INFO, "")
+		hook, err := logrus_syslog.NewSyslogHook("tcp", "localhost:514", syslog.LOG_INFO, "")
 		if err != nil {
 			cobra.CheckErr(err)
 		}
