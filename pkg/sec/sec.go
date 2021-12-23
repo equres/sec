@@ -1804,3 +1804,17 @@ func (s SEC) GetTotalZIPFilesToBeDownloaded(db *sqlx.DB, worklist []Worklist) (i
 	}
 	return totalZIPFilesToBeDownloaded, nil
 }
+
+func (s SEC) GetCompanyNameFromCIK(db *sqlx.DB, cik int) (string, error) {
+	var companyNames []string
+	err := db.Select(&companyNames, "SELECT title FROM sec.tickers WHERE cik = $1", cik)
+	if err != nil {
+		return "", err
+	}
+
+	if len(companyNames) < 1 {
+		return "", nil
+	}
+
+	return companyNames[0], nil
+}

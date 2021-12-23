@@ -1,5 +1,9 @@
 {{ template "base" .}}
 
+{{ define "head"}}
+    <title>Equres > {{ .CompanyName }} Filings for {{ .DayString }} {{ .MonthString }} {{ .DayOrdinal }}, {{ .Year }} Filings</title>
+{{ end }}
+
 {{ define "content"}}
     <h3>Year: {{ .Year }}</h3>
     <h3>Month: {{ .Month }}</h3>

@@ -9,9 +9,11 @@ import (
 	"path/filepath"
 	"strconv"
 	"strings"
+	"time"
 
 	log "github.com/sirupsen/logrus"
 
+	humanize "github.com/dustin/go-humanize"
 	"github.com/equres/sec/pkg/sec"
 	"github.com/gorilla/mux"
 )
@@ -108,9 +110,12 @@ func (s Server) HandlerDaysPage(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	var monthString time.Month = time.Month(month)
+
 	content := make(map[string]interface{})
 	content["Year"] = year
 	content["Month"] = month
+	content["MonthString"] = monthString.String()
 	content["Days"] = days
 
 	err = s.RenderTemplate(w, "days.page.gohtml", content)
@@ -150,10 +155,17 @@ func (s Server) HandlerCompaniesPage(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	var monthString time.Month = time.Month(month)
+	var dayString string = time.Weekday(day % 7).String()
+	var dayOrdinal string = humanize.Ordinal(day)
+
 	content := make(map[string]interface{})
 	content["Year"] = year
 	content["Month"] = month
+	content["MonthString"] = monthString.String()
 	content["Day"] = day
+	content["DayString"] = dayString
+	content["DayOrdinal"] = dayOrdinal
 	content["Companies"] = companies
 
 	err = s.RenderTemplate(w, "companies.page.gohtml", content)
@@ -198,10 +210,24 @@ func (s Server) HandlerFilingsPage(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	companyName, err := secVar.GetCompanyNameFromCIK(s.DB, cik)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+
+	var monthString time.Month = time.Month(month)
+	var dayString string = time.Weekday(day % 7).String()
+	var dayOrdinal string = humanize.Ordinal(day)
+
 	content := make(map[string]interface{})
 	content["Year"] = year
 	content["Month"] = month
+	content["MonthString"] = monthString.String()
 	content["Day"] = day
+	content["DayString"] = dayString
+	content["DayOrdinal"] = dayOrdinal
+	content["CompanyName"] = companyName
 	content["CIK"] = cik
 	content["Filings"] = filings
 
