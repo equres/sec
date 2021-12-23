@@ -1,1 +1,1 @@
-/home/sec/sec dow index --verbose --syslog; /home/sec/sec dowz --verbose --syslog; /home/sec/sec index --verbose --syslog; /home/sec/sec indexz --verbose --syslog
+(/home/sec/sec dow index --verbose --syslog; /home/sec/sec dowz --verbose --syslog; /home/sec/sec index --verbose --syslog; /home/sec/sec indexz --verbose --syslog) && /home/sec/sec event --event cron --job files_downloading --status success || /home/sec/sec event --event cron --job files_downloading --status failed

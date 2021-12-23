@@ -394,8 +394,12 @@
         hour: "1"
         job: "perl /usr/lib/cgi-bin/awstats.pl -config=equres.com -output > /home/sec/_stats/$(date +%F)-stats.html | logger"
     - name: Run Download Script Everyday at 4 AM
+      become: yes
+      become_user: root
+      become_method: sudo
       ansible.builtin.cron:
         name: "Download Index & ZIP Files"
         minute: "0"
         hour: "4"
-        job: "/root/files_downloading.sh && sudo -u sec /home/sec/sec event --event cron --job files_downloading --status success || sudo -u sec /home/sec/sec event --event cron --job files_downloading --status failed"
+        user: sec
+        job: "/root/files_downloading.sh"
