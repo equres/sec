@@ -399,4 +399,4 @@
         name: "Download Index & ZIP Files"
         minute: "0"
         hour: "4"
-        job: "/root/files_downloading.sh | logger"
+        job: "/root/files_downloading.sh && sudo -u sec /home/sec/sec event --event cron --job files_downloading --status success || sudo -u sec /home/sec/sec event --event cron --job files_downloading --status failed"
