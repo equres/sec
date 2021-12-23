@@ -7,15 +7,13 @@
     <table class="table">
         <thead>
             <tr>
-                <th>CIK</th>
                 <th>Company Name</th>
             </tr>
         </thead>
         <tbody>
             {{ range .Companies }}
                 <tr>
-                    <td><a href="/filings/{{ $.Year }}/{{ $.Month }}/{{ $.Day }}/{{ .CIKNumber }}">{{ .CIKNumber }}</a></td>
-                    <td>{{ .CompanyName }}</td>
+                    <td><a href="/filings/{{ $.Year }}/{{ $.Month }}/{{ $.Day }}/{{ .CIKNumber }}">{{ .CompanyName }}</a></td>
                 </tr>
             {{ end }}
         </tbody>
