@@ -1,5 +1,9 @@
 {{ template "base" .}}
 
+{{ define "head"}}
+    <title>Equres > {{ .Year }} Company Filings</title>
+{{ end }}
+
 {{ define "content"}}
     <h3>Year: {{ .Year }}</h3>
     <ul>
