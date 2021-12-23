@@ -1281,16 +1281,15 @@ func (s *SEC) DownloadZIPFiles(db *sqlx.DB) error {
 					}
 					time.Sleep(rateLimit)
 				}
+			}
+			currentCount++
+			downloader.CurrentDownloadCount = currentCount
+			if !s.Verbose {
+				log.Info(fmt.Sprintf("\r[%d/%d/%f%% files already downloaded]. Will download %d remaining files. Pass --verbose to see progress report", currentCount, totalCount, downloader.GetDownloadPercentage(), (totalCount - currentCount)))
+			}
 
-				currentCount++
-				downloader.CurrentDownloadCount = currentCount
-				if !s.Verbose {
-					log.Info(fmt.Sprintf("\r[%d/%d/%f%% files already downloaded]. Will download %d remaining files. Pass --verbose to see progress report", currentCount, totalCount, downloader.GetDownloadPercentage(), (totalCount - currentCount)))
-				}
-
-				if s.Verbose {
-					log.Info(fmt.Sprintf("[%d/%d/%f%%] %s downloaded...\n", currentCount, totalCount, downloader.GetDownloadPercentage(), time.Now().Format("2006-01-02 03:04:05")))
-				}
+			if s.Verbose {
+				log.Info(fmt.Sprintf("[%d/%d/%f%%] %s downloaded...\n", currentCount, totalCount, downloader.GetDownloadPercentage(), time.Now().Format("2006-01-02 03:04:05")))
 			}
 		}
 
@@ -1799,6 +1798,7 @@ func (s SEC) GetTotalZIPFilesToBeDownloaded(db *sqlx.DB, worklist []Worklist) (i
 
 		totalZIPFilesToBeDownloaded += len(rssFile.Channel.Item)
 	}
+
 	if s.Verbose {
 		log.Info("There is a total of ", totalZIPFilesToBeDownloaded, " ZIP files to be downloaded.")
 	}

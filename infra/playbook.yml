@@ -82,6 +82,9 @@
           - nginx
           - certbot
           - python3-certbot-nginx
+          - awstats
+          - libgeoip-dev
+          - build-essential
     - name: Create /mnt/sec Directory
       become: yes
       become_user: root
@@ -185,7 +188,7 @@
       become: yes
       become_user: root
       become_method: sudo
-      copy: src=./etc/nginx/nginx.conf dest=/etc/nginx/
+      copy: src=./etc/nginx/ dest=/etc/nginx/
     - name: Copy Nginx Config File
       become: yes
       become_user: root
@@ -206,6 +209,28 @@
       ansible.builtin.service:
         name: nginx
         state: restarted
+    - name: Copy AWStats Config File
+      become: yes
+      become_user: root
+      become_method: sudo
+      copy: src=./etc/awstats/awstats.equres.com.conf dest=/etc/awstats/
+    - name: Update /var/lib/awstats Directory Permissions
+      become: yes
+      become_user: root
+      become_method: sudo
+      file:
+        path: /var/lib/awstats
+        state: directory
+        mode: '0755'
+    - name: Create /home/sec/_stats Directory
+      become: yes
+      become_user: root
+      become_method: sudo
+      file:
+        owner: sec
+        path: /home/sec/_stats
+        state: directory
+        mode: '0755'
     - name: Create /root Directory
       become: yes
       become_user: root
@@ -361,3 +386,9 @@
         minute: "0"
         hour: "3"
         job: "/root/backup_do.sh | logger"
+    - name: Generate AWStats HTML File Everyday at 1 AM
+      ansible.builtin.cron:
+        name: "Backup ZIP & XML"
+        minute: "0"
+        hour: "1"
+        job: "perl /usr/lib/cgi-bin/awstats.pl -config=equres.com -output > /home/sec/_stats/$(date +%F)-stats.html | logger"
