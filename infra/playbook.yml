@@ -394,7 +394,6 @@
         hour: "1"
         job: "perl /usr/lib/cgi-bin/awstats.pl -config=equres.com -output > /home/sec/_stats/$(date +%F)-stats.html | logger"
     - name: Run Download Script Everyday at 4 AM
-      become_user: sec
       ansible.builtin.cron:
         name: "Download Index & ZIP Files"
         minute: "0"
