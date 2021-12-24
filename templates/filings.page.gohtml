@@ -11,20 +11,14 @@
     <table class="table">
         <thead>
             <tr>
-                <th>Title</th>
                 <th>Company Name</th>
-                <th>CIK</th>
-                <th>Accession Number</th>
                 <th>XBRLFile</th>
             </tr>
         </thead>
         <tbody>
             {{ range .Filings }}
                 <tr>
-                    <td>{{ .Title }}</td>
                     <td>{{ .CompanyName }}</td>
-                    <td>{{ .CIKNumber }}</td>
-                    <td>{{ .AccessionNumber }}</td>
                     <td><a href="/Archives\edgar\data\{{ .CIKNumber }}\{{ formatAccession .AccessionNumber }}\{{ .XbrlFile }}">{{ .XbrlFile }}</a></td>
                 </tr>
             {{ end }}
