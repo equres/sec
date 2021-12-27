@@ -250,7 +250,7 @@
         - { src: 'backup_verify.sh' }
         - { src: 'backup_do.sh' }
         - { src: 'db_backup.sh' }
-        - { src: 'files_downloading.sh' }
+        - { src: 'sec.cron.daily.sh' }
         - { src: '.creds' }
     - name: Copy Monit Config File
       become: yes
@@ -402,4 +402,4 @@
         minute: "0"
         hour: "4"
         user: sec
-        job: "/root/files_downloading.sh"
+        job: "/root/sec.cron.daily.sh"
