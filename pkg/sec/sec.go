@@ -502,17 +502,30 @@ func (s *SEC) ExchangeTickersGet(db *sqlx.DB) error {
 
 	for _, v := range fileExchange.Data {
 		// Below is because sometimes the exchange is empty (nil). Added lines to ensure no error when saving
+		cik := 0
+		if v[0] != nil {
+			cik = int(v[0].(float64))
+		}
+
+		title := ""
+		if v[1] != nil {
+			title = v[1].(string)
+		}
+
+		ticker := ""
+		if v[2] != nil {
+			ticker = v[2].(string)
+		}
+
 		exchange := ""
-		if v[3] == nil {
-			exchange = ""
-		} else {
+		if v[3] != nil {
 			exchange = v[3].(string)
 		}
 
 		sec := SecTicker{
-			Cik:      int(v[0].(float64)),
-			Title:    v[1].(string),
-			Ticker:   v[2].(string),
+			Cik:      cik,
+			Title:    title,
+			Ticker:   ticker,
 			Exchange: exchange,
 		}
 		err := sec.Save(db)
