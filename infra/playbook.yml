@@ -250,6 +250,7 @@
         - { src: 'backup_verify.sh' }
         - { src: 'backup_do.sh' }
         - { src: 'db_backup.sh' }
+        - { src: 'sec.cron.daily.sh' }
         - { src: '.creds' }
     - name: Copy Monit Config File
       become: yes
@@ -388,7 +389,17 @@
         job: "/root/backup_do.sh | logger"
     - name: Generate AWStats HTML File Everyday at 1 AM
       ansible.builtin.cron:
-        name: "Backup ZIP & XML"
+        name: "Generate AWStats HTML File"
         minute: "0"
         hour: "1"
         job: "perl /usr/lib/cgi-bin/awstats.pl -config=equres.com -output > /home/sec/_stats/$(date +%F)-stats.html | logger"
+    - name: Run Download Script Everyday at 4 AM
+      become: yes
+      become_user: root
+      become_method: sudo
+      ansible.builtin.cron:
+        name: "Download Index & ZIP Files"
+        minute: "0"
+        hour: "4"
+        user: sec
+        job: "/root/sec.cron.daily.sh"
