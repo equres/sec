@@ -5,6 +5,20 @@
 {{ end }}
 
 {{ define "content"}}
+    <div class="card my-3">
+        <div class="card-body">
+            <h2 class="text-center">Five Most Recent Filings</h2>
+            <ul>
+                {{ range .RecentFilings }}
+                    <li>{{ .CompanyName }}</li>
+                    <ul>
+                        <li><a href="{{ .XbrlURL }}">{{ .PubDate }} ({{ .FormType }})</a></li>
+                    </ul>
+                {{ end }}
+            <ul>
+        </div>
+    </div>
+
     <ul>
         {{ range .Years }}
             <li><a href="/filings/{{ . }}">{{ . }}</a></li>

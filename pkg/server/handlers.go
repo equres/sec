@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"html/template"
 	"net/http"
+	"net/url"
 	"os"
 	"path/filepath"
 	"strconv"
@@ -34,9 +35,39 @@ func (s Server) GenerateRouter() *mux.Router {
 }
 
 func (s Server) HandlerHome(w http.ResponseWriter, r *http.Request) {
-	var err error
-
 	content := make(map[string]interface{})
+	recentFilings, err := sec.GetFiveRecentFilings(s.DB)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+
+	type FormattedFiling struct {
+		CompanyName string
+		PubDate     string
+		FormType    string
+		XbrlURL     string
+	}
+
+	var recentFilingsFormatted []FormattedFiling
+
+	for _, filing := range recentFilings {
+		fileLink, err := url.Parse(filing.XbrlURL)
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusBadRequest)
+			return
+		}
+
+		formattedFiling := FormattedFiling{
+			CompanyName: filing.CompanyName,
+			PubDate:     filing.PubDate.Format("2006-01-02"),
+			FormType:    filing.FormType,
+			XbrlURL:     fileLink.Path,
+		}
+		recentFilingsFormatted = append(recentFilingsFormatted, formattedFiling)
+	}
+	content["RecentFilings"] = recentFilingsFormatted
+
 	content["Years"], err = sec.UniqueYearsInWorklist(s.DB)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)

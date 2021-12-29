@@ -1831,3 +1831,20 @@ func (s SEC) GetCompanyNameFromCIK(db *sqlx.DB, cik int) (string, error) {
 
 	return companyNames[0], nil
 }
+
+func GetFiveRecentFilings(db *sqlx.DB) ([]SECItemFile, error) {
+	var secitemfiles []SECItemFile
+
+	err := db.Select(&secitemfiles, `
+	SELECT companyname, formtype, pubdate, xbrlurl 
+	FROM sec.secitemfile
+	WHERE RIGHT(xbrlurl, 3) = 'htm' 
+		OR RIGHT(xbrlurl, 4) = 'html'
+		OR RIGHT(xbrlurl, 3) = 'xml'
+	ORDER BY created_at desc LIMIT 5;`)
+	if err != nil {
+		return nil, err
+	}
+
+	return secitemfiles, nil
+}
