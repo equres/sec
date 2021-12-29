@@ -741,25 +741,9 @@ func (s *SEC) SecItemFileUpsert(db *sqlx.DB, item Item) error {
 		filePath := filepath.Join(s.Config.Main.CacheDir, fileUrl.Path)
 		_, err = os.Stat(filePath)
 		if err == nil {
-			xbrlFile, err := os.Open(filePath)
+			fileBody, err = s.GetXbrlFileBody(filePath)
 			if err != nil {
 				return err
-			}
-			defer xbrlFile.Close()
-
-			data, err := ioutil.ReadAll(xbrlFile)
-			if err != nil {
-				return err
-			}
-
-			if s.IsFileIndexable(filePath) {
-				fileBody = string(data)
-				if s.IsFileTypeHTML(filePath) {
-					fileBody, err = html2text.FromString(string(data))
-					if err != nil {
-						return err
-					}
-				}
 			}
 		}
 
@@ -773,7 +757,11 @@ func (s *SEC) SecItemFileUpsert(db *sqlx.DB, item Item) error {
 		if err == nil {
 			reader, err := zip.OpenReader(zipCachePath)
 			if err != nil {
-				return err
+				err = database.CreateIndexEvent(db, zipCachePath, "failed")
+				if err != nil {
+					return err
+				}
+				continue
 			}
 			defer reader.Close()
 
@@ -785,26 +773,9 @@ func (s *SEC) SecItemFileUpsert(db *sqlx.DB, item Item) error {
 				}
 			}
 
-			if currentFile != nil {
-				fileReader, err := currentFile.Open()
-				if err != nil {
-					return err
-				}
-
-				stringBuilder := new(strings.Builder)
-				_, err = io.Copy(stringBuilder, fileReader)
-				if err != nil {
-					return err
-				}
-				if s.IsFileIndexable(currentFile.Name) {
-					fileBody = stringBuilder.String()
-					if s.IsFileTypeHTML(filePath) {
-						fileBody, err = html2text.FromString(stringBuilder.String())
-						if err != nil {
-							return err
-						}
-					}
-				}
+			fileBody, err = s.GetXbrlFileBodyFromZIPFile(currentFile, filePath)
+			if err != nil {
+				return err
 			}
 		}
 
@@ -852,6 +823,62 @@ func (s *SEC) IsFileTypeHTML(filename string) bool {
 		return true
 	}
 	return false
+}
+
+func (s *SEC) GetXbrlFileBody(filePath string) (string, error) {
+	xbrlFile, err := os.Open(filePath)
+	if err != nil {
+		return "", err
+	}
+	defer xbrlFile.Close()
+
+	data, err := ioutil.ReadAll(xbrlFile)
+	if err != nil {
+		return "", err
+	}
+
+	var fileBody string
+
+	if s.IsFileIndexable(filePath) {
+		fileBody = string(data)
+		if s.IsFileTypeHTML(filePath) {
+			fileBody, err = html2text.FromString(string(data))
+			if err != nil {
+				return "", err
+			}
+		}
+	}
+	return fileBody, nil
+}
+
+func (s *SEC) GetXbrlFileBodyFromZIPFile(currentFile *zip.File, filePath string) (string, error) {
+	if currentFile == nil {
+		return "", nil
+	}
+
+	fileReader, err := currentFile.Open()
+	if err != nil {
+		return "", err
+	}
+
+	stringBuilder := new(strings.Builder)
+	_, err = io.Copy(stringBuilder, fileReader)
+	if err != nil {
+		return "", err
+	}
+
+	var fileBody string
+	if s.IsFileIndexable(currentFile.Name) {
+		fileBody = stringBuilder.String()
+		if s.IsFileTypeHTML(filePath) {
+			fileBody, err = html2text.FromString(stringBuilder.String())
+			if err != nil {
+				return "", err
+			}
+		}
+	}
+
+	return fileBody, nil
 }
 
 func ParseYearMonth(yearMonth string) (year int, month int, err error) {
