@@ -761,8 +761,55 @@ func (s *SEC) SecItemFileUpsert(db *sqlx.DB, item Item) error {
 					}
 				}
 			}
-		} else {
-			log.Errorf("Could not find/index the file %v", filePath)
+		}
+
+		zipFileURL, err := url.Parse(item.Enclosure.URL)
+		if err != nil {
+			return err
+		}
+
+		zipCachePath := filepath.Join(s.Config.Main.CacheDir, zipFileURL.Path)
+		_, err = os.Stat(zipCachePath)
+		if err == nil {
+			reader, err := zip.OpenReader(zipCachePath)
+			if err != nil {
+				return err
+			}
+			defer reader.Close()
+
+			var currentFile *zip.File
+			for _, file := range reader.File {
+				if file.Name == v.File {
+					currentFile = file
+					break
+				}
+			}
+
+			if currentFile != nil {
+				fileReader, err := currentFile.Open()
+				if err != nil {
+					return err
+				}
+
+				stringBuilder := new(strings.Builder)
+				_, err = io.Copy(stringBuilder, fileReader)
+				if err != nil {
+					return err
+				}
+				if s.IsFileIndexable(currentFile.Name) {
+					fileBody = stringBuilder.String()
+					if s.IsFileTypeHTML(filePath) {
+						fileBody, err = html2text.FromString(stringBuilder.String())
+						if err != nil {
+							return err
+						}
+					}
+				}
+			}
+		}
+
+		if fileBody == "" {
+			log.Error(fmt.Sprintf("%v body_could_not_be_found_or_indexed", v.File))
 		}
 
 		_, err = db.Exec(`
