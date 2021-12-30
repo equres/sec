@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"html/template"
+	"io/fs"
 	"net/http"
 	"net/url"
 	"os"
@@ -19,8 +20,14 @@ import (
 	"github.com/gorilla/mux"
 )
 
-func (s Server) GenerateRouter() *mux.Router {
+func (s Server) GenerateRouter() (*mux.Router, error) {
 	router := mux.NewRouter()
+
+	assets, err := fs.Sub(GlobalAssetsFS, "_assets")
+	if err != nil {
+		return nil, err
+	}
+	router.PathPrefix("/_assets").Handler(http.StripPrefix("/_assets", http.FileServer(http.FS(assets))))
 
 	router.HandleFunc("/", s.HandlerHome).Methods("GET")
 	router.HandleFunc("/filings/{year}", s.HandlerMonthsPage).Methods("GET")
@@ -30,8 +37,7 @@ func (s Server) GenerateRouter() *mux.Router {
 	router.HandleFunc("/stats", s.HandlerStatsPage).Methods("GET")
 	router.HandleFunc("/api/v1/uptime", s.HandlerUptime).Methods("GET")
 	router.PathPrefix("/").HandlerFunc(s.HandlerFiles)
-
-	return router
+	return router, nil
 }
 
 func (s Server) HandlerHome(w http.ResponseWriter, r *http.Request) {
