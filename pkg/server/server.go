@@ -15,6 +15,7 @@ var (
 	GlobalUptime    time.Time
 	GlobalSHA1Ver   string // SHA1 revision used to build the program
 	GlobalBuildTime string // when the executable was built
+	GlobalAssetsFS  embed.FS
 )
 
 type Server struct {
@@ -38,13 +39,17 @@ func NewServer(db *sqlx.DB, config config.Config, templates embed.FS) (Server, e
 }
 
 func (s Server) StartServer() error {
-	router := s.GenerateRouter()
+	router, err := s.GenerateRouter()
+	if err != nil {
+		return err
+	}
+
 	GlobalUptime = time.Now()
 
 	log.Info(s.SHA1Ver)
 	log.Info(s.BuildTime)
 	log.Info("Listening on port", s.Config.Main.ServerPort)
-	err := http.ListenAndServe(s.Config.Main.ServerPort, router)
+	err = http.ListenAndServe(s.Config.Main.ServerPort, router)
 	if err != nil {
 		return err
 	}
