@@ -779,8 +779,12 @@ func (s *SEC) SecItemFileUpsert(db *sqlx.DB, item Item) error {
 			}
 		}
 
-		if fileBody == "" {
-			log.Error(fmt.Sprintf("%v body_could_not_be_found_or_indexed", v.File))
+		if fileBody == "" && s.IsFileIndexable(filePath) {
+			eventErr := database.CreateIndexEvent(db, v.URL, "failed")
+			if eventErr != nil {
+				return eventErr
+			}
+			return err
 		}
 
 		_, err = db.Exec(`
@@ -1477,17 +1481,23 @@ func (s *SEC) UnzipFiles(db *sqlx.DB, rssFile RSSFile, worklist []Worklist) erro
 	return nil
 }
 
-func (s *SEC) InsertAllSecItemFile(db *sqlx.DB, rssFile RSSFile, worklist []Worklist) error {
-	totalCount := len(rssFile.Channel.Item)
+func (s *SEC) InsertAllSecItemFile(db *sqlx.DB, rssFiles []RSSFile, worklist []Worklist, totalCount int) error {
 	currentCount := 0
-	for _, v1 := range rssFile.Channel.Item {
-		err := s.SecItemFileUpsert(db, v1)
-		if err != nil {
-			return err
-		}
-		currentCount++
-		if s.Verbose {
-			log.Info(fmt.Sprintf("[%d/%d] %s inserted for current file...\n", currentCount, totalCount, time.Now().Format("2006-01-02 03:04:05")))
+	for _, rssFile := range rssFiles {
+		for _, v1 := range rssFile.Channel.Item {
+			err := s.SecItemFileUpsert(db, v1)
+			if err != nil {
+				return err
+			}
+			currentCount++
+
+			if s.Verbose {
+				currentCountFloat := float64(currentCount)
+				totalCountFloat := float64(totalCount)
+				percentage := (currentCountFloat / totalCountFloat) * 100
+
+				log.Info(fmt.Sprintf("[%d/%d/%f%%] %s inserted for current file...\n", currentCount, totalCount, percentage, time.Now().Format("2006-01-02 03:04:05")))
+			}
 		}
 	}
 	return nil
