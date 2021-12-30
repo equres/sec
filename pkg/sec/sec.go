@@ -741,28 +741,50 @@ func (s *SEC) SecItemFileUpsert(db *sqlx.DB, item Item) error {
 		filePath := filepath.Join(s.Config.Main.CacheDir, fileUrl.Path)
 		_, err = os.Stat(filePath)
 		if err == nil {
-			xbrlFile, err := os.Open(filePath)
+			fileBody, err = s.GetXbrlFileBody(filePath)
 			if err != nil {
 				return err
 			}
-			defer xbrlFile.Close()
+		}
 
-			data, err := ioutil.ReadAll(xbrlFile)
+		zipFileURL, err := url.Parse(item.Enclosure.URL)
+		if err != nil {
+			return err
+		}
+
+		zipCachePath := filepath.Join(s.Config.Main.CacheDir, zipFileURL.Path)
+		_, err = os.Stat(zipCachePath)
+		if err == nil {
+			reader, err := zip.OpenReader(zipCachePath)
 			if err != nil {
-				return err
+				err = database.CreateIndexEvent(db, zipCachePath, "failed")
+				if err != nil {
+					return err
+				}
+				continue
 			}
+			defer reader.Close()
 
-			if s.IsFileIndexable(filePath) {
-				fileBody = string(data)
-				if s.IsFileTypeHTML(filePath) {
-					fileBody, err = html2text.FromString(string(data))
-					if err != nil {
-						return err
-					}
+			var currentFile *zip.File
+			for _, file := range reader.File {
+				if file.Name == v.File {
+					currentFile = file
+					break
 				}
 			}
-		} else {
-			log.Errorf("Could not find/index the file %v", filePath)
+
+			fileBody, err = s.GetXbrlFileBodyFromZIPFile(currentFile, filePath)
+			if err != nil {
+				return err
+			}
+		}
+
+		if fileBody == "" && s.IsFileIndexable(filePath) {
+			eventErr := database.CreateIndexEvent(db, v.URL, "failed")
+			if eventErr != nil {
+				return eventErr
+			}
+			return err
 		}
 
 		_, err = db.Exec(`
@@ -805,6 +827,62 @@ func (s *SEC) IsFileTypeHTML(filename string) bool {
 		return true
 	}
 	return false
+}
+
+func (s *SEC) GetXbrlFileBody(filePath string) (string, error) {
+	xbrlFile, err := os.Open(filePath)
+	if err != nil {
+		return "", err
+	}
+	defer xbrlFile.Close()
+
+	data, err := ioutil.ReadAll(xbrlFile)
+	if err != nil {
+		return "", err
+	}
+
+	var fileBody string
+
+	if s.IsFileIndexable(filePath) {
+		fileBody = string(data)
+		if s.IsFileTypeHTML(filePath) {
+			fileBody, err = html2text.FromString(string(data))
+			if err != nil {
+				return "", err
+			}
+		}
+	}
+	return fileBody, nil
+}
+
+func (s *SEC) GetXbrlFileBodyFromZIPFile(currentFile *zip.File, filePath string) (string, error) {
+	if currentFile == nil {
+		return "", nil
+	}
+
+	fileReader, err := currentFile.Open()
+	if err != nil {
+		return "", err
+	}
+
+	stringBuilder := new(strings.Builder)
+	_, err = io.Copy(stringBuilder, fileReader)
+	if err != nil {
+		return "", err
+	}
+
+	var fileBody string
+	if s.IsFileIndexable(currentFile.Name) {
+		fileBody = stringBuilder.String()
+		if s.IsFileTypeHTML(filePath) {
+			fileBody, err = html2text.FromString(stringBuilder.String())
+			if err != nil {
+				return "", err
+			}
+		}
+	}
+
+	return fileBody, nil
 }
 
 func ParseYearMonth(yearMonth string) (year int, month int, err error) {
@@ -1403,17 +1481,23 @@ func (s *SEC) UnzipFiles(db *sqlx.DB, rssFile RSSFile, worklist []Worklist) erro
 	return nil
 }
 
-func (s *SEC) InsertAllSecItemFile(db *sqlx.DB, rssFile RSSFile, worklist []Worklist) error {
-	totalCount := len(rssFile.Channel.Item)
+func (s *SEC) InsertAllSecItemFile(db *sqlx.DB, rssFiles []RSSFile, worklist []Worklist, totalCount int) error {
 	currentCount := 0
-	for _, v1 := range rssFile.Channel.Item {
-		err := s.SecItemFileUpsert(db, v1)
-		if err != nil {
-			return err
-		}
-		currentCount++
-		if s.Verbose {
-			log.Info(fmt.Sprintf("[%d/%d] %s inserted for current file...\n", currentCount, totalCount, time.Now().Format("2006-01-02 03:04:05")))
+	for _, rssFile := range rssFiles {
+		for _, v1 := range rssFile.Channel.Item {
+			err := s.SecItemFileUpsert(db, v1)
+			if err != nil {
+				return err
+			}
+			currentCount++
+
+			if s.Verbose {
+				currentCountFloat := float64(currentCount)
+				totalCountFloat := float64(totalCount)
+				percentage := (currentCountFloat / totalCountFloat) * 100
+
+				log.Info(fmt.Sprintf("[%d/%d/%f%%] %s inserted for current file...\n", currentCount, totalCount, percentage, time.Now().Format("2006-01-02 03:04:05")))
+			}
 		}
 	}
 	return nil

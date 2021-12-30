@@ -2,12 +2,15 @@
 package cmd
 
 import (
+	"fmt"
+	"os"
 	"path/filepath"
 
 	log "github.com/sirupsen/logrus"
 
 	"github.com/equres/sec/pkg/database"
 	"github.com/equres/sec/pkg/download"
+	"github.com/equres/sec/pkg/sec"
 	"github.com/spf13/cobra"
 )
 
@@ -53,7 +56,40 @@ var indexCmd = &cobra.Command{
 			}
 		}
 
-		err = S.ForEachWorklist(DB, S.InsertAllSecItemFile, "")
+		worklist, err := sec.WorklistWillDownloadGet(DB)
+		if err != nil {
+			return err
+		}
+
+		var rssFiles []sec.RSSFile
+
+		for _, v := range worklist {
+			fileURL, err := S.FormatFilePathDate(S.Config.Main.CacheDir, v.Year, v.Month)
+			if err != nil {
+				return err
+			}
+
+			_, err = os.Stat(fileURL)
+			if err != nil {
+				return fmt.Errorf("please run sec dow index to download all index files first")
+			}
+
+			rssFile, err := S.ParseRSSGoXML(fileURL)
+			if err != nil {
+				return err
+			}
+
+			rssFiles = append(rssFiles, rssFile)
+		}
+
+		var totalCount int
+		for _, rssFile := range rssFiles {
+			for _, item := range rssFile.Channel.Item {
+				totalCount += len(item.XbrlFiling.XbrlFiles.XbrlFile)
+			}
+		}
+
+		err = S.InsertAllSecItemFile(DB, rssFiles, worklist, totalCount)
 		if err != nil {
 			return err
 		}
