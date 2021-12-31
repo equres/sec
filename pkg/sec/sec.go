@@ -664,8 +664,10 @@ func SaveWorklist(year int, month int, willDownload bool, db *sqlx.DB) error {
 	return nil
 }
 
-func (s *SEC) SecItemFileUpsert(db *sqlx.DB, item Item) error {
+func (s *SEC) SecItemFileUpsert(db *sqlx.DB, item Item, currentCount *int, totalCount int) error {
 	var err error
+
+	var secItemsFiles []map[string]interface{}
 
 	var enclosureLength int
 	if item.Enclosure.Length != "" {
@@ -704,6 +706,13 @@ func (s *SEC) SecItemFileUpsert(db *sqlx.DB, item Item) error {
 		return err
 	}
 	if len(ciks) == 0 {
+		for _, v := range item.XbrlFiling.XbrlFiles.XbrlFile {
+			eventErr := database.CreateIndexEvent(db, v.URL, "failed")
+			if eventErr != nil {
+				return eventErr
+			}
+			*currentCount++
+		}
 		return nil
 	}
 
@@ -739,43 +748,47 @@ func (s *SEC) SecItemFileUpsert(db *sqlx.DB, item Item) error {
 
 		var fileBody string
 		filePath := filepath.Join(s.Config.Main.CacheDir, fileUrl.Path)
-		_, err = os.Stat(filePath)
-		if err == nil {
-			fileBody, err = s.GetXbrlFileBody(filePath)
-			if err != nil {
-				return err
-			}
-		}
-
-		zipFileURL, err := url.Parse(item.Enclosure.URL)
-		if err != nil {
-			return err
-		}
-
-		zipCachePath := filepath.Join(s.Config.Main.CacheDir, zipFileURL.Path)
-		_, err = os.Stat(zipCachePath)
-		if err == nil {
-			reader, err := zip.OpenReader(zipCachePath)
-			if err != nil {
-				err = database.CreateIndexEvent(db, zipCachePath, "failed")
+		if s.IsFileIndexable(filePath) {
+			_, err = os.Stat(filePath)
+			if err == nil {
+				fileBody, err = s.GetXbrlFileBody(filePath)
 				if err != nil {
 					return err
 				}
-				continue
 			}
-			defer reader.Close()
+		}
 
-			var currentFile *zip.File
-			for _, file := range reader.File {
-				if file.Name == v.File {
-					currentFile = file
-					break
-				}
-			}
-
-			fileBody, err = s.GetXbrlFileBodyFromZIPFile(currentFile, filePath)
+		// Search for file in it's ZIP parent file if we couldnt find the file itself
+		if fileBody == "" && s.IsFileIndexable(filePath) {
+			zipFileURL, err := url.Parse(item.Enclosure.URL)
 			if err != nil {
 				return err
+			}
+			zipCachePath := filepath.Join(s.Config.Main.CacheDir, zipFileURL.Path)
+			_, err = os.Stat(zipCachePath)
+			if err == nil {
+				reader, err := zip.OpenReader(zipCachePath)
+				if err != nil {
+					err = database.CreateIndexEvent(db, zipCachePath, "failed")
+					if err != nil {
+						return err
+					}
+					continue
+				}
+				defer reader.Close()
+
+				var currentFile *zip.File
+				for _, file := range reader.File {
+					if file.Name == v.File {
+						currentFile = file
+						break
+					}
+				}
+
+				fileBody, err = s.GetXbrlFileBodyFromZIPFile(currentFile, filePath)
+				if err != nil {
+					return err
+				}
 			}
 		}
 
@@ -784,23 +797,44 @@ func (s *SEC) SecItemFileUpsert(db *sqlx.DB, item Item) error {
 			if eventErr != nil {
 				return eventErr
 			}
-			return err
 		}
 
-		_, err = db.Exec(`
-		INSERT INTO sec.secItemFile (title, link, guid, enclosure_url, enclosure_length, enclosure_type, description, pubdate, companyname, formtype, fillingdate, ciknumber, accessionnumber, filenumber, acceptancedatetime, period, assistantdirector, assignedsic, fiscalyearend, xbrlsequence, xbrlfile, xbrltype, xbrlsize, xbrldescription, xbrlinlinexbrl, xbrlurl, xbrlbody, created_at, updated_at)
-		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23, $24, $25, $26, $27, NOW(), NOW()) 
+		secItemsFiles = append(secItemsFiles, map[string]interface{}{
+			"title":              item.Title,
+			"link":               item.Link,
+			"guid":               item.Guid,
+			"enclosure_url":      item.Enclosure.URL,
+			"enclosure_length":   enclosureLength,
+			"enclosure_type":     item.Enclosure.Type,
+			"description":        item.Description,
+			"pubdate":            item.PubDate,
+			"companyname":        item.XbrlFiling.CompanyName,
+			"formtype":           item.XbrlFiling.FormType,
+			"fillingdate":        item.XbrlFiling.FilingDate,
+			"ciknumber":          fmt.Sprintf("%d", cikNumber),
+			"accessionnumber":    item.XbrlFiling.AccessionNumber,
+			"filenumber":         item.XbrlFiling.FileNumber,
+			"acceptancedatetime": item.XbrlFiling.AcceptanceDatetime,
+			"period":             item.XbrlFiling.Period,
+			"assistantdirector":  item.XbrlFiling.AssistantDirector,
+			"assignedsic":        assignedSic,
+			"fiscalyearend":      fiscalYearEnd,
+			"xbrlsequence":       fmt.Sprintf("%d", xbrlSequence),
+			"xbrlfile":           v.File,
+			"xbrltype":           v.Type,
+			"xbrlsize":           xbrlSize,
+			"xbrldescription":    v.Description,
+			"xbrlinlinexbrl":     xbrlInline,
+			"xbrlurl":            v.URL,
+			"xbrlbody":           fileBody,
+		})
 
-		ON CONFLICT (xbrlsequence, xbrlfile, xbrltype, xbrlsize, xbrldescription, xbrlinlinexbrl, xbrlurl)
-		DO UPDATE SET title=EXCLUDED.title, link=EXCLUDED.link, guid=EXCLUDED.guid, enclosure_url=EXCLUDED.enclosure_url, enclosure_length=EXCLUDED.enclosure_length, enclosure_type=EXCLUDED.enclosure_type, description=EXCLUDED.description, pubdate=EXCLUDED.pubdate, companyname=EXCLUDED.companyname, formtype=EXCLUDED.formtype, fillingdate=EXCLUDED.fillingdate, ciknumber=EXCLUDED.ciknumber, accessionnumber=EXCLUDED.accessionnumber, filenumber=EXCLUDED.filenumber, acceptancedatetime=EXCLUDED.acceptancedatetime, period=EXCLUDED.period, assistantdirector=EXCLUDED.assistantdirector, assignedsic=EXCLUDED.assignedsic, fiscalyearend=EXCLUDED.fiscalyearend, xbrlsequence=EXCLUDED.xbrlsequence, xbrlfile=EXCLUDED.xbrlfile, xbrltype=EXCLUDED.xbrltype, xbrlsize=EXCLUDED.xbrlsize, xbrldescription=EXCLUDED.xbrldescription, xbrlinlinexbrl=EXCLUDED.xbrlinlinexbrl, xbrlurl=EXCLUDED.xbrlurl, updated_at=NOW()
-		WHERE secItemFile.xbrlsequence=EXCLUDED.xbrlsequence AND secItemFile.xbrlfile=EXCLUDED.xbrlfile AND secItemFile.xbrltype=EXCLUDED.xbrltype AND secItemFile.xbrlsize=EXCLUDED.xbrlsize AND secItemFile.xbrldescription=EXCLUDED.xbrldescription AND secItemFile.xbrlinlinexbrl=EXCLUDED.xbrlinlinexbrl AND secItemFile.xbrlurl=EXCLUDED.xbrlurl AND secItemFile.xbrlbody=EXCLUDED.xbrlbody;`,
-			item.Title, item.Link, item.Guid, item.Enclosure.URL, enclosureLength, item.Enclosure.Type, item.Description, item.PubDate, item.XbrlFiling.CompanyName, item.XbrlFiling.FormType, item.XbrlFiling.FilingDate, cikNumber, item.XbrlFiling.AccessionNumber, item.XbrlFiling.FileNumber, item.XbrlFiling.AcceptanceDatetime, item.XbrlFiling.Period, item.XbrlFiling.AssistantDirector, assignedSic, fiscalYearEnd, xbrlSequence, v.File, v.Type, xbrlSize, v.Description, xbrlInline, v.URL, fileBody)
-		if err != nil {
-			eventErr := database.CreateIndexEvent(db, filePath, "failed")
-			if eventErr != nil {
-				return eventErr
-			}
-			return err
+		*currentCount++
+		if s.Verbose {
+			currentCountFloat := float64(*currentCount)
+			totalCountFloat := float64(totalCount)
+			percentage := (currentCountFloat / totalCountFloat) * 100
+			log.Info(fmt.Sprintf("[%d/%d/%f%%] %s inserted for current file...\n", *currentCount, totalCount, percentage, time.Now().Format("2006-01-02 03:04:05")))
 		}
 
 		eventErr := database.CreateIndexEvent(db, filePath, "success")
@@ -808,6 +842,18 @@ func (s *SEC) SecItemFileUpsert(db *sqlx.DB, item Item) error {
 			return eventErr
 		}
 	}
+
+	_, err = db.NamedExec(`INSERT INTO sec.secItemFile
+	(title, link, guid, enclosure_url, enclosure_length, enclosure_type, description, pubdate, companyname, formtype, fillingdate, ciknumber, accessionnumber, filenumber, acceptancedatetime, period, assistantdirector, assignedsic, fiscalyearend, xbrlsequence, xbrlfile, xbrltype, xbrlsize, xbrldescription, xbrlinlinexbrl, xbrlurl, xbrlbody, created_at, updated_at)
+	VALUES
+	(:title, :link, :guid, :enclosure_url, :enclosure_length, :enclosure_type, :description, :pubdate, :companyname, :formtype, :fillingdate, :ciknumber, :accessionnumber, :filenumber, :acceptancedatetime, :period, :assistantdirector, :assignedsic, :fiscalyearend, :xbrlsequence, :xbrlfile, :xbrltype, :xbrlsize, :xbrldescription, :xbrlinlinexbrl, :xbrlurl, :xbrlbody, NOW(), NOW())
+	ON CONFLICT (xbrlsequence, xbrlfile, xbrltype, xbrlsize, xbrldescription, xbrlinlinexbrl, xbrlurl)
+	DO UPDATE SET title=EXCLUDED.title, link=EXCLUDED.link, guid=EXCLUDED.guid, enclosure_url=EXCLUDED.enclosure_url, enclosure_length=EXCLUDED.enclosure_length, enclosure_type=EXCLUDED.enclosure_type, description=EXCLUDED.description, pubdate=EXCLUDED.pubdate, companyname=EXCLUDED.companyname, formtype=EXCLUDED.formtype, fillingdate=EXCLUDED.fillingdate, ciknumber=EXCLUDED.ciknumber, accessionnumber=EXCLUDED.accessionnumber, filenumber=EXCLUDED.filenumber, acceptancedatetime=EXCLUDED.acceptancedatetime, period=EXCLUDED.period, assistantdirector=EXCLUDED.assistantdirector, assignedsic=EXCLUDED.assignedsic, fiscalyearend=EXCLUDED.fiscalyearend, xbrlsequence=EXCLUDED.xbrlsequence, xbrlfile=EXCLUDED.xbrlfile, xbrltype=EXCLUDED.xbrltype, xbrlsize=EXCLUDED.xbrlsize, xbrldescription=EXCLUDED.xbrldescription, xbrlinlinexbrl=EXCLUDED.xbrlinlinexbrl, xbrlurl=EXCLUDED.xbrlurl, updated_at=NOW()
+	WHERE secItemFile.xbrlsequence=EXCLUDED.xbrlsequence AND secItemFile.xbrlfile=EXCLUDED.xbrlfile AND secItemFile.xbrltype=EXCLUDED.xbrltype AND secItemFile.xbrlsize=EXCLUDED.xbrlsize AND secItemFile.xbrldescription=EXCLUDED.xbrldescription AND secItemFile.xbrlinlinexbrl=EXCLUDED.xbrlinlinexbrl AND secItemFile.xbrlurl=EXCLUDED.xbrlurl AND secItemFile.xbrlbody=EXCLUDED.xbrlbody`, secItemsFiles)
+	if err != nil {
+		return err
+	}
+
 	return nil
 }
 
@@ -1485,18 +1531,9 @@ func (s *SEC) InsertAllSecItemFile(db *sqlx.DB, rssFiles []RSSFile, worklist []W
 	currentCount := 0
 	for _, rssFile := range rssFiles {
 		for _, v1 := range rssFile.Channel.Item {
-			err := s.SecItemFileUpsert(db, v1)
+			err := s.SecItemFileUpsert(db, v1, &currentCount, totalCount)
 			if err != nil {
 				return err
-			}
-			currentCount++
-
-			if s.Verbose {
-				currentCountFloat := float64(currentCount)
-				totalCountFloat := float64(totalCount)
-				percentage := (currentCountFloat / totalCountFloat) * 100
-
-				log.Info(fmt.Sprintf("[%d/%d/%f%%] %s inserted for current file...\n", currentCount, totalCount, percentage, time.Now().Format("2006-01-02 03:04:05")))
 			}
 		}
 	}
