@@ -5,6 +5,7 @@ package sec
 import (
 	"archive/zip"
 	"bytes"
+	"crypto/sha256"
 	"database/sql"
 	"encoding/csv"
 	"encoding/json"
@@ -665,7 +666,10 @@ func SaveWorklist(year int, month int, willDownload bool, db *sqlx.DB) error {
 }
 
 func (s *SEC) SecItemFileUpsert(db *sqlx.DB, item Item, currentCount *int, totalCount int) error {
-	var err error
+	secItemFileHashes, err := s.GetSecItemFileHashes(db)
+	if err != nil {
+		return err
+	}
 
 	var secItemsFiles []map[string]interface{}
 
@@ -741,58 +745,33 @@ func (s *SEC) SecItemFileUpsert(db *sqlx.DB, item Item, currentCount *int, total
 			}
 		}
 
-		fileUrl, err := url.Parse(v.URL)
+		dataHash, err := s.GenerateHash(map[string]interface{}{
+			"xbrlsequence":    fmt.Sprintf("%d", xbrlSequence),
+			"xbrlfile":        v.File,
+			"xbrltype":        v.Type,
+			"xbrlsize":        xbrlSize,
+			"xbrldescription": v.Description,
+			"xbrlinlinexbrl":  xbrlInline,
+			"xbrlurl":         v.URL,
+		})
 		if err != nil {
 			return err
 		}
 
+		if _, ok := secItemFileHashes[dataHash]; ok {
+			// Skip file if the hash has not changed but add to currentCount to keep track
+			*currentCount++
+			continue
+		}
+
 		var fileBody string
-		filePath := filepath.Join(s.Config.Main.CacheDir, fileUrl.Path)
-		if s.IsFileIndexable(filePath) {
-			_, err = os.Stat(filePath)
-			if err == nil {
-				fileBody, err = s.GetXbrlFileBody(filePath)
-				if err != nil {
-					return err
-				}
-			}
+
+		fileBody, err = s.GetXbrlFileBodyFromRawFile(v.URL)
+		if err != nil {
+			return err
 		}
 
-		// Search for file in it's ZIP parent file if we couldnt find the file itself
-		if fileBody == "" && s.IsFileIndexable(filePath) {
-			zipFileURL, err := url.Parse(item.Enclosure.URL)
-			if err != nil {
-				return err
-			}
-			zipCachePath := filepath.Join(s.Config.Main.CacheDir, zipFileURL.Path)
-			_, err = os.Stat(zipCachePath)
-			if err == nil {
-				reader, err := zip.OpenReader(zipCachePath)
-				if err != nil {
-					err = database.CreateIndexEvent(db, zipCachePath, "failed")
-					if err != nil {
-						return err
-					}
-					continue
-				}
-				defer reader.Close()
-
-				var currentFile *zip.File
-				for _, file := range reader.File {
-					if file.Name == v.File {
-						currentFile = file
-						break
-					}
-				}
-
-				fileBody, err = s.GetXbrlFileBodyFromZIPFile(currentFile, filePath)
-				if err != nil {
-					return err
-				}
-			}
-		}
-
-		if fileBody == "" && s.IsFileIndexable(filePath) {
+		if fileBody == "" {
 			eventErr := database.CreateIndexEvent(db, v.URL, "failed")
 			if eventErr != nil {
 				return eventErr
@@ -827,6 +806,7 @@ func (s *SEC) SecItemFileUpsert(db *sqlx.DB, item Item, currentCount *int, total
 			"xbrlinlinexbrl":     xbrlInline,
 			"xbrlurl":            v.URL,
 			"xbrlbody":           fileBody,
+			"xbrlhash":           dataHash,
 		})
 
 		*currentCount++
@@ -837,18 +817,22 @@ func (s *SEC) SecItemFileUpsert(db *sqlx.DB, item Item, currentCount *int, total
 			log.Info(fmt.Sprintf("[%d/%d/%f%%] %s inserted for current file...\n", *currentCount, totalCount, percentage, time.Now().Format("2006-01-02 03:04:05")))
 		}
 
-		eventErr := database.CreateIndexEvent(db, filePath, "success")
+		eventErr := database.CreateIndexEvent(db, v.URL, "success")
 		if eventErr != nil {
 			return eventErr
 		}
 	}
 
+	if len(secItemsFiles) == 0 {
+		return nil
+	}
+
 	_, err = db.NamedExec(`INSERT INTO sec.secItemFile
-	(title, link, guid, enclosure_url, enclosure_length, enclosure_type, description, pubdate, companyname, formtype, fillingdate, ciknumber, accessionnumber, filenumber, acceptancedatetime, period, assistantdirector, assignedsic, fiscalyearend, xbrlsequence, xbrlfile, xbrltype, xbrlsize, xbrldescription, xbrlinlinexbrl, xbrlurl, xbrlbody, created_at, updated_at)
+	(title, link, guid, enclosure_url, enclosure_length, enclosure_type, description, pubdate, companyname, formtype, fillingdate, ciknumber, accessionnumber, filenumber, acceptancedatetime, period, assistantdirector, assignedsic, fiscalyearend, xbrlsequence, xbrlfile, xbrltype, xbrlsize, xbrldescription, xbrlinlinexbrl, xbrlurl, xbrlbody, xbrlhash, created_at, updated_at)
 	VALUES
-	(:title, :link, :guid, :enclosure_url, :enclosure_length, :enclosure_type, :description, :pubdate, :companyname, :formtype, :fillingdate, :ciknumber, :accessionnumber, :filenumber, :acceptancedatetime, :period, :assistantdirector, :assignedsic, :fiscalyearend, :xbrlsequence, :xbrlfile, :xbrltype, :xbrlsize, :xbrldescription, :xbrlinlinexbrl, :xbrlurl, :xbrlbody, NOW(), NOW())
+	(:title, :link, :guid, :enclosure_url, :enclosure_length, :enclosure_type, :description, :pubdate, :companyname, :formtype, :fillingdate, :ciknumber, :accessionnumber, :filenumber, :acceptancedatetime, :period, :assistantdirector, :assignedsic, :fiscalyearend, :xbrlsequence, :xbrlfile, :xbrltype, :xbrlsize, :xbrldescription, :xbrlinlinexbrl, :xbrlurl, :xbrlbody, :xbrlhash, NOW(), NOW())
 	ON CONFLICT (xbrlsequence, xbrlfile, xbrltype, xbrlsize, xbrldescription, xbrlinlinexbrl, xbrlurl)
-	DO UPDATE SET title=EXCLUDED.title, link=EXCLUDED.link, guid=EXCLUDED.guid, enclosure_url=EXCLUDED.enclosure_url, enclosure_length=EXCLUDED.enclosure_length, enclosure_type=EXCLUDED.enclosure_type, description=EXCLUDED.description, pubdate=EXCLUDED.pubdate, companyname=EXCLUDED.companyname, formtype=EXCLUDED.formtype, fillingdate=EXCLUDED.fillingdate, ciknumber=EXCLUDED.ciknumber, accessionnumber=EXCLUDED.accessionnumber, filenumber=EXCLUDED.filenumber, acceptancedatetime=EXCLUDED.acceptancedatetime, period=EXCLUDED.period, assistantdirector=EXCLUDED.assistantdirector, assignedsic=EXCLUDED.assignedsic, fiscalyearend=EXCLUDED.fiscalyearend, xbrlsequence=EXCLUDED.xbrlsequence, xbrlfile=EXCLUDED.xbrlfile, xbrltype=EXCLUDED.xbrltype, xbrlsize=EXCLUDED.xbrlsize, xbrldescription=EXCLUDED.xbrldescription, xbrlinlinexbrl=EXCLUDED.xbrlinlinexbrl, xbrlurl=EXCLUDED.xbrlurl, updated_at=NOW()
+	DO UPDATE SET title=EXCLUDED.title, link=EXCLUDED.link, guid=EXCLUDED.guid, enclosure_url=EXCLUDED.enclosure_url, enclosure_length=EXCLUDED.enclosure_length, enclosure_type=EXCLUDED.enclosure_type, description=EXCLUDED.description, pubdate=EXCLUDED.pubdate, companyname=EXCLUDED.companyname, formtype=EXCLUDED.formtype, fillingdate=EXCLUDED.fillingdate, ciknumber=EXCLUDED.ciknumber, accessionnumber=EXCLUDED.accessionnumber, filenumber=EXCLUDED.filenumber, acceptancedatetime=EXCLUDED.acceptancedatetime, period=EXCLUDED.period, assistantdirector=EXCLUDED.assistantdirector, assignedsic=EXCLUDED.assignedsic, fiscalyearend=EXCLUDED.fiscalyearend, xbrlsequence=EXCLUDED.xbrlsequence, xbrlfile=EXCLUDED.xbrlfile, xbrltype=EXCLUDED.xbrltype, xbrlsize=EXCLUDED.xbrlsize, xbrldescription=EXCLUDED.xbrldescription, xbrlinlinexbrl=EXCLUDED.xbrlinlinexbrl, xbrlurl=EXCLUDED.xbrlurl, xbrlhash=EXCLUDED.xbrlhash, updated_at=NOW()
 	WHERE secItemFile.xbrlsequence=EXCLUDED.xbrlsequence AND secItemFile.xbrlfile=EXCLUDED.xbrlfile AND secItemFile.xbrltype=EXCLUDED.xbrltype AND secItemFile.xbrlsize=EXCLUDED.xbrlsize AND secItemFile.xbrldescription=EXCLUDED.xbrldescription AND secItemFile.xbrlinlinexbrl=EXCLUDED.xbrlinlinexbrl AND secItemFile.xbrlurl=EXCLUDED.xbrlurl AND secItemFile.xbrlbody=EXCLUDED.xbrlbody`, secItemsFiles)
 	if err != nil {
 		return err
@@ -875,7 +859,28 @@ func (s *SEC) IsFileTypeHTML(filename string) bool {
 	return false
 }
 
-func (s *SEC) GetXbrlFileBody(filePath string) (string, error) {
+func (s *SEC) GetXbrlFileBodyFromRawFile(fullURL string) (string, error) {
+	var fileBody string
+
+	fileUrl, err := url.Parse(fullURL)
+	if err != nil {
+		return "", err
+	}
+
+	filePath := filepath.Join(s.Config.Main.CacheDir, fileUrl.Path)
+	if !s.IsFileIndexable(filePath) {
+		return "", nil
+	}
+
+	_, err = os.Stat(filePath)
+	if err != nil {
+		filePath = filepath.Join(s.Config.Main.CacheDirUnpacked, fileUrl.Path)
+		_, err = os.Stat(filePath)
+		if err != nil {
+			return "", nil
+		}
+	}
+
 	xbrlFile, err := os.Open(filePath)
 	if err != nil {
 		return "", err
@@ -887,48 +892,44 @@ func (s *SEC) GetXbrlFileBody(filePath string) (string, error) {
 		return "", err
 	}
 
-	var fileBody string
+	fileBody = string(data)
 
-	if s.IsFileIndexable(filePath) {
-		fileBody = string(data)
-		if s.IsFileTypeHTML(filePath) {
-			fileBody, err = html2text.FromString(string(data))
-			if err != nil {
-				return "", err
-			}
+	if s.IsFileTypeHTML(filePath) {
+		fileBody, err = html2text.FromString(string(data))
+		if err != nil {
+			return "", err
 		}
 	}
+
 	return fileBody, nil
 }
 
-func (s *SEC) GetXbrlFileBodyFromZIPFile(currentFile *zip.File, filePath string) (string, error) {
-	if currentFile == nil {
-		return "", nil
-	}
+func (s SEC) GetSecItemFileHashes(db *sqlx.DB) (map[string]string, error) {
+	var hashesArray []sql.NullString
 
-	fileReader, err := currentFile.Open()
+	err := db.Select(&hashesArray, "SELECT xbrlhash from sec.secItemFile;")
 	if err != nil {
-		return "", err
+		return nil, err
 	}
 
-	stringBuilder := new(strings.Builder)
-	_, err = io.Copy(stringBuilder, fileReader)
-	if err != nil {
-		return "", err
-	}
-
-	var fileBody string
-	if s.IsFileIndexable(currentFile.Name) {
-		fileBody = stringBuilder.String()
-		if s.IsFileTypeHTML(filePath) {
-			fileBody, err = html2text.FromString(stringBuilder.String())
-			if err != nil {
-				return "", err
-			}
+	secItemFileHashes := make(map[string]string)
+	for _, hash := range hashesArray {
+		if hash.String == "" {
+			continue
 		}
+		secItemFileHashes[hash.String] = hash.String
 	}
 
-	return fileBody, nil
+	return secItemFileHashes, nil
+}
+
+func (s SEC) GenerateHash(data interface{}) (string, error) {
+	hash := sha256.New()
+	_, err := hash.Write([]byte(fmt.Sprintf("%v", data)))
+	if err != nil {
+		return "", err
+	}
+	return fmt.Sprintf("%x", hash.Sum(nil)), nil
 }
 
 func ParseYearMonth(yearMonth string) (year int, month int, err error) {
