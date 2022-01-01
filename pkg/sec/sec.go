@@ -5,7 +5,6 @@ package sec
 import (
 	"archive/zip"
 	"bytes"
-	"crypto/sha256"
 	"database/sql"
 	"encoding/csv"
 	"encoding/json"
@@ -24,6 +23,7 @@ import (
 
 	log "github.com/sirupsen/logrus"
 
+	"github.com/OneOfOne/xxhash"
 	"github.com/equres/sec/pkg/config"
 	"github.com/equres/sec/pkg/database"
 	"github.com/equres/sec/pkg/download"
@@ -745,25 +745,6 @@ func (s *SEC) SecItemFileUpsert(db *sqlx.DB, item Item, currentCount *int, total
 			}
 		}
 
-		dataHash, err := s.GenerateHash(map[string]interface{}{
-			"xbrlsequence":    fmt.Sprintf("%d", xbrlSequence),
-			"xbrlfile":        v.File,
-			"xbrltype":        v.Type,
-			"xbrlsize":        xbrlSize,
-			"xbrldescription": v.Description,
-			"xbrlinlinexbrl":  xbrlInline,
-			"xbrlurl":         v.URL,
-		})
-		if err != nil {
-			return err
-		}
-
-		if _, ok := secItemFileHashes[dataHash]; ok {
-			// Skip file if the hash has not changed but add to currentCount to keep track
-			*currentCount++
-			continue
-		}
-
 		var fileBody string
 
 		fileBody, err = s.GetXbrlFileBodyFromRawFile(v.URL)
@@ -776,6 +757,24 @@ func (s *SEC) SecItemFileUpsert(db *sqlx.DB, item Item, currentCount *int, total
 			if eventErr != nil {
 				return eventErr
 			}
+		}
+
+		var dataHash string
+		if fileBody != "" {
+			dataHash, err = s.GenerateHash(fileBody)
+			if err != nil {
+				return err
+			}
+
+			if _, ok := secItemFileHashes[dataHash]; ok {
+				// Skip file if the hash has not changed but add to currentCount to keep track
+				*currentCount++
+				continue
+			}
+		}
+
+		if !s.IsFileIndexable(v.URL) {
+			fileBody = ""
 		}
 
 		secItemsFiles = append(secItemsFiles, map[string]interface{}{
@@ -868,9 +867,6 @@ func (s *SEC) GetXbrlFileBodyFromRawFile(fullURL string) (string, error) {
 	}
 
 	filePath := filepath.Join(s.Config.Main.CacheDir, fileUrl.Path)
-	if !s.IsFileIndexable(filePath) {
-		return "", nil
-	}
 
 	_, err = os.Stat(filePath)
 	if err != nil {
@@ -923,13 +919,16 @@ func (s SEC) GetSecItemFileHashes(db *sqlx.DB) (map[string]string, error) {
 	return secItemFileHashes, nil
 }
 
-func (s SEC) GenerateHash(data interface{}) (string, error) {
-	hash := sha256.New()
-	_, err := hash.Write([]byte(fmt.Sprintf("%v", data)))
+func (s SEC) GenerateHash(data string) (string, error) {
+	hash := xxhash.New64()
+
+	r := strings.NewReader(data)
+
+	_, err := io.Copy(hash, r)
 	if err != nil {
 		return "", err
 	}
-	return fmt.Sprintf("%x", hash.Sum(nil)), nil
+	return fmt.Sprintf("%x", hash.Sum64()), nil
 }
 
 func ParseYearMonth(yearMonth string) (year int, month int, err error) {

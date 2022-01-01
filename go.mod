@@ -3,6 +3,7 @@ module github.com/equres/sec
 go 1.16
 
 require (
+	github.com/OneOfOne/xxhash v1.2.8 // indirect
 	github.com/adrg/xdg v0.3.3
 	github.com/dustin/go-humanize v1.0.0
 	github.com/gocarina/gocsv v0.0.0-20210516172204-ca9e8a8ddea8
