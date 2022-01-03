@@ -26,6 +26,7 @@ import (
 	"github.com/equres/sec/pkg/config"
 	"github.com/equres/sec/pkg/database"
 	"github.com/equres/sec/pkg/download"
+	"github.com/equres/sec/pkg/secworklist"
 	"github.com/gocarina/gocsv"
 	"github.com/jmoiron/sqlx"
 	"golang.org/x/net/html/charset"
@@ -118,12 +119,6 @@ type XbrlFile struct {
 type ExchangesFile struct {
 	Fields []string        `json:"fields"`
 	Data   [][]interface{} `json:"data"`
-}
-
-type Worklist struct {
-	Year         int  `db:"year"`
-	Month        int  `db:"month"`
-	WillDownload bool `db:"will_download"`
 }
 
 type SECItemFile struct {
@@ -573,7 +568,7 @@ func (s *SEC) ParseRSSGoXML(path string) (RSSFile, error) {
 }
 
 func (s *SEC) DownloadIndex(db *sqlx.DB) error {
-	worklist, err := WorklistWillDownloadGet(db)
+	worklist, err := secworklist.WorklistWillDownloadGet(db)
 	if err != nil {
 		return err
 	}
@@ -645,23 +640,6 @@ func (s *SEC) CalculateRSSFilesZIP(rssFile RSSFile) (int, error) {
 		}
 	}
 	return totalSize, nil
-}
-
-func SaveWorklist(year int, month int, willDownload bool, db *sqlx.DB) error {
-	_, err := db.Exec(`
-		INSERT INTO sec.worklist (year, month, will_download, created_at, updated_at) 
-		VALUES ($1, $2, $3, NOW(), NOW()) 
-		ON CONFLICT (month, year) 
-		DO UPDATE SET
-			will_download = EXCLUDED.will_download,
-			updated_at=NOW() 
-		WHERE 1=1
-		AND worklist.year=EXCLUDED.year
-		AND worklist.month=EXCLUDED.month ;`, year, month, willDownload)
-	if err != nil {
-		return err
-	}
-	return nil
 }
 
 func (s *SEC) SecItemFileUpsert(db *sqlx.DB, item Item) error {
@@ -914,7 +892,7 @@ func ParseYearMonth(yearMonth string) (year int, month int, err error) {
 	return year, month, nil
 }
 
-func (s *SEC) TotalXbrlFileCountGet(worklist []Worklist, cacheDir string) (int, error) {
+func (s *SEC) TotalXbrlFileCountGet(worklist []secworklist.Worklist, cacheDir string) (int, error) {
 	var totalCount int
 	for _, v := range worklist {
 		filepath, err := s.FormatFilePathDate(cacheDir, v.Year, v.Month)
@@ -1003,7 +981,7 @@ func (s *SEC) Downloadability(db *sqlx.DB, year int, month int, willDownload boo
 	var err error
 
 	if month != 0 {
-		err = SaveWorklist(year, month, willDownload, db)
+		err = secworklist.SaveWorklist(year, month, willDownload, db)
 		if err != nil {
 			return err
 		}
@@ -1021,45 +999,12 @@ func (s *SEC) Downloadability(db *sqlx.DB, year int, month int, willDownload boo
 	}
 
 	for i := firstMonthAvailable; i <= lastMonthAvailable; i++ {
-		err = SaveWorklist(year, i, willDownload, db)
+		err = secworklist.SaveWorklist(year, i, willDownload, db)
 		if err != nil {
 			return err
 		}
 	}
 	return nil
-}
-
-func WorklistWillDownloadGet(db *sqlx.DB) ([]Worklist, error) {
-	// Retrieve from DB
-	var worklist []Worklist
-
-	err := db.Select(&worklist, "SELECT year, month, will_download FROM sec.worklist WHERE will_download = true ORDER BY year, month ASC")
-	if err != nil {
-		return nil, err
-	}
-	return worklist, nil
-}
-
-func UniqueYearsInWorklist(db *sqlx.DB) ([]int, error) {
-	// Retrieve from DB
-	var worklistYears []int
-
-	err := db.Select(&worklistYears, "SELECT DISTINCT year FROM sec.worklist WHERE will_download = true ORDER BY year ASC")
-	if err != nil {
-		return nil, err
-	}
-	return worklistYears, nil
-}
-
-func MonthsInYearInWorklist(db *sqlx.DB, year int) ([]int, error) {
-	// Retrieve from DB
-	var worklistMonths []int
-
-	err := db.Select(&worklistMonths, "SELECT month FROM sec.worklist WHERE will_download = true AND year = $1 ORDER BY year ASC", year)
-	if err != nil {
-		return nil, err
-	}
-	return worklistMonths, nil
 }
 
 func (s *SEC) ZIPContentUpsert(db *sqlx.DB, pathname string, files []*zip.File) error {
@@ -1256,7 +1201,7 @@ func (s *SEC) FormatFilePathDate(basepath string, year int, month int) (string, 
 	return filePath, nil
 }
 
-func (s *SEC) DownloadAllItemFiles(db *sqlx.DB, rssFile RSSFile, worklist []Worklist) error {
+func (s *SEC) DownloadAllItemFiles(db *sqlx.DB, rssFile RSSFile, worklist []secworklist.Worklist) error {
 	if s.Verbose {
 		log.Info("Calculating number of XBRL Files in the index files: ")
 	}
@@ -1279,8 +1224,8 @@ func (s *SEC) DownloadAllItemFiles(db *sqlx.DB, rssFile RSSFile, worklist []Work
 	return nil
 }
 
-func (s *SEC) ForEachWorklist(db *sqlx.DB, implementFunc func(*sqlx.DB, RSSFile, []Worklist) error, verboseMessage string) error {
-	worklist, err := WorklistWillDownloadGet(db)
+func (s *SEC) ForEachWorklist(db *sqlx.DB, implementFunc func(*sqlx.DB, RSSFile, []secworklist.Worklist) error, verboseMessage string) error {
+	worklist, err := secworklist.WorklistWillDownloadGet(db)
 	if err != nil {
 		return err
 	}
@@ -1324,7 +1269,7 @@ func (s *SEC) DownloadZIPFiles(db *sqlx.DB) error {
 		return err
 	}
 
-	worklist, err := WorklistWillDownloadGet(db)
+	worklist, err := secworklist.WorklistWillDownloadGet(db)
 	if err != nil {
 		return err
 	}
@@ -1388,7 +1333,7 @@ func (s *SEC) DownloadZIPFiles(db *sqlx.DB) error {
 	return nil
 }
 
-func (s *SEC) IndexZIPFileContent(db *sqlx.DB, rssFile RSSFile, worklist []Worklist) error {
+func (s *SEC) IndexZIPFileContent(db *sqlx.DB, rssFile RSSFile, worklist []secworklist.Worklist) error {
 	totalCount := len(rssFile.Channel.Item)
 	currentCount := 0
 	for _, v1 := range rssFile.Channel.Item {
@@ -1438,7 +1383,7 @@ func (s *SEC) IndexZIPFileContent(db *sqlx.DB, rssFile RSSFile, worklist []Workl
 	return nil
 }
 
-func (s *SEC) UnzipFiles(db *sqlx.DB, rssFile RSSFile, worklist []Worklist) error {
+func (s *SEC) UnzipFiles(db *sqlx.DB, rssFile RSSFile, worklist []secworklist.Worklist) error {
 	totalCount := len(rssFile.Channel.Item)
 	currentCount := 0
 	for _, v1 := range rssFile.Channel.Item {
@@ -1481,7 +1426,7 @@ func (s *SEC) UnzipFiles(db *sqlx.DB, rssFile RSSFile, worklist []Worklist) erro
 	return nil
 }
 
-func (s *SEC) InsertAllSecItemFile(db *sqlx.DB, rssFiles []RSSFile, worklist []Worklist, totalCount int) error {
+func (s *SEC) InsertAllSecItemFile(db *sqlx.DB, rssFiles []RSSFile, worklist []secworklist.Worklist, totalCount int) error {
 	currentCount := 0
 	for _, rssFile := range rssFiles {
 		for _, v1 := range rssFile.Channel.Item {
@@ -1504,7 +1449,7 @@ func (s *SEC) InsertAllSecItemFile(db *sqlx.DB, rssFiles []RSSFile, worklist []W
 }
 
 func (s *SEC) DownloadFinancialStatementDataSets(db *sqlx.DB) error {
-	worklist, err := WorklistWillDownloadGet(db)
+	worklist, err := secworklist.WorklistWillDownloadGet(db)
 	if err != nil {
 		return err
 	}
@@ -1871,7 +1816,7 @@ func GetSuccessfulDownloadEventCount(db *sqlx.DB) (int, error) {
 	return 0, nil
 }
 
-func (s SEC) GetTotalZIPFilesToBeDownloaded(db *sqlx.DB, worklist []Worklist) (int, error) {
+func (s SEC) GetTotalZIPFilesToBeDownloaded(db *sqlx.DB, worklist []secworklist.Worklist) (int, error) {
 	if s.Verbose {
 		log.Info("Getting Number of ZIP Files To Be Downloaded...")
 	}
