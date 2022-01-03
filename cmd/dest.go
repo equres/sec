@@ -36,7 +36,9 @@ var destCmd = &cobra.Command{
 
 		var totalSize float64
 		var totalSizeZIP int
-		for _, v := range worklist {
+		totalSizeForYear := make(map[int]float64)
+		totalSizeZIPForYear := make(map[int]int)
+		for k, v := range worklist {
 			filePath, err := S.FormatFilePathDate(S.Config.Main.CacheDir, v.Year, v.Month)
 			if err != nil {
 				return err
@@ -45,10 +47,6 @@ var destCmd = &cobra.Command{
 			_, err = downloader.FileInCache(filePath)
 			if err != nil {
 				return fmt.Errorf("please run sec dow index to download the necessary files then run sec dest again")
-			}
-
-			if S.Verbose {
-				log.Info(fmt.Sprintf("%v", filepath.Base(filePath)), "\t\t")
 			}
 
 			rssFile, err := S.ParseRSSGoXML(filePath)
@@ -71,9 +69,6 @@ var destCmd = &cobra.Command{
 					fileSize += val
 				}
 			}
-			if S.Verbose {
-				log.Info(parseSize(fileSize), "\t\t")
-			}
 
 			fileSizeZIP, err := S.CalculateRSSFilesZIP(rssFile)
 			if err != nil {
@@ -81,14 +76,28 @@ var destCmd = &cobra.Command{
 			}
 
 			if S.Verbose {
-				log.Info(parseSize(float64(fileSizeZIP)), "\t\t", "\n")
+				log.Info(fmt.Sprintf("%v - %v - %v", filepath.Base(filePath), parseSize(fileSize), parseSize(float64(fileSizeZIP))))
 			}
+
+			if _, ok := totalSizeForYear[v.Year]; !ok {
+				totalSizeForYear[v.Year] = 0
+				totalSizeZIPForYear[v.Year] = 0
+			}
+
+			totalSizeForYear[v.Year] += fileSize
+			totalSizeZIPForYear[v.Year] += fileSizeZIP
 
 			totalSize += fileSize
 			totalSizeZIP += fileSizeZIP
+
+			if v.Month == 12 || len(worklist)-1 == k {
+				if S.Verbose {
+					log.Info(fmt.Sprintf("Year %v - %v - %v", v.Year, parseSize(totalSizeForYear[v.Year]), parseSize(float64(totalSizeZIPForYear[v.Year]))))
+				}
+			}
 		}
 
-		log.Info("Total Size", "\t\t", parseSize(totalSize), "\t\t", parseSize(float64(totalSizeZIP)), "\n")
+		log.Info("Total Size", " - ", parseSize(totalSize), " - ", parseSize(float64(totalSizeZIP)), "\n")
 		return nil
 	},
 }
