@@ -11,8 +11,8 @@ import (
 	"github.com/equres/sec/pkg/database"
 	"github.com/equres/sec/pkg/download"
 	"github.com/equres/sec/pkg/sec"
-	"github.com/equres/sec/pkg/secworklist"
 	"github.com/equres/sec/pkg/secextra"
+	"github.com/equres/sec/pkg/secworklist"
 	"github.com/spf13/cobra"
 )
 
@@ -58,7 +58,7 @@ var indexCmd = &cobra.Command{
 			}
 		}
 
-		worklist, err := secworklist.WorklistWillDownloadGet(DB)
+		worklist, err := secworklist.WillDownloadGet(DB)
 		if err != nil {
 			return err
 		}

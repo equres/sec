@@ -479,7 +479,7 @@ func (s *SEC) ParseRSSGoXML(path string) (RSSFile, error) {
 }
 
 func (s *SEC) DownloadIndex(db *sqlx.DB) error {
-	worklist, err := secworklist.WorklistWillDownloadGet(db)
+	worklist, err := secworklist.WillDownloadGet(db)
 	if err != nil {
 		return err
 	}
@@ -893,7 +893,7 @@ func (s *SEC) Downloadability(db *sqlx.DB, year int, month int, willDownload boo
 	var err error
 
 	if month != 0 {
-		err = secworklist.SaveWorklist(year, month, willDownload, db)
+		err = secworklist.Save(year, month, willDownload, db)
 		if err != nil {
 			return err
 		}
@@ -911,7 +911,7 @@ func (s *SEC) Downloadability(db *sqlx.DB, year int, month int, willDownload boo
 	}
 
 	for i := firstMonthAvailable; i <= lastMonthAvailable; i++ {
-		err = secworklist.SaveWorklist(year, i, willDownload, db)
+		err = secworklist.Save(year, i, willDownload, db)
 		if err != nil {
 			return err
 		}
@@ -1139,7 +1139,7 @@ func (s *SEC) DownloadAllItemFiles(db *sqlx.DB, rssFile RSSFile, worklist []secw
 }
 
 func (s *SEC) ForEachWorklist(db *sqlx.DB, implementFunc func(*sqlx.DB, RSSFile, []secworklist.Worklist) error, verboseMessage string) error {
-	worklist, err := secworklist.WorklistWillDownloadGet(db)
+	worklist, err := secworklist.WillDownloadGet(db)
 	if err != nil {
 		return err
 	}
@@ -1183,7 +1183,7 @@ func (s *SEC) DownloadZIPFiles(db *sqlx.DB) error {
 		return err
 	}
 
-	worklist, err := secworklist.WorklistWillDownloadGet(db)
+	worklist, err := secworklist.WillDownloadGet(db)
 	if err != nil {
 		return err
 	}
@@ -1363,7 +1363,7 @@ func (s *SEC) InsertAllSecItemFile(db *sqlx.DB, rssFiles []RSSFile, worklist []s
 }
 
 func (s *SEC) DownloadFinancialStatementDataSets(db *sqlx.DB) error {
-	worklist, err := secworklist.WorklistWillDownloadGet(db)
+	worklist, err := secworklist.WillDownloadGet(db)
 	if err != nil {
 		return err
 	}
