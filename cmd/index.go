@@ -12,6 +12,7 @@ import (
 	"github.com/equres/sec/pkg/download"
 	"github.com/equres/sec/pkg/sec"
 	"github.com/equres/sec/pkg/secworklist"
+	"github.com/equres/sec/pkg/secextra"
 	"github.com/spf13/cobra"
 )
 
@@ -51,7 +52,7 @@ var indexCmd = &cobra.Command{
 		}
 
 		if S.Config.IndexMode.FinancialStatementDataSets == "enabled" || S.Config.IndexMode.FinancialStatementDataSets == "true" {
-			err = S.IndexFinancialStatementDataSets(DB)
+			err = secextra.IndexFinancialStatementDataSets(S, DB)
 			if err != nil {
 				return err
 			}
