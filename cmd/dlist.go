@@ -9,7 +9,7 @@ import (
 	log "github.com/sirupsen/logrus"
 
 	"github.com/equres/sec/pkg/database"
-	"github.com/equres/sec/pkg/sec"
+	"github.com/equres/sec/pkg/secworklist"
 	"github.com/spf13/cobra"
 )
 
@@ -29,7 +29,7 @@ to quickly create a Cobra application.`,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		log.Info("Year/Month that will be downloaded:")
 
-		worklist, err := sec.WorklistWillDownloadGet(DB)
+		worklist, err := secworklist.WorklistWillDownloadGet(DB)
 		if err != nil {
 			return err
 		}
@@ -38,7 +38,7 @@ to quickly create a Cobra application.`,
 			return worklist[i].Year < worklist[j].Year
 		})
 
-		worklistMap := make(map[string]sec.Worklist)
+		worklistMap := make(map[string]secworklist.Worklist)
 
 		years := make(map[int]struct{})
 
