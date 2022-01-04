@@ -652,7 +652,6 @@ func (s *SEC) SecItemFileUpsert(db *sqlx.DB, item Item) error {
 				}
 				continue
 			}
-			defer reader.Close()
 
 			var currentFile *zip.File
 			for _, file := range reader.File {
@@ -666,6 +665,8 @@ func (s *SEC) SecItemFileUpsert(db *sqlx.DB, item Item) error {
 			if err != nil {
 				return err
 			}
+
+			reader.Close()
 		}
 
 		if fileBody == "" && s.IsFileIndexable(filePath) {
@@ -949,13 +950,15 @@ func (s *SEC) ZIPContentUpsert(db *sqlx.DB, pathname string, files []*zip.File) 
 		if err != nil {
 			return err
 		}
-		defer reader.Close()
 
 		buf := bytes.Buffer{}
 		_, err = buf.ReadFrom(reader)
 		if err != nil {
 			return err
 		}
+
+		reader.Close()
+
 		var xbrlBody string
 
 		if s.IsFileIndexable(file.FileInfo().Name()) {
