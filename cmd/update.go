@@ -3,6 +3,7 @@ package cmd
 
 import (
 	"github.com/equres/sec/pkg/database"
+	"github.com/equres/sec/pkg/secticker"
 	"github.com/spf13/cobra"
 )
 
@@ -16,7 +17,7 @@ var updateCmd = &cobra.Command{
 		return database.CheckMigration(RootConfig)
 	},
 	RunE: func(cmd *cobra.Command, args []string) error {
-		err := S.TickerUpdateAll(DB)
+		err := secticker.TickerUpdateAll(S, DB)
 		if err != nil {
 			return err
 		}

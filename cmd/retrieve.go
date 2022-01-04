@@ -4,6 +4,7 @@ import (
 	log "github.com/sirupsen/logrus"
 
 	"github.com/equres/sec/pkg/database"
+	"github.com/equres/sec/pkg/secticker"
 	"github.com/spf13/cobra"
 )
 
@@ -17,7 +18,7 @@ var retrieveCmd = &cobra.Command{
 	},
 	RunE: func(cmd *cobra.Command, args []string) error {
 		// Retrieving all SecTickers
-		tickers, err := S.TickersGetAll(DB)
+		tickers, err := secticker.TickersGetAll(DB)
 		if err != nil {
 			return err
 		}
