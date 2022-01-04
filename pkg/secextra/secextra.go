@@ -106,7 +106,6 @@ func IndexFinancialStatementDataSets(s *sec.SEC, db *sqlx.DB) error {
 		if err != nil {
 			return err
 		}
-		defer reader.Close()
 
 		err = FinancialStatementDataSetsZIPUpsert(s, db, filesPath, reader.File)
 		if err != nil {
@@ -116,6 +115,9 @@ func IndexFinancialStatementDataSets(s *sec.SEC, db *sqlx.DB) error {
 			}
 			return err
 		}
+
+		reader.Close()
+
 		if s.Verbose {
 			log.Info("\u2713")
 		}
@@ -161,12 +163,13 @@ func FinancialStatementDataSetsZIPUpsert(s *sec.SEC, db *sqlx.DB, pathname strin
 			}
 			return err
 		}
-		defer reader.Close()
 
 		err = upsertFunc(s, db, reader)
 		if err != nil {
 			return err
 		}
+
+		reader.Close()
 	}
 	eventErr := database.CreateIndexEvent(db, pathname, "failed")
 	if eventErr != nil {

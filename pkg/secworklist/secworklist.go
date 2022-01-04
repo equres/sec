@@ -8,7 +8,7 @@ type Worklist struct {
 	WillDownload bool `db:"will_download"`
 }
 
-func WorklistWillDownloadGet(db *sqlx.DB) ([]Worklist, error) {
+func WillDownloadGet(db *sqlx.DB) ([]Worklist, error) {
 	// Retrieve from DB
 	var worklist []Worklist
 
@@ -19,7 +19,7 @@ func WorklistWillDownloadGet(db *sqlx.DB) ([]Worklist, error) {
 	return worklist, nil
 }
 
-func UniqueYearsInWorklist(db *sqlx.DB) ([]int, error) {
+func UniqueYears(db *sqlx.DB) ([]int, error) {
 	// Retrieve from DB
 	var worklistYears []int
 
@@ -30,7 +30,7 @@ func UniqueYearsInWorklist(db *sqlx.DB) ([]int, error) {
 	return worklistYears, nil
 }
 
-func MonthsInYearInWorklist(db *sqlx.DB, year int) ([]int, error) {
+func MonthsInYear(db *sqlx.DB, year int) ([]int, error) {
 	// Retrieve from DB
 	var worklistMonths []int
 
@@ -41,7 +41,7 @@ func MonthsInYearInWorklist(db *sqlx.DB, year int) ([]int, error) {
 	return worklistMonths, nil
 }
 
-func SaveWorklist(year int, month int, willDownload bool, db *sqlx.DB) error {
+func Save(year int, month int, willDownload bool, db *sqlx.DB) error {
 	_, err := db.Exec(`
 		INSERT INTO sec.worklist (year, month, will_download, created_at, updated_at) 
 		VALUES ($1, $2, $3, NOW(), NOW()) 

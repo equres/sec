@@ -17,6 +17,7 @@ import (
 
 	humanize "github.com/dustin/go-humanize"
 	"github.com/equres/sec/pkg/sec"
+	"github.com/equres/sec/pkg/seccik"
 	"github.com/equres/sec/pkg/secworklist"
 	"github.com/gorilla/mux"
 )
@@ -75,7 +76,7 @@ func (s Server) HandlerHome(w http.ResponseWriter, r *http.Request) {
 	}
 	content["RecentFilings"] = recentFilingsFormatted
 
-	content["Years"], err = secworklist.UniqueYearsInWorklist(s.DB)
+	content["Years"], err = secworklist.UniqueYears(s.DB)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
@@ -110,7 +111,7 @@ func (s Server) HandlerMonthsPage(w http.ResponseWriter, r *http.Request) {
 
 	content := make(map[string]interface{})
 	content["Year"] = year
-	content["Months"], err = secworklist.MonthsInYearInWorklist(s.DB, year)
+	content["Months"], err = secworklist.MonthsInYear(s.DB, year)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
@@ -248,7 +249,7 @@ func (s Server) HandlerFilingsPage(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	companyName, err := secVar.GetCompanyNameFromCIK(s.DB, cik)
+	companyName, err := seccik.GetCompanyNameFromCIK(s.DB, cik)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return

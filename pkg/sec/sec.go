@@ -23,6 +23,7 @@ import (
 	"github.com/equres/sec/pkg/config"
 	"github.com/equres/sec/pkg/database"
 	"github.com/equres/sec/pkg/download"
+	"github.com/equres/sec/pkg/seccik"
 	"github.com/equres/sec/pkg/secworklist"
 	"github.com/jmoiron/sqlx"
 	"golang.org/x/net/html/charset"
@@ -158,12 +159,23 @@ func NewSEC(config config.Config) (*SEC, error) {
 	}, nil
 }
 
-func SaveCIK(db *sqlx.DB, cik int) error {
+
+func (t SecTicker) Save(db *sqlx.DB) error {
 	_, err := db.Exec(`
-		INSERT INTO sec.ciks (cik, created_at, updated_at) 
-		VALUES ($1,NOW(), NOW()) 
-		ON CONFLICT (cik) 
-		DO NOTHING;`, cik)
+		INSERT INTO sec.tickers (cik, ticker, title, exchange, created_at, updated_at) 
+		VALUES ($1, $2, $3, $4, NOW(), NOW()) 
+		ON CONFLICT (cik, ticker, title) 
+		DO UPDATE SET
+			cik=EXCLUDED.cik,
+			ticker=EXCLUDED.ticker,
+			title=EXCLUDED.title,
+			exchange=EXCLUDED.exchange,
+			updated_at=NOW() 
+		WHERE 1=1
+		AND tickers.cik=EXCLUDED.cik
+		AND tickers.ticker=EXCLUDED.ticker
+		AND tickers.title=EXCLUDED.title
+		AND tickers.exchange = '';`, t.Cik, t.Ticker, t.Title, t.Exchange)
 	if err != nil {
 		return err
 	}
@@ -280,7 +292,7 @@ func (s *SEC) ParseRSSGoXML(path string) (RSSFile, error) {
 }
 
 func (s *SEC) DownloadIndex(db *sqlx.DB) error {
-	worklist, err := secworklist.WorklistWillDownloadGet(db)
+	worklist, err := secworklist.WillDownloadGet(db)
 	if err != nil {
 		return err
 	}
@@ -453,7 +465,6 @@ func (s *SEC) SecItemFileUpsert(db *sqlx.DB, item Item) error {
 				}
 				continue
 			}
-			defer reader.Close()
 
 			var currentFile *zip.File
 			for _, file := range reader.File {
@@ -467,6 +478,8 @@ func (s *SEC) SecItemFileUpsert(db *sqlx.DB, item Item) error {
 			if err != nil {
 				return err
 			}
+
+			reader.Close()
 		}
 
 		if fileBody == "" && s.IsFileIndexable(filePath) {
@@ -693,7 +706,7 @@ func (s *SEC) Downloadability(db *sqlx.DB, year int, month int, willDownload boo
 	var err error
 
 	if month != 0 {
-		err = secworklist.SaveWorklist(year, month, willDownload, db)
+		err = secworklist.Save(year, month, willDownload, db)
 		if err != nil {
 			return err
 		}
@@ -711,7 +724,7 @@ func (s *SEC) Downloadability(db *sqlx.DB, year int, month int, willDownload boo
 	}
 
 	for i := firstMonthAvailable; i <= lastMonthAvailable; i++ {
-		err = secworklist.SaveWorklist(year, i, willDownload, db)
+		err = secworklist.Save(year, i, willDownload, db)
 		if err != nil {
 			return err
 		}
@@ -750,13 +763,15 @@ func (s *SEC) ZIPContentUpsert(db *sqlx.DB, pathname string, files []*zip.File) 
 		if err != nil {
 			return err
 		}
-		defer reader.Close()
 
 		buf := bytes.Buffer{}
 		_, err = buf.ReadFrom(reader)
 		if err != nil {
 			return err
 		}
+
+		reader.Close()
+
 		var xbrlBody string
 
 		if s.IsFileIndexable(file.FileInfo().Name()) {
@@ -937,7 +952,7 @@ func (s *SEC) DownloadAllItemFiles(db *sqlx.DB, rssFile RSSFile, worklist []secw
 }
 
 func (s *SEC) ForEachWorklist(db *sqlx.DB, implementFunc func(*sqlx.DB, RSSFile, []secworklist.Worklist) error, verboseMessage string) error {
-	worklist, err := secworklist.WorklistWillDownloadGet(db)
+	worklist, err := secworklist.WillDownloadGet(db)
 	if err != nil {
 		return err
 	}
@@ -981,7 +996,7 @@ func (s *SEC) DownloadZIPFiles(db *sqlx.DB) error {
 		return err
 	}
 
-	worklist, err := secworklist.WorklistWillDownloadGet(db)
+	worklist, err := secworklist.WillDownloadGet(db)
 	if err != nil {
 		return err
 	}
@@ -1161,7 +1176,7 @@ func (s *SEC) InsertAllSecItemFile(db *sqlx.DB, rssFiles []RSSFile, worklist []s
 }
 
 func (s *SEC) DownloadFinancialStatementDataSets(db *sqlx.DB) error {
-	worklist, err := secworklist.WorklistWillDownloadGet(db)
+	worklist, err := secworklist.WillDownloadGet(db)
 	if err != nil {
 		return err
 	}
@@ -1312,20 +1327,6 @@ func (s SEC) GetTotalZIPFilesToBeDownloaded(db *sqlx.DB, worklist []secworklist.
 		log.Info("There is a total of ", totalZIPFilesToBeDownloaded, " ZIP files to be downloaded.")
 	}
 	return totalZIPFilesToBeDownloaded, nil
-}
-
-func (s SEC) GetCompanyNameFromCIK(db *sqlx.DB, cik int) (string, error) {
-	var companyNames []string
-	err := db.Select(&companyNames, "SELECT title FROM sec.tickers WHERE cik = $1", cik)
-	if err != nil {
-		return "", err
-	}
-
-	if len(companyNames) < 1 {
-		return "", nil
-	}
-
-	return companyNames[0], nil
 }
 
 func GetFiveRecentFilings(db *sqlx.DB) ([]SECItemFile, error) {
