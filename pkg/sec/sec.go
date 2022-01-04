@@ -23,7 +23,6 @@ import (
 	"github.com/equres/sec/pkg/config"
 	"github.com/equres/sec/pkg/database"
 	"github.com/equres/sec/pkg/download"
-	"github.com/equres/sec/pkg/seccik"
 	"github.com/equres/sec/pkg/secworklist"
 	"github.com/jmoiron/sqlx"
 	"golang.org/x/net/html/charset"
@@ -157,29 +156,6 @@ func NewSEC(config config.Config) (*SEC, error) {
 		BaseURL: config.Main.BaseURL,
 		Config:  config,
 	}, nil
-}
-
-
-func (t SecTicker) Save(db *sqlx.DB) error {
-	_, err := db.Exec(`
-		INSERT INTO sec.tickers (cik, ticker, title, exchange, created_at, updated_at) 
-		VALUES ($1, $2, $3, $4, NOW(), NOW()) 
-		ON CONFLICT (cik, ticker, title) 
-		DO UPDATE SET
-			cik=EXCLUDED.cik,
-			ticker=EXCLUDED.ticker,
-			title=EXCLUDED.title,
-			exchange=EXCLUDED.exchange,
-			updated_at=NOW() 
-		WHERE 1=1
-		AND tickers.cik=EXCLUDED.cik
-		AND tickers.ticker=EXCLUDED.ticker
-		AND tickers.title=EXCLUDED.title
-		AND tickers.exchange = '';`, t.Cik, t.Ticker, t.Title, t.Exchange)
-	if err != nil {
-		return err
-	}
-	return nil
 }
 
 func (s *SEC) FetchFile(urlVar string) ([]byte, error) {

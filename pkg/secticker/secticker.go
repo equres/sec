@@ -9,6 +9,7 @@ import (
 
 	"github.com/equres/sec/pkg/database"
 	"github.com/equres/sec/pkg/sec"
+	"github.com/equres/sec/pkg/seccik"
 	"github.com/jmoiron/sqlx"
 	log "github.com/sirupsen/logrus"
 )
@@ -91,7 +92,7 @@ func NoExchangeTickersGet(s *sec.SEC, db *sqlx.DB) error {
 	}
 
 	for _, v := range allCompanyTickers {
-		err = sec.SaveCIK(db, v.Cik)
+		err = seccik.SaveCIK(db, v.Cik)
 		if err != nil {
 			eventErr := database.CreateIndexEvent(db, "company_tickers.json", "failed")
 			if eventErr != nil {
@@ -154,7 +155,7 @@ func ExchangeTickersGet(s *sec.SEC, db *sqlx.DB) error {
 	}
 
 	for _, v := range fileExchange.Data {
-		err = sec.SaveCIK(db, int(v[0].(float64)))
+		err = seccik.SaveCIK(db, int(v[0].(float64)))
 		if err != nil {
 			eventErr := database.CreateIndexEvent(db, "company_tickers_exchange.json", "failed")
 			if eventErr != nil {
