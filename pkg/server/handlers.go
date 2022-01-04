@@ -75,7 +75,7 @@ func (s Server) HandlerHome(w http.ResponseWriter, r *http.Request) {
 	}
 	content["RecentFilings"] = recentFilingsFormatted
 
-	content["Years"], err = secworklist.UniqueYearsInWorklist(s.DB)
+	content["Years"], err = secworklist.UniqueYears(s.DB)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
@@ -110,7 +110,7 @@ func (s Server) HandlerMonthsPage(w http.ResponseWriter, r *http.Request) {
 
 	content := make(map[string]interface{})
 	content["Year"] = year
-	content["Months"], err = secworklist.MonthsInYearInWorklist(s.DB, year)
+	content["Months"], err = secworklist.MonthsInYear(s.DB, year)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
