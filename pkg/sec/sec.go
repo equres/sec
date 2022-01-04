@@ -24,6 +24,7 @@ import (
 	"github.com/equres/sec/pkg/config"
 	"github.com/equres/sec/pkg/database"
 	"github.com/equres/sec/pkg/download"
+	"github.com/equres/sec/pkg/seccik"
 	"github.com/equres/sec/pkg/secworklist"
 	"github.com/jmoiron/sqlx"
 	"golang.org/x/net/html/charset"
@@ -199,18 +200,6 @@ func (t SecTicker) Save(db *sqlx.DB) error {
 	return nil
 }
 
-func SaveCIK(db *sqlx.DB, cik int) error {
-	_, err := db.Exec(`
-		INSERT INTO sec.ciks (cik, created_at, updated_at) 
-		VALUES ($1,NOW(), NOW()) 
-		ON CONFLICT (cik) 
-		DO NOTHING;`, cik)
-	if err != nil {
-		return err
-	}
-	return nil
-}
-
 func (s *SEC) FetchFile(urlVar string) ([]byte, error) {
 	// Retrieving JSON From URL
 	baseURL, err := url.Parse(s.BaseURL)
@@ -344,7 +333,7 @@ func (s *SEC) NoExchangeTickersGet(db *sqlx.DB) error {
 	}
 
 	for _, v := range allCompanyTickers {
-		err = SaveCIK(db, v.Cik)
+		err = seccik.SaveCIK(db, v.Cik)
 		if err != nil {
 			eventErr := database.CreateIndexEvent(db, "company_tickers.json", "failed")
 			if eventErr != nil {
@@ -407,7 +396,7 @@ func (s *SEC) ExchangeTickersGet(db *sqlx.DB) error {
 	}
 
 	for _, v := range fileExchange.Data {
-		err = SaveCIK(db, int(v[0].(float64)))
+		err = seccik.SaveCIK(db, int(v[0].(float64)))
 		if err != nil {
 			eventErr := database.CreateIndexEvent(db, "company_tickers_exchange.json", "failed")
 			if eventErr != nil {
@@ -1522,20 +1511,6 @@ func (s SEC) GetTotalZIPFilesToBeDownloaded(db *sqlx.DB, worklist []secworklist.
 		log.Info("There is a total of ", totalZIPFilesToBeDownloaded, " ZIP files to be downloaded.")
 	}
 	return totalZIPFilesToBeDownloaded, nil
-}
-
-func (s SEC) GetCompanyNameFromCIK(db *sqlx.DB, cik int) (string, error) {
-	var companyNames []string
-	err := db.Select(&companyNames, "SELECT title FROM sec.tickers WHERE cik = $1", cik)
-	if err != nil {
-		return "", err
-	}
-
-	if len(companyNames) < 1 {
-		return "", nil
-	}
-
-	return companyNames[0], nil
 }
 
 func GetFiveRecentFilings(db *sqlx.DB) ([]SECItemFile, error) {

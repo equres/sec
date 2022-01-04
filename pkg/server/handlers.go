@@ -17,6 +17,7 @@ import (
 
 	humanize "github.com/dustin/go-humanize"
 	"github.com/equres/sec/pkg/sec"
+	"github.com/equres/sec/pkg/seccik"
 	"github.com/equres/sec/pkg/secworklist"
 	"github.com/gorilla/mux"
 )
@@ -248,7 +249,7 @@ func (s Server) HandlerFilingsPage(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	companyName, err := secVar.GetCompanyNameFromCIK(s.DB, cik)
+	companyName, err := seccik.GetCompanyNameFromCIK(s.DB, cik)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
