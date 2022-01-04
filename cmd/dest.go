@@ -31,15 +31,15 @@ var destCmd = &cobra.Command{
 		downloader.IsEtag = true
 
 		if S.Verbose {
-			log.Info("File Name\tUncompressed Sized\tZIP Sizes\n")
+			log.Info("File Name - Uncompressed Sized - ZIP Sizes")
 		}
 
 		var totalSize float64
 		var totalSizeZIP int
 		totalSizeForYear := make(map[int]float64)
 		totalSizeZIPForYear := make(map[int]int)
-		for k, v := range worklist {
-			filePath, err := S.FormatFilePathDate(S.Config.Main.CacheDir, v.Year, v.Month)
+		for index, downloadable := range worklist {
+			filePath, err := S.FormatFilePathDate(S.Config.Main.CacheDir, downloadable.Year, downloadable.Month)
 			if err != nil {
 				return err
 			}
@@ -76,23 +76,23 @@ var destCmd = &cobra.Command{
 			}
 
 			if S.Verbose {
-				log.Info(fmt.Sprintf("%v - %v - %v", filepath.Base(filePath), parseSize(fileSize), parseSize(float64(fileSizeZIP))))
+				log.Info(fmt.Sprintf("fn %v %v %v", filepath.Base(filePath), parseSize(fileSize), parseSize(float64(fileSizeZIP))))
 			}
 
-			if _, ok := totalSizeForYear[v.Year]; !ok {
-				totalSizeForYear[v.Year] = 0
-				totalSizeZIPForYear[v.Year] = 0
+			if _, ok := totalSizeForYear[downloadable.Year]; !ok {
+				totalSizeForYear[downloadable.Year] = 0
+				totalSizeZIPForYear[downloadable.Year] = 0
 			}
 
-			totalSizeForYear[v.Year] += fileSize
-			totalSizeZIPForYear[v.Year] += fileSizeZIP
+			totalSizeForYear[downloadable.Year] += fileSize
+			totalSizeZIPForYear[downloadable.Year] += fileSizeZIP
 
 			totalSize += fileSize
 			totalSizeZIP += fileSizeZIP
 
-			if v.Month == 12 || len(worklist)-1 == k {
+			if downloadable.Month == 12 || len(worklist)-1 == index {
 				if S.Verbose {
-					log.Info(fmt.Sprintf("Year %v - %v - %v", v.Year, parseSize(totalSizeForYear[v.Year]), parseSize(float64(totalSizeZIPForYear[v.Year]))))
+					log.Info(fmt.Sprintf("Year %v - %v - %v", downloadable.Year, parseSize(totalSizeForYear[downloadable.Year]), parseSize(float64(totalSizeZIPForYear[downloadable.Year]))))
 				}
 			}
 		}
