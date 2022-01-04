@@ -25,7 +25,6 @@ import (
 	"github.com/equres/sec/pkg/database"
 	"github.com/equres/sec/pkg/download"
 	"github.com/equres/sec/pkg/secworklist"
-	"github.com/gocarina/gocsv"
 	"github.com/jmoiron/sqlx"
 	"golang.org/x/net/html/charset"
 	"jaytaylor.com/html2text"
