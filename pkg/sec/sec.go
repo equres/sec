@@ -21,12 +21,10 @@ import (
 	log "github.com/sirupsen/logrus"
 
 	"github.com/equres/sec/pkg/config"
-	"github.com/equres/sec/pkg/database"
 	"github.com/equres/sec/pkg/download"
 	"github.com/equres/sec/pkg/secworklist"
 	"github.com/jmoiron/sqlx"
 	"golang.org/x/net/html/charset"
-	"jaytaylor.com/html2text"
 )
 
 const (
@@ -328,7 +326,7 @@ func (s *SEC) DownloadIndex(db *sqlx.DB) error {
 	return nil
 }
 
-func (s *SEC) CalculateRSSFilesZIP(rssFile RSSFile) (int, error) {
+func CalculateRSSFilesZIP(rssFile RSSFile) (int, error) {
 	var totalSize int
 	for _, v := range rssFile.Channel.Item {
 		if v.Enclosure.Length != "" {
@@ -340,228 +338,6 @@ func (s *SEC) CalculateRSSFilesZIP(rssFile RSSFile) (int, error) {
 		}
 	}
 	return totalSize, nil
-}
-
-func (s *SEC) SecItemFileUpsert(db *sqlx.DB, item Item) error {
-	var err error
-
-	var enclosureLength int
-	if item.Enclosure.Length != "" {
-		enclosureLength, err = strconv.Atoi(item.Enclosure.Length)
-		if err != nil {
-			return err
-		}
-	}
-	var assignedSic int
-	if item.XbrlFiling.AssignedSic != "" {
-		assignedSic, err = strconv.Atoi(item.XbrlFiling.AssignedSic)
-		if err != nil {
-			return err
-		}
-	}
-
-	var fiscalYearEnd int
-	if item.XbrlFiling.FiscalYearEnd != "" {
-		fiscalYearEnd, err = strconv.Atoi(item.XbrlFiling.FiscalYearEnd)
-		if err != nil {
-			return err
-		}
-	}
-	var cikNumber int
-	if item.XbrlFiling.CikNumber != "" {
-		cikNumber, err = strconv.Atoi(item.XbrlFiling.CikNumber)
-		if err != nil {
-			return err
-		}
-	}
-
-	// Check if CIK here is in CIKs table
-	var ciks []int
-	err = db.Select(&ciks, "SELECT cik FROM sec.ciks WHERE cik = $1", cikNumber)
-	if err != nil {
-		return err
-	}
-	if len(ciks) == 0 {
-		return nil
-	}
-
-	for _, v := range item.XbrlFiling.XbrlFiles.XbrlFile {
-		var xbrlInline bool
-		if v.InlineXBRL != "" {
-			xbrlInline, err = strconv.ParseBool(v.InlineXBRL)
-			if err != nil {
-				return err
-			}
-		}
-
-		var xbrlSequence int
-		if v.Sequence != "" {
-			xbrlSequence, err = strconv.Atoi(v.Sequence)
-			if err != nil {
-				return err
-			}
-		}
-
-		var xbrlSize int
-		if v.Size != "" {
-			xbrlSize, err = strconv.Atoi(v.Size)
-			if err != nil {
-				return err
-			}
-		}
-
-		fileUrl, err := url.Parse(v.URL)
-		if err != nil {
-			return err
-		}
-
-		var fileBody string
-		filePath := filepath.Join(s.Config.Main.CacheDir, fileUrl.Path)
-		_, err = os.Stat(filePath)
-		if err == nil {
-			fileBody, err = s.GetXbrlFileBody(filePath)
-			if err != nil {
-				return err
-			}
-		}
-
-		zipFileURL, err := url.Parse(item.Enclosure.URL)
-		if err != nil {
-			return err
-		}
-
-		zipCachePath := filepath.Join(s.Config.Main.CacheDir, zipFileURL.Path)
-		_, err = os.Stat(zipCachePath)
-		if err == nil {
-			reader, err := zip.OpenReader(zipCachePath)
-			if err != nil {
-				err = database.CreateIndexEvent(db, zipCachePath, "failed")
-				if err != nil {
-					return err
-				}
-				continue
-			}
-
-			var currentFile *zip.File
-			for _, file := range reader.File {
-				if file.Name == v.File {
-					currentFile = file
-					break
-				}
-			}
-
-			fileBody, err = s.GetXbrlFileBodyFromZIPFile(currentFile, filePath)
-			if err != nil {
-				return err
-			}
-
-			reader.Close()
-		}
-
-		if fileBody == "" && s.IsFileIndexable(filePath) {
-			eventErr := database.CreateIndexEvent(db, v.URL, "failed")
-			if eventErr != nil {
-				return eventErr
-			}
-			return err
-		}
-
-		_, err = db.Exec(`
-		INSERT INTO sec.secItemFile (title, link, guid, enclosure_url, enclosure_length, enclosure_type, description, pubdate, companyname, formtype, fillingdate, ciknumber, accessionnumber, filenumber, acceptancedatetime, period, assistantdirector, assignedsic, fiscalyearend, xbrlsequence, xbrlfile, xbrltype, xbrlsize, xbrldescription, xbrlinlinexbrl, xbrlurl, xbrlbody, created_at, updated_at)
-		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23, $24, $25, $26, $27, NOW(), NOW()) 
-
-		ON CONFLICT (xbrlsequence, xbrlfile, xbrltype, xbrlsize, xbrldescription, xbrlinlinexbrl, xbrlurl)
-		DO UPDATE SET title=EXCLUDED.title, link=EXCLUDED.link, guid=EXCLUDED.guid, enclosure_url=EXCLUDED.enclosure_url, enclosure_length=EXCLUDED.enclosure_length, enclosure_type=EXCLUDED.enclosure_type, description=EXCLUDED.description, pubdate=EXCLUDED.pubdate, companyname=EXCLUDED.companyname, formtype=EXCLUDED.formtype, fillingdate=EXCLUDED.fillingdate, ciknumber=EXCLUDED.ciknumber, accessionnumber=EXCLUDED.accessionnumber, filenumber=EXCLUDED.filenumber, acceptancedatetime=EXCLUDED.acceptancedatetime, period=EXCLUDED.period, assistantdirector=EXCLUDED.assistantdirector, assignedsic=EXCLUDED.assignedsic, fiscalyearend=EXCLUDED.fiscalyearend, xbrlsequence=EXCLUDED.xbrlsequence, xbrlfile=EXCLUDED.xbrlfile, xbrltype=EXCLUDED.xbrltype, xbrlsize=EXCLUDED.xbrlsize, xbrldescription=EXCLUDED.xbrldescription, xbrlinlinexbrl=EXCLUDED.xbrlinlinexbrl, xbrlurl=EXCLUDED.xbrlurl, updated_at=NOW()
-		WHERE secItemFile.xbrlsequence=EXCLUDED.xbrlsequence AND secItemFile.xbrlfile=EXCLUDED.xbrlfile AND secItemFile.xbrltype=EXCLUDED.xbrltype AND secItemFile.xbrlsize=EXCLUDED.xbrlsize AND secItemFile.xbrldescription=EXCLUDED.xbrldescription AND secItemFile.xbrlinlinexbrl=EXCLUDED.xbrlinlinexbrl AND secItemFile.xbrlurl=EXCLUDED.xbrlurl AND secItemFile.xbrlbody=EXCLUDED.xbrlbody;`,
-			item.Title, item.Link, item.Guid, item.Enclosure.URL, enclosureLength, item.Enclosure.Type, item.Description, item.PubDate, item.XbrlFiling.CompanyName, item.XbrlFiling.FormType, item.XbrlFiling.FilingDate, cikNumber, item.XbrlFiling.AccessionNumber, item.XbrlFiling.FileNumber, item.XbrlFiling.AcceptanceDatetime, item.XbrlFiling.Period, item.XbrlFiling.AssistantDirector, assignedSic, fiscalYearEnd, xbrlSequence, v.File, v.Type, xbrlSize, v.Description, xbrlInline, v.URL, fileBody)
-		if err != nil {
-			eventErr := database.CreateIndexEvent(db, filePath, "failed")
-			if eventErr != nil {
-				return eventErr
-			}
-			return err
-		}
-
-		eventErr := database.CreateIndexEvent(db, filePath, "success")
-		if eventErr != nil {
-			return eventErr
-		}
-	}
-	return nil
-}
-
-func (s *SEC) IsFileIndexable(filename string) bool {
-	fileExtension := strings.ToLower(filepath.Ext(filename))
-
-	if fileExtension == ".html" || fileExtension == ".htm" || fileExtension == ".xml" {
-		return true
-	}
-	return false
-}
-
-func (s *SEC) IsFileTypeHTML(filename string) bool {
-	fileExtension := strings.ToLower(filepath.Ext(filename))
-
-	if fileExtension == ".html" || fileExtension == ".htm" {
-		return true
-	}
-	return false
-}
-
-func (s *SEC) GetXbrlFileBody(filePath string) (string, error) {
-	xbrlFile, err := os.Open(filePath)
-	if err != nil {
-		return "", err
-	}
-	defer xbrlFile.Close()
-
-	data, err := ioutil.ReadAll(xbrlFile)
-	if err != nil {
-		return "", err
-	}
-
-	var fileBody string
-
-	if s.IsFileIndexable(filePath) {
-		fileBody = string(data)
-		if s.IsFileTypeHTML(filePath) {
-			fileBody, err = html2text.FromString(string(data))
-			if err != nil {
-				return "", err
-			}
-		}
-	}
-	return fileBody, nil
-}
-
-func (s *SEC) GetXbrlFileBodyFromZIPFile(currentFile *zip.File, filePath string) (string, error) {
-	if currentFile == nil {
-		return "", nil
-	}
-
-	fileReader, err := currentFile.Open()
-	if err != nil {
-		return "", err
-	}
-
-	stringBuilder := new(strings.Builder)
-	_, err = io.Copy(stringBuilder, fileReader)
-	if err != nil {
-		return "", err
-	}
-
-	var fileBody string
-	if s.IsFileIndexable(currentFile.Name) {
-		fileBody = stringBuilder.String()
-		if s.IsFileTypeHTML(filePath) {
-			fileBody, err = html2text.FromString(stringBuilder.String())
-			if err != nil {
-				return "", err
-			}
-		}
-	}
-
-	return fileBody, nil
 }
 
 func ParseYearMonth(yearMonth string) (year int, month int, err error) {
@@ -708,73 +484,6 @@ func (s *SEC) Downloadability(db *sqlx.DB, year int, month int, willDownload boo
 	return nil
 }
 
-func (s *SEC) ZIPContentUpsert(db *sqlx.DB, pathname string, files []*zip.File) error {
-	// Keeping only directories
-	dirsPath := filepath.Dir(pathname)
-
-	// Spliting directories
-	dirs := strings.Split(dirsPath, "\\")
-	if len(dirs) == 1 {
-		dirs = strings.Split(dirsPath, "/")
-	}
-
-	// Keeping only CIK and Accession Number
-	dirs = dirs[len(dirs)-2:]
-
-	cik := dirs[0]
-	accession := dirs[1]
-
-	// Check if CIK here is in CIKs table
-	var ciks []int
-	err := db.Select(&ciks, "SELECT cik FROM sec.ciks WHERE cik = $1", cik)
-	if err != nil {
-		return err
-	}
-	if len(ciks) == 0 {
-		return nil
-	}
-
-	for _, file := range files {
-		reader, err := file.Open()
-		if err != nil {
-			return err
-		}
-
-		buf := bytes.Buffer{}
-		_, err = buf.ReadFrom(reader)
-		if err != nil {
-			return err
-		}
-
-		reader.Close()
-
-		var xbrlBody string
-
-		if s.IsFileIndexable(file.FileInfo().Name()) {
-			xbrlBody = buf.String()
-		}
-
-		_, err = db.Exec(`
-			INSERT INTO sec.secItemFile (ciknumber, accessionnumber, xbrlfile, xbrlsize, xbrlbody, created_at, updated_at)
-			VALUES ($1, $2, $3, $4, $5, NOW(), NOW()) 
-			ON CONFLICT (cikNumber, accessionNumber, xbrlFile, xbrlSize)
-			DO NOTHING;`, cik, accession, file.Name, int(file.FileInfo().Size()), xbrlBody)
-		if err != nil {
-			eventErr := database.CreateIndexEvent(db, pathname, "failed")
-			if eventErr != nil {
-				return eventErr
-			}
-			return err
-		}
-	}
-
-	eventErr := database.CreateIndexEvent(db, pathname, "success")
-	if eventErr != nil {
-		return eventErr
-	}
-	return nil
-}
-
 func (s *SEC) SearchByFilingDate(db *sqlx.DB, startdate time.Time, enddate time.Time) ([]SECItemFile, error) {
 	secItemFiles := []SECItemFile{}
 	err := db.Select(&secItemFiles, `
@@ -904,7 +613,7 @@ func (s *SEC) FormatFilePathDate(basepath string, year int, month int) (string, 
 	return filePath, nil
 }
 
-func (s *SEC) DownloadAllItemFiles(db *sqlx.DB, rssFile RSSFile, worklist []secworklist.Worklist) error {
+func DownloadAllItemFiles(db *sqlx.DB, s *SEC, rssFile RSSFile, worklist []secworklist.Worklist) error {
 	if s.Verbose {
 		log.Info("Calculating number of XBRL Files in the index files: ")
 	}
@@ -927,7 +636,7 @@ func (s *SEC) DownloadAllItemFiles(db *sqlx.DB, rssFile RSSFile, worklist []secw
 	return nil
 }
 
-func (s *SEC) ForEachWorklist(db *sqlx.DB, implementFunc func(*sqlx.DB, RSSFile, []secworklist.Worklist) error, verboseMessage string) error {
+func (s *SEC) ForEachWorklist(db *sqlx.DB, implementFunc func(*sqlx.DB, *SEC, RSSFile, []secworklist.Worklist) error, verboseMessage string) error {
 	worklist, err := secworklist.WillDownloadGet(db)
 	if err != nil {
 		return err
@@ -952,7 +661,7 @@ func (s *SEC) ForEachWorklist(db *sqlx.DB, implementFunc func(*sqlx.DB, RSSFile,
 			log.Info(verboseMessage)
 		}
 
-		err = implementFunc(db, rssFile, worklist)
+		err = implementFunc(db, s, rssFile, worklist)
 		if err != nil {
 			return err
 		}
@@ -1036,57 +745,7 @@ func (s *SEC) DownloadZIPFiles(db *sqlx.DB) error {
 	return nil
 }
 
-func (s *SEC) IndexZIPFileContent(db *sqlx.DB, rssFile RSSFile, worklist []secworklist.Worklist) error {
-	totalCount := len(rssFile.Channel.Item)
-	currentCount := 0
-	for _, v1 := range rssFile.Channel.Item {
-		if v1.Enclosure.URL == "" {
-			continue
-		}
-		parsedURL, err := url.Parse(v1.Enclosure.URL)
-		if err != nil {
-			return err
-		}
-		zipPath := parsedURL.Path
-
-		zipCachePath := filepath.Join(s.Config.Main.CacheDir, zipPath)
-		_, err = os.Stat(zipCachePath)
-		if err != nil {
-			log.Info("please run sec dowz to download all ZIP files then run sec indexz again to index them")
-			return err
-		}
-
-		reader, err := zip.OpenReader(zipCachePath)
-		if err != nil {
-			log.Errorf("Could not access the file %v", zipCachePath)
-			continue
-		}
-
-		err = s.ZIPContentUpsert(db, zipPath, reader.File)
-		if err != nil {
-			eventErr := database.CreateIndexEvent(db, zipCachePath, "failed")
-			if eventErr != nil {
-				return eventErr
-			}
-			return err
-		}
-
-		eventErr := database.CreateIndexEvent(db, zipCachePath, "success")
-		if eventErr != nil {
-			return eventErr
-		}
-
-		reader.Close()
-		currentCount++
-
-		if s.Verbose {
-			log.Info(fmt.Sprintf("[%d/%d] %s inserted for current file...\n", currentCount, totalCount, time.Now().Format("2006-01-02 03:04:05")))
-		}
-	}
-	return nil
-}
-
-func (s *SEC) UnzipFiles(db *sqlx.DB, rssFile RSSFile, worklist []secworklist.Worklist) error {
+func UnzipFiles(db *sqlx.DB, s *SEC, rssFile RSSFile, worklist []secworklist.Worklist) error {
 	totalCount := len(rssFile.Channel.Item)
 	currentCount := 0
 	for _, v1 := range rssFile.Channel.Item {
@@ -1124,28 +783,6 @@ func (s *SEC) UnzipFiles(db *sqlx.DB, rssFile RSSFile, worklist []secworklist.Wo
 		currentCount++
 		if s.Verbose {
 			log.Info(fmt.Sprintf("[%d/%d] %s unpacked...\n", currentCount, totalCount, time.Now().Format("2006-01-02 03:04:05")))
-		}
-	}
-	return nil
-}
-
-func (s *SEC) InsertAllSecItemFile(db *sqlx.DB, rssFiles []RSSFile, worklist []secworklist.Worklist, totalCount int) error {
-	currentCount := 0
-	for _, rssFile := range rssFiles {
-		for _, v1 := range rssFile.Channel.Item {
-			err := s.SecItemFileUpsert(db, v1)
-			if err != nil {
-				return err
-			}
-			currentCount++
-
-			if s.Verbose {
-				currentCountFloat := float64(currentCount)
-				totalCountFloat := float64(totalCount)
-				percentage := (currentCountFloat / totalCountFloat) * 100
-
-				log.Info(fmt.Sprintf("[%d/%d/%f%%] %s inserted for current file...\n", currentCount, totalCount, percentage, time.Now().Format("2006-01-02 03:04:05")))
-			}
 		}
 	}
 	return nil
