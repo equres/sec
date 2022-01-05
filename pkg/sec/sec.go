@@ -678,34 +678,45 @@ func CheckRSSAvailability(year int, month int) (err error) {
 	return nil
 }
 
-func (s *SEC) Downloadability(db *sqlx.DB, year int, month int, willDownload bool) error {
+func (s *SEC) DownloadToggle(db *sqlx.DB, year int, month int, willDownload bool) error {
 	var err error
 
-	if month != 0 {
-		err = secworklist.Save(year, month, willDownload, db)
-		if err != nil {
-			return err
+	for m := 1; m <= 12; m++ {
+		if !IsMonthAvailable(year, m) {
+			continue
 		}
-		return nil
-	}
 
-	firstMonthAvailable := XMLStartMonth
-	if year > XMLStartYear {
-		firstMonthAvailable = 1
-	}
+		if month != 0 && m != month {
+			continue
+		}
 
-	lastMonthAvailable := 12
-	if year == time.Now().Year() {
-		lastMonthAvailable = int(time.Now().Month())
-	}
-
-	for i := firstMonthAvailable; i <= lastMonthAvailable; i++ {
-		err = secworklist.Save(year, i, willDownload, db)
+		err = secworklist.Save(year, m, willDownload, db)
 		if err != nil {
 			return err
 		}
 	}
+
 	return nil
+}
+
+func IsMonthAvailable(year int, month int) bool {
+	if year > time.Now().Year() {
+		return false
+	}
+
+	if year == time.Now().Year() && month > int(time.Now().Month()) {
+		return false
+	}
+
+	if year < XMLStartYear {
+		return false
+	}
+
+	if year == XMLStartMonth && month < XMLStartMonth {
+		return false
+	}
+
+	return true
 }
 
 func (s *SEC) ZIPContentUpsert(db *sqlx.DB, pathname string, files []*zip.File) error {
