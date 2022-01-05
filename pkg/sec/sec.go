@@ -21,7 +21,6 @@ import (
 	log "github.com/sirupsen/logrus"
 
 	"github.com/equres/sec/pkg/config"
-	"github.com/equres/sec/pkg/download"
 	"github.com/equres/sec/pkg/secworklist"
 	"github.com/jmoiron/sqlx"
 	"golang.org/x/net/html/charset"
@@ -181,65 +180,6 @@ func (s *SEC) FetchFile(urlVar string) ([]byte, error) {
 	return body, nil
 }
 
-func (s *SEC) DownloadTickerFile(db *sqlx.DB, path string) error {
-	downloader := download.NewDownloader(s.Config)
-	downloader.IsEtag = true
-	downloader.Verbose = s.Verbose
-	downloader.Debug = s.Debug
-	downloader.CurrentDownloadCount = 0
-	downloader.TotalDownloadsCount = 1
-
-	baseURL, err := url.Parse(s.BaseURL)
-	if err != nil {
-		return err
-	}
-
-	pathURL, err := url.Parse(path)
-	if err != nil {
-		return err
-	}
-
-	fullURL := baseURL.ResolveReference(pathURL).String()
-
-	if s.Verbose {
-		log.Info(fmt.Sprintf("Checking for file %v: ", filepath.Base(pathURL.Path)))
-	}
-
-	etag, err := downloader.GetFileETag(fullURL)
-	if err != nil {
-		return err
-	}
-
-	isFileCorrect, err := downloader.FileCorrect(db, fullURL, 0, etag)
-	if err != nil {
-		return err
-	}
-
-	rateLimit, err := time.ParseDuration(fmt.Sprintf("%vms", s.Config.Main.RateLimitMs))
-	if err != nil {
-		return err
-	}
-
-	if s.Verbose && isFileCorrect {
-		log.Info("\u2713")
-	}
-	if !isFileCorrect {
-		if s.Verbose {
-			log.Info("Downloading file...: ")
-		}
-		err = downloader.DownloadFile(db, fullURL)
-		if err != nil {
-			return err
-		}
-
-		if s.Verbose {
-			log.Info(time.Now().Format("2006-01-02 03:04:05"))
-		}
-		time.Sleep(rateLimit)
-	}
-	return nil
-}
-
 func (s *SEC) ParseRSSGoXML(path string) (RSSFile, error) {
 	var rssFile RSSFile
 
@@ -263,67 +203,6 @@ func (s *SEC) ParseRSSGoXML(path string) (RSSFile, error) {
 	}
 
 	return rssFile, err
-}
-
-func (s *SEC) DownloadIndex(db *sqlx.DB) error {
-	worklist, err := secworklist.WillDownloadGet(db)
-	if err != nil {
-		return err
-	}
-
-	downloader := download.NewDownloader(s.Config)
-	downloader.IsEtag = true
-	downloader.Verbose = s.Verbose
-	downloader.Debug = s.Debug
-	downloader.CurrentDownloadCount = 0
-	downloader.TotalDownloadsCount = len(worklist)
-
-	rateLimit, err := time.ParseDuration(fmt.Sprintf("%vms", s.Config.Main.RateLimitMs))
-	if err != nil {
-		return err
-	}
-
-	for _, v := range worklist {
-		fileURL, err := s.FormatFilePathDate(s.BaseURL, v.Year, v.Month)
-		if err != nil {
-			return err
-		}
-
-		if s.Verbose {
-			log.Info(fmt.Sprintf("Checking file '%v' in disk: ", filepath.Base(fileURL)))
-		}
-
-		etag, err := downloader.GetFileETag(fileURL)
-		if err != nil {
-			return err
-		}
-
-		isFileCorrect, err := downloader.FileCorrect(db, fileURL, 0, etag)
-		if err != nil {
-			return err
-		}
-		if s.Verbose && isFileCorrect {
-			log.Info("\u2713")
-		}
-
-		if !isFileCorrect {
-			if s.Verbose {
-				log.Info("Downloading file...: ")
-			}
-
-			err = downloader.DownloadFile(db, fileURL)
-			if err != nil {
-				return err
-			}
-			if s.Verbose {
-				log.Info(time.Now().Format("2006-01-02 03:04:05"))
-			}
-			time.Sleep(rateLimit)
-		}
-
-		downloader.CurrentDownloadCount += 1
-	}
-	return nil
 }
 
 func CalculateRSSFilesZIP(rssFile RSSFile) (int, error) {
@@ -387,52 +266,6 @@ func (s *SEC) TotalXbrlFileCountGet(worklist []secworklist.Worklist, cacheDir st
 		}
 	}
 	return totalCount, nil
-}
-
-func (s *SEC) DownloadXbrlFileContent(db *sqlx.DB, files []XbrlFile, config config.Config, currentCount *int, totalCount int) error {
-	downloader := download.NewDownloader(s.Config)
-	downloader.IsEtag = true
-	downloader.Verbose = s.Verbose
-	downloader.Debug = s.Debug
-	downloader.CurrentDownloadCount = *currentCount
-	downloader.TotalDownloadsCount = totalCount
-
-	rateLimit, err := time.ParseDuration(fmt.Sprintf("%vms", s.Config.Main.RateLimitMs))
-	if err != nil {
-		return err
-	}
-
-	for _, v := range files {
-		size, err := strconv.Atoi(v.Size)
-		if err != nil {
-			return err
-		}
-		isFileCorrect, err := downloader.FileCorrect(db, v.URL, size, "")
-		if err != nil {
-			return err
-		}
-
-		if !isFileCorrect {
-			err = downloader.DownloadFile(db, v.URL)
-			if err != nil {
-				return err
-			}
-			time.Sleep(rateLimit)
-		}
-
-		*currentCount++
-		downloader.CurrentDownloadCount = *currentCount
-		if !s.Verbose {
-			log.Info(fmt.Sprintf("\r[%d/%d/%f%% files already downloaded]. Will download %d remaining files. Pass --verbose to see progress report", *currentCount, totalCount, downloader.GetDownloadPercentage(), (totalCount - *currentCount)))
-		}
-
-		if s.Verbose {
-			log.Info(fmt.Sprintf("[%d/%d/%f%%] %s downloaded...\n", *currentCount, totalCount, downloader.GetDownloadPercentage(), time.Now().Format("2006-01-02 03:04:05")))
-		}
-		time.Sleep(rateLimit)
-	}
-
-	return nil
 }
 
 func CheckRSSAvailability(year int, month int) (err error) {
@@ -624,29 +457,6 @@ func (s *SEC) FormatFilePathDate(basepath string, year int, month int) (string, 
 	return filePath, nil
 }
 
-func DownloadAllItemFiles(db *sqlx.DB, s *SEC, rssFile RSSFile, worklist []secworklist.Worklist) error {
-	if s.Verbose {
-		log.Info("Calculating number of XBRL Files in the index files: ")
-	}
-
-	totalCount, err := s.TotalXbrlFileCountGet(worklist, s.Config.Main.CacheDir)
-	if err != nil {
-		return err
-	}
-	if s.Verbose {
-		log.Info(totalCount)
-	}
-
-	currentCount := 0
-	for _, v1 := range rssFile.Channel.Item {
-		err := s.DownloadXbrlFileContent(db, v1.XbrlFiling.XbrlFiles.XbrlFile, s.Config, &currentCount, totalCount)
-		if err != nil {
-			return err
-		}
-	}
-	return nil
-}
-
 func (s *SEC) ForEachWorklist(db *sqlx.DB, implementFunc func(*sqlx.DB, *SEC, RSSFile, []secworklist.Worklist) error, verboseMessage string) error {
 	worklist, err := secworklist.WillDownloadGet(db)
 	if err != nil {
@@ -675,81 +485,6 @@ func (s *SEC) ForEachWorklist(db *sqlx.DB, implementFunc func(*sqlx.DB, *SEC, RS
 		err = implementFunc(db, s, rssFile, worklist)
 		if err != nil {
 			return err
-		}
-
-	}
-	return nil
-}
-
-func (s *SEC) DownloadZIPFiles(db *sqlx.DB) error {
-	downloader := download.NewDownloader(s.Config)
-	downloader.IsContentLength = true
-	downloader.Verbose = s.Verbose
-	downloader.Debug = s.Debug
-
-	rateLimit, err := time.ParseDuration(fmt.Sprintf("%vms", s.Config.Main.RateLimitMs))
-	if err != nil {
-		return err
-	}
-
-	worklist, err := secworklist.WillDownloadGet(db)
-	if err != nil {
-		return err
-	}
-
-	totalCount, err := s.GetTotalZIPFilesToBeDownloaded(db, worklist)
-	if err != nil {
-		return err
-	}
-	currentCount := 0
-
-	downloader.CurrentDownloadCount = 0
-	downloader.TotalDownloadsCount = totalCount
-	for _, v := range worklist {
-		fileURL, err := s.FormatFilePathDate(s.Config.Main.CacheDir, v.Year, v.Month)
-		if err != nil {
-			return err
-		}
-
-		_, err = os.Stat(fileURL)
-		if err != nil {
-			return fmt.Errorf("please run sec dow index to download all index files first")
-		}
-
-		rssFile, err := s.ParseRSSGoXML(fileURL)
-		if err != nil {
-			return err
-		}
-
-		for _, v1 := range rssFile.Channel.Item {
-			if v1.Enclosure.URL != "" {
-				size, err := strconv.Atoi(v1.Enclosure.Length)
-				if err != nil {
-					return err
-				}
-
-				isFileCorrect, err := downloader.FileCorrect(db, v1.Enclosure.URL, size, "")
-				if err != nil {
-					return err
-				}
-
-				if !isFileCorrect {
-					err = downloader.DownloadFile(db, v1.Enclosure.URL)
-					if err != nil {
-						return err
-					}
-					time.Sleep(rateLimit)
-				}
-			}
-			currentCount++
-			downloader.CurrentDownloadCount = currentCount
-			if !s.Verbose {
-				log.Info(fmt.Sprintf("\r[%d/%d/%f%% files already downloaded]. Will download %d remaining files. Pass --verbose to see progress report", currentCount, totalCount, downloader.GetDownloadPercentage(), (totalCount - currentCount)))
-			}
-
-			if s.Verbose {
-				log.Info(fmt.Sprintf("[%d/%d/%f%%] %s downloaded...\n", currentCount, totalCount, downloader.GetDownloadPercentage(), time.Now().Format("2006-01-02 03:04:05")))
-			}
 		}
 
 	}
@@ -795,71 +530,6 @@ func UnzipFiles(db *sqlx.DB, s *SEC, rssFile RSSFile, worklist []secworklist.Wor
 		if s.Verbose {
 			log.Info(fmt.Sprintf("[%d/%d] %s unpacked...\n", currentCount, totalCount, time.Now().Format("2006-01-02 03:04:05")))
 		}
-	}
-	return nil
-}
-
-func (s *SEC) DownloadFinancialStatementDataSets(db *sqlx.DB) error {
-	worklist, err := secworklist.WillDownloadGet(db)
-	if err != nil {
-		return err
-	}
-
-	downloader := download.NewDownloader(s.Config)
-	downloader.IsContentLength = true
-	downloader.Verbose = s.Verbose
-	downloader.Debug = s.Debug
-	downloader.CurrentDownloadCount = 0
-	downloader.TotalDownloadsCount = len(worklist)
-
-	rateLimit, err := time.ParseDuration(fmt.Sprintf("%vms", s.Config.Main.RateLimitMs))
-	if err != nil {
-		return err
-	}
-	for _, v := range worklist {
-		quarter := QuarterFromMonth(v.Month)
-
-		if !IsCurrentYearQuarterCorrect(v.Year, quarter) {
-			continue
-		}
-
-		yearQuarter := fmt.Sprintf("%vq%v", v.Year, quarter)
-
-		baseURL, err := url.Parse(s.BaseURL)
-		if err != nil {
-			return err
-		}
-		pathURL, err := url.Parse(fmt.Sprintf("/files/dera/data/financial-statement-data-sets/%v.zip", yearQuarter))
-		if err != nil {
-			return err
-		}
-		fileURL := baseURL.ResolveReference(pathURL).String()
-		if s.Verbose {
-			log.Info(fmt.Sprintf("Checking file '%v' in disk: ", filepath.Base(fileURL)))
-		}
-		isFileCorrect, err := downloader.FileCorrect(db, fileURL, 0, "")
-		if err != nil {
-			return err
-		}
-		if s.Verbose && isFileCorrect {
-			log.Info("\u2713")
-		}
-
-		if !isFileCorrect {
-			if s.Verbose {
-				log.Info("Downloading file...: ")
-			}
-			err = downloader.DownloadFile(db, fileURL)
-			if err != nil {
-				return err
-			}
-			if s.Verbose {
-				log.Info(time.Now().Format("2006-01-02 03:04:05"))
-			}
-			time.Sleep(rateLimit)
-		}
-
-		downloader.CurrentDownloadCount += 1
 	}
 	return nil
 }

@@ -5,7 +5,7 @@ import (
 	log "github.com/sirupsen/logrus"
 
 	"github.com/equres/sec/pkg/database"
-	"github.com/equres/sec/pkg/sec"
+	"github.com/equres/sec/pkg/secdow"
 	"github.com/spf13/cobra"
 )
 
@@ -28,12 +28,12 @@ to quickly create a Cobra application.`,
 			log.Info("Checking/Downloading index files...")
 		}
 
-		err := S.DownloadIndex(DB)
+		err := secdow.DownloadIndex(DB, S)
 		if err != nil {
 			return err
 		}
 
-		err = S.ForEachWorklist(DB, sec.DownloadAllItemFiles, "Checking/Downloading XBRL files listed in index files...")
+		err = S.ForEachWorklist(DB, secdow.DownloadAllItemFiles, "Checking/Downloading XBRL files listed in index files...")
 		if err != nil {
 			return err
 		}

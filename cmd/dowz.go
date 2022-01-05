@@ -1,6 +1,7 @@
 package cmd
 
 import (
+	"github.com/equres/sec/pkg/secdow"
 	"github.com/spf13/cobra"
 )
 
@@ -13,7 +14,7 @@ var dowzCmd = &cobra.Command{
 	Short: "download all of the referenced file from XBRL index as ZIP files",
 	Long:  `download all of the referenced file from XBRL index as ZIP files`,
 	RunE: func(cmd *cobra.Command, args []string) error {
-		return S.DownloadZIPFiles(DB)
+		return secdow.DownloadZIPFiles(DB, S)
 	},
 }
 
