@@ -6,7 +6,7 @@ import (
 	"fmt"
 
 	"github.com/equres/sec/pkg/database"
-	"github.com/equres/sec/pkg/sec"
+	"github.com/equres/sec/pkg/secutil"
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 )
@@ -25,17 +25,17 @@ var ddCmd = &cobra.Command{
 		}
 
 		yearMonth := args[0]
-		year, month, err := sec.ParseYearMonth(yearMonth)
+		year, month, err := secutil.ParseYearMonth(yearMonth)
 		if err != nil {
 			return err
 		}
 
-		err = sec.CheckRSSAvailability(year, month)
+		err = secutil.CheckRSSAvailability(year, month)
 		if err != nil {
 			return err
 		}
 
-		err = S.DownloadToggle(DB, year, month, false)
+		err = secutil.DownloadToggle(DB, year, month, false)
 		if err != nil {
 			return err
 		}

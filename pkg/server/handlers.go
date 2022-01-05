@@ -16,8 +16,8 @@ import (
 	log "github.com/sirupsen/logrus"
 
 	humanize "github.com/dustin/go-humanize"
-	"github.com/equres/sec/pkg/sec"
 	"github.com/equres/sec/pkg/seccik"
+	"github.com/equres/sec/pkg/secutil"
 	"github.com/equres/sec/pkg/secworklist"
 	"github.com/gorilla/mux"
 )
@@ -44,7 +44,7 @@ func (s Server) GenerateRouter() (*mux.Router, error) {
 
 func (s Server) HandlerHome(w http.ResponseWriter, r *http.Request) {
 	content := make(map[string]interface{})
-	recentFilings, err := sec.GetFiveRecentFilings(s.DB)
+	recentFilings, err := secutil.GetFiveRecentFilings(s.DB)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
@@ -137,13 +137,7 @@ func (s Server) HandlerDaysPage(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	secVar, err := sec.NewSEC(s.Config)
-	if err != nil {
-		http.Error(w, err.Error(), http.StatusBadRequest)
-		return
-	}
-
-	days, err := secVar.GetFilingDaysFromMonthYear(s.DB, year, month)
+	days, err := secutil.GetFilingDaysFromMonthYear(s.DB, year, month)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
@@ -182,13 +176,7 @@ func (s Server) HandlerCompaniesPage(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	secVar, err := sec.NewSEC(s.Config)
-	if err != nil {
-		http.Error(w, err.Error(), http.StatusBadRequest)
-		return
-	}
-
-	companies, err := secVar.GetFilingCompaniesFromYearMonthDay(s.DB, year, month, day)
+	companies, err := secutil.GetFilingCompaniesFromYearMonthDay(s.DB, year, month, day)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
@@ -237,13 +225,7 @@ func (s Server) HandlerFilingsPage(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	secVar, err := sec.NewSEC(s.Config)
-	if err != nil {
-		http.Error(w, err.Error(), http.StatusBadRequest)
-		return
-	}
-
-	filings, err := secVar.SearchFilingsByYearMonthDayCIK(s.DB, year, month, day, cik)
+	filings, err := secutil.SearchFilingsByYearMonthDayCIK(s.DB, year, month, day, cik)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
@@ -277,12 +259,12 @@ func (s Server) HandlerFilingsPage(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s Server) HandlerStatsPage(w http.ResponseWriter, r *http.Request) {
-	failedCount, err := sec.GetFailedDownloadEventCount(s.DB)
+	failedCount, err := secutil.GetFailedDownloadEventCount(s.DB)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 	}
 
-	successCount, err := sec.GetSuccessfulDownloadEventCount(s.DB)
+	successCount, err := secutil.GetSuccessfulDownloadEventCount(s.DB)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 	}
