@@ -36,7 +36,7 @@ var deCmd = &cobra.Command{
 			return err
 		}
 
-		err = S.Downloadability(DB, year, month, true)
+		err = S.DownloadToggle(DB, year, month, true)
 		if err != nil {
 			return err
 		}
