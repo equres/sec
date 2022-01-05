@@ -18,7 +18,7 @@ var retrieveCmd = &cobra.Command{
 	},
 	RunE: func(cmd *cobra.Command, args []string) error {
 		// Retrieving all SecTickers
-		tickers, err := secticker.TickersGetAll(DB)
+		tickers, err := secticker.GetAll(DB)
 		if err != nil {
 			return err
 		}

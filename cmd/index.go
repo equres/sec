@@ -47,7 +47,7 @@ var indexCmd = &cobra.Command{
 			return nil
 		}
 
-		err = secticker.TickerUpdateAll(S, DB)
+		err = secticker.UpdateAll(S, DB)
 		if err != nil {
 			return err
 		}

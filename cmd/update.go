@@ -17,7 +17,7 @@ var updateCmd = &cobra.Command{
 		return database.CheckMigration(RootConfig)
 	},
 	RunE: func(cmd *cobra.Command, args []string) error {
-		err := secticker.TickerUpdateAll(S, DB)
+		err := secticker.UpdateAll(S, DB)
 		if err != nil {
 			return err
 		}

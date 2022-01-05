@@ -53,20 +53,20 @@ func (t SecTicker) Save(db *sqlx.DB) error {
 	return nil
 }
 
-func TickerUpdateAll(s *sec.SEC, db *sqlx.DB) error {
-	err := NoExchangeTickersGet(s, db)
+func UpdateAll(s *sec.SEC, db *sqlx.DB) error {
+	err := NoExchangeFileGet(s, db)
 	if err != nil {
 		return err
 	}
 
-	err = ExchangeTickersGet(s, db)
+	err = ExchangeFileGet(s, db)
 	if err != nil {
 		return err
 	}
 	return nil
 }
 
-func NoExchangeTickersGet(s *sec.SEC, db *sqlx.DB) error {
+func NoExchangeFileGet(s *sec.SEC, db *sqlx.DB) error {
 	file, err := os.Open(filepath.Join(s.Config.Main.CacheDir, "files/company_tickers.json"))
 	if err != nil {
 		return err
@@ -130,7 +130,7 @@ func NoExchangeTickersGet(s *sec.SEC, db *sqlx.DB) error {
 	return nil
 }
 
-func ExchangeTickersGet(s *sec.SEC, db *sqlx.DB) error {
+func ExchangeFileGet(s *sec.SEC, db *sqlx.DB) error {
 	// Retrieving JSON data from URL
 	file, err := os.Open(filepath.Join(s.Config.Main.CacheDir, "files/company_tickers_exchange.json"))
 	if err != nil {
@@ -212,7 +212,7 @@ func ExchangeTickersGet(s *sec.SEC, db *sqlx.DB) error {
 	return nil
 }
 
-func TickersGetAll(db *sqlx.DB) ([]SecTicker, error) {
+func GetAll(db *sqlx.DB) ([]SecTicker, error) {
 	// Retrieve from DB
 	tickers := []SecTicker{}
 	err := db.Select(&tickers, "SELECT cik, ticker, title, exchange FROM sec.tickers")
