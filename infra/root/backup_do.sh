@@ -3,6 +3,8 @@
 set -x
 set -e
 
+sec=/home/sec/sec
+
 /root/backup_store.sh
 status=failed
 if [ $# -eq 0 ]; then
