@@ -8,7 +8,7 @@ import (
 
 	"github.com/equres/sec/pkg/database"
 	"github.com/equres/sec/pkg/download"
-	"github.com/equres/sec/pkg/sec"
+	"github.com/equres/sec/pkg/secutil"
 	"github.com/equres/sec/pkg/secworklist"
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
@@ -40,7 +40,7 @@ var destCmd = &cobra.Command{
 		totalSizeForYear := make(map[int]float64)
 		totalSizeZIPForYear := make(map[int]int)
 		for index, downloadable := range worklist {
-			filePath, err := S.FormatFilePathDate(S.Config.Main.CacheDir, downloadable.Year, downloadable.Month)
+			filePath, err := secutil.FormatFilePathDate(S.Config.Main.CacheDir, downloadable.Year, downloadable.Month)
 			if err != nil {
 				return err
 			}
@@ -50,7 +50,7 @@ var destCmd = &cobra.Command{
 				return fmt.Errorf("please run sec dow index to download the necessary files then run sec dest again")
 			}
 
-			rssFile, err := S.ParseRSSGoXML(filePath)
+			rssFile, err := secutil.ParseRSSGoXML(filePath)
 			if err != nil {
 				return err
 			}
@@ -71,7 +71,7 @@ var destCmd = &cobra.Command{
 				}
 			}
 
-			fileSizeZIP, err := sec.CalculateRSSFilesZIP(rssFile)
+			fileSizeZIP, err := secutil.CalculateRSSFilesZIP(rssFile)
 			if err != nil {
 				return err
 			}

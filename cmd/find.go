@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/equres/sec/pkg/secutil"
 	log "github.com/sirupsen/logrus"
 
 	"github.com/spf13/cobra"
@@ -26,7 +27,7 @@ var findCmd = &cobra.Command{
 			return err
 		}
 
-		secitemfiles, err := S.SearchByFilingDate(DB, date, date)
+		secitemfiles, err := secutil.SearchByFilingDate(DB, date, date)
 		if err != nil {
 			return err
 		}

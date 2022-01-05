@@ -14,6 +14,7 @@ import (
 	"github.com/equres/sec/pkg/secextra"
 	"github.com/equres/sec/pkg/secindex"
 	"github.com/equres/sec/pkg/secticker"
+	"github.com/equres/sec/pkg/secutil"
 	"github.com/equres/sec/pkg/secworklist"
 	"github.com/spf13/cobra"
 )
@@ -68,7 +69,7 @@ var indexCmd = &cobra.Command{
 		var rssFiles []sec.RSSFile
 
 		for _, v := range worklist {
-			fileURL, err := S.FormatFilePathDate(S.Config.Main.CacheDir, v.Year, v.Month)
+			fileURL, err := secutil.FormatFilePathDate(S.Config.Main.CacheDir, v.Year, v.Month)
 			if err != nil {
 				return err
 			}
@@ -78,7 +79,7 @@ var indexCmd = &cobra.Command{
 				return fmt.Errorf("please run sec dow index to download all index files first")
 			}
 
-			rssFile, err := S.ParseRSSGoXML(fileURL)
+			rssFile, err := secutil.ParseRSSGoXML(fileURL)
 			if err != nil {
 				return err
 			}

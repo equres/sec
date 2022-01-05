@@ -6,6 +6,7 @@ import (
 
 	"github.com/equres/sec/pkg/database"
 	"github.com/equres/sec/pkg/secdow"
+	"github.com/equres/sec/pkg/secutil"
 	"github.com/spf13/cobra"
 )
 
@@ -33,7 +34,7 @@ to quickly create a Cobra application.`,
 			return err
 		}
 
-		err = S.ForEachWorklist(DB, secdow.DownloadAllItemFiles, "Checking/Downloading XBRL files listed in index files...")
+		err = secutil.ForEachWorklist(S, DB, secdow.DownloadAllItemFiles, "Checking/Downloading XBRL files listed in index files...")
 		if err != nil {
 			return err
 		}

@@ -11,6 +11,7 @@ import (
 	"github.com/equres/sec/pkg/config"
 	"github.com/equres/sec/pkg/download"
 	"github.com/equres/sec/pkg/sec"
+	"github.com/equres/sec/pkg/secutil"
 	"github.com/equres/sec/pkg/secworklist"
 	"github.com/jmoiron/sqlx"
 	log "github.com/sirupsen/logrus"
@@ -94,7 +95,7 @@ func DownloadIndex(db *sqlx.DB, s *sec.SEC) error {
 	}
 
 	for _, v := range worklist {
-		fileURL, err := s.FormatFilePathDate(s.BaseURL, v.Year, v.Month)
+		fileURL, err := secutil.FormatFilePathDate(s.BaseURL, v.Year, v.Month)
 		if err != nil {
 			return err
 		}
@@ -187,7 +188,7 @@ func DownloadAllItemFiles(db *sqlx.DB, s *sec.SEC, rssFile sec.RSSFile, worklist
 		log.Info("Calculating number of XBRL Files in the index files: ")
 	}
 
-	totalCount, err := s.TotalXbrlFileCountGet(worklist, s.Config.Main.CacheDir)
+	totalCount, err := secutil.TotalXbrlFileCountGet(worklist, s, s.Config.Main.CacheDir)
 	if err != nil {
 		return err
 	}
@@ -221,7 +222,7 @@ func DownloadZIPFiles(db *sqlx.DB, s *sec.SEC) error {
 		return err
 	}
 
-	totalCount, err := s.GetTotalZIPFilesToBeDownloaded(db, worklist)
+	totalCount, err := secutil.GetTotalZIPFilesToBeDownloaded(db, s, worklist)
 	if err != nil {
 		return err
 	}
@@ -230,7 +231,7 @@ func DownloadZIPFiles(db *sqlx.DB, s *sec.SEC) error {
 	downloader.CurrentDownloadCount = 0
 	downloader.TotalDownloadsCount = totalCount
 	for _, v := range worklist {
-		fileURL, err := s.FormatFilePathDate(s.Config.Main.CacheDir, v.Year, v.Month)
+		fileURL, err := secutil.FormatFilePathDate(s.Config.Main.CacheDir, v.Year, v.Month)
 		if err != nil {
 			return err
 		}
@@ -240,7 +241,7 @@ func DownloadZIPFiles(db *sqlx.DB, s *sec.SEC) error {
 			return fmt.Errorf("please run sec dow index to download all index files first")
 		}
 
-		rssFile, err := s.ParseRSSGoXML(fileURL)
+		rssFile, err := secutil.ParseRSSGoXML(fileURL)
 		if err != nil {
 			return err
 		}
@@ -298,9 +299,9 @@ func DownloadFinancialStatementDataSets(db *sqlx.DB, s *sec.SEC) error {
 		return err
 	}
 	for _, v := range worklist {
-		quarter := sec.QuarterFromMonth(v.Month)
+		quarter := secutil.QuarterFromMonth(v.Month)
 
-		if !sec.IsCurrentYearQuarterCorrect(v.Year, quarter) {
+		if !secutil.IsCurrentYearQuarterCorrect(v.Year, quarter) {
 			continue
 		}
 
