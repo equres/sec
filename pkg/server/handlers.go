@@ -20,6 +20,7 @@ import (
 	"github.com/equres/sec/pkg/seccik"
 	"github.com/equres/sec/pkg/secworklist"
 	"github.com/gorilla/mux"
+	"github.com/gosimple/slug"
 )
 
 func (s Server) GenerateRouter() (*mux.Router, error) {
@@ -36,6 +37,8 @@ func (s Server) GenerateRouter() (*mux.Router, error) {
 	router.HandleFunc("/filings/{year}/{month}", s.HandlerDaysPage).Methods("GET")
 	router.HandleFunc("/filings/{year}/{month}/{day}", s.HandlerCompaniesPage).Methods("GET")
 	router.HandleFunc("/filings/{year}/{month}/{day}/{cik}", s.HandlerFilingsPage).Methods("GET")
+	router.HandleFunc("/company", s.HandlerCompaniesListPage).Methods("GET")
+	router.HandleFunc("/company/{companySlug}", s.HandlerCompanyFilingsPage).Methods("GET")
 	router.HandleFunc("/stats", s.HandlerStatsPage).Methods("GET")
 	router.HandleFunc("/api/v1/uptime", s.HandlerUptime).Methods("GET")
 	router.PathPrefix("/").HandlerFunc(s.HandlerFiles)
@@ -276,6 +279,92 @@ func (s Server) HandlerFilingsPage(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
+func (s Server) HandlerCompaniesListPage(w http.ResponseWriter, r *http.Request) {
+	companies, err := sec.GetAllCompanies(s.DB)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+
+	content := make(map[string]interface{})
+	content["Companies"] = GetCompanySlugs(companies)
+
+	err = s.RenderTemplate(w, "companieslist.page.gohtml", content)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+}
+
+func (s Server) HandlerCompanyFilingsPage(w http.ResponseWriter, r *http.Request) {
+	vars := mux.Vars(r)
+
+	companySlug := vars["companySlug"]
+
+	companies, err := sec.GetAllCompanies(s.DB)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+	company := GetCompanyFromSlug(companies, companySlug)
+
+	cik, err := strconv.Atoi(company.CIKNumber)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+
+	filings, err := sec.GetCompanyFilingsFromCIK(s.DB, cik)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+
+	companyName, err := seccik.GetCompanyNameFromCIK(s.DB, cik)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+
+	type FormattedFiling struct {
+		CompanyName string
+		FillingDate string
+		FormType    string
+		XbrlURL     string
+	}
+
+	formattedFilings := make(map[string][]FormattedFiling)
+
+	for year, secItemFiles := range filings {
+		for _, item := range secItemFiles {
+			formType := sec.GetFullFormType(item.FormType)
+
+			fileLink, err := url.Parse(item.XbrlURL)
+			if err != nil {
+				http.Error(w, err.Error(), http.StatusBadRequest)
+				return
+			}
+
+			formattedFilings[year] = append(formattedFilings[year], FormattedFiling{
+				CompanyName: item.CompanyName,
+				FillingDate: item.FillingDate.Format("2006-01-02"),
+				FormType:    formType,
+				XbrlURL:     fileLink.Path,
+			})
+		}
+	}
+
+	content := make(map[string]interface{})
+	content["Filings"] = formattedFilings
+	content["CompanyName"] = companyName
+
+	err = s.RenderTemplate(w, "companyfilings.page.gohtml", content)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+}
+
 func (s Server) HandlerStatsPage(w http.ResponseWriter, r *http.Request) {
 	failedCount, err := sec.GetFailedDownloadEventCount(s.DB)
 	if err != nil {
@@ -336,4 +425,21 @@ func getIntVar(vars map[string]string, varName string) (int, error) {
 		return 0, errors.New("please choose a proper year and month")
 	}
 	return value, nil
+}
+
+func GetCompanySlugs(companies []sec.Company) map[string]sec.Company {
+	companySlugs := make(map[string]sec.Company)
+	for _, company := range companies {
+		companySlugs[slug.Make(company.CompanyName)] = company
+	}
+	return companySlugs
+}
+
+func GetCompanyFromSlug(companies []sec.Company, companySlug string) sec.Company {
+	companySlugs := GetCompanySlugs(companies)
+
+	if company, ok := companySlugs[companySlug]; ok {
+		return company
+	}
+	return sec.Company{}
 }

@@ -1,0 +1,18 @@
+{{ template "base" .}}
+
+{{ define "head"}}
+    <title>Equres > Companies > {{ .CompanyName }}</title>
+{{ end }}
+
+{{ define "content"}}
+    <ul>
+        {{ range $Year, $YearFilings := .Filings}}
+            <li>{{ $Year }}</li>
+            <ul>
+                {{ range $Index, $Filing := $YearFilings }}
+                    <li><a href="{{ $Filing.XbrlURL }}">{{ $Filing.CompanyName }} {{ $Year }} {{ $Filing.FormType }} (filled: {{ $Filing.FillingDate }})</a></li>
+                {{ end }}
+            </ul>
+        {{ end }}
+    </ul>
+{{ end }}

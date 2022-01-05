@@ -1,0 +1,22 @@
+{{ template "base" .}}
+
+{{ define "head"}}
+    <title>Equres > Companies</title>
+{{ end }}
+
+{{ define "content"}}
+    <table class="table">
+        <thead>
+            <tr>
+                <th>Company Name</th>
+            </tr>
+        </thead>
+        <tbody>
+            {{  range $Slug, $Company := .Companies }}
+                <tr>
+                    <td><a href="/company/{{ $Slug }}">{{ $Company.CompanyName }}</a></td>
+                </tr>
+            {{ end }}
+        </tbody>
+    </table>
+{{ end }}

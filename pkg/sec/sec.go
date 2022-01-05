@@ -151,6 +151,11 @@ type SECItemFile struct {
 	XbrlBody           string    `db:"xbrlbody"`
 }
 
+type Company struct {
+	CompanyName string
+	CIKNumber   string
+}
+
 // Ticker Struct Based on JSON
 type SecTicker struct {
 	Cik      int    `json:"cik_str"`
@@ -1531,4 +1536,69 @@ func GetFiveRecentFilings(db *sqlx.DB) ([]SECItemFile, error) {
 	}
 
 	return secitemfiles, nil
+}
+
+func GetAllCompanies(db *sqlx.DB) ([]Company, error) {
+	var companies []Company
+
+	err := db.Select(&companies, "SELECT DISTINCT companyname, ciknumber FROM sec.secitemfile;")
+	if err != nil {
+		return nil, err
+	}
+
+	return companies, err
+}
+
+func GetCompanyFilingsFromCIK(db *sqlx.DB, cik int) (map[string][]SECItemFile, error) {
+	var secItemFiles []SECItemFile
+
+	err := db.Select(&secItemFiles, "SELECT companyname, ciknumber, formtype, fillingdate, xbrlurl FROM sec.secItemFile WHERE ciknumber = $1 ORDER BY fillingdate desc;", cik)
+	if err != nil {
+		return nil, err
+	}
+
+	filings := make(map[string][]SECItemFile)
+
+	for _, item := range secItemFiles {
+		year := strconv.Itoa(item.FillingDate.Year())
+		filings[year] = append(filings[year], item)
+	}
+
+	return filings, nil
+}
+
+func GetFullFormType(formType string) string {
+	if formType == "10-Q" || formType == "10-Q/A" {
+		return fmt.Sprintf("%v Quarterly Report", formType)
+	}
+
+	if formType == "10-K/A" || formType == "10-K" {
+		return fmt.Sprintf("%v Annual Report", formType)
+	}
+
+	if formType == "8-K/A" || formType == "8-K" {
+		return fmt.Sprintf("%v Current Report", formType)
+	}
+
+	if formType == "20-F" || formType == "20-F/A" {
+		return fmt.Sprintf("%v Annual/Transition Report", formType)
+	}
+
+	if formType == "POS AM" {
+		return fmt.Sprintf("%v Post-Effective Filing Amendment", formType)
+	}
+
+	if formType == "10-12G/A" {
+		return fmt.Sprintf("%v Initial General Form For Registration of a Class of Securities Pursuant To Section", formType)
+	}
+
+	if formType == "6-K" {
+		return fmt.Sprintf("%v Foreign Issuer Report", formType)
+	}
+
+	if formType == "S-1" {
+		return fmt.Sprintf("%v IPO Investment Prospectus", formType)
+	}
+
+	return formType
 }

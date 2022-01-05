@@ -8,6 +8,7 @@ require (
 	github.com/gocarina/gocsv v0.0.0-20210516172204-ca9e8a8ddea8
 	github.com/golang-migrate/migrate/v4 v4.14.2-0.20201125065321-a53e6fc42574
 	github.com/gorilla/mux v1.8.0
+	github.com/gosimple/slug v1.12.0 // indirect
 	github.com/hashicorp/go-multierror v1.1.1 // indirect
 	github.com/jmoiron/sqlx v1.3.4
 	github.com/johejo/golang-migrate-extra v0.0.0-20210217013041-51a992e50d16
