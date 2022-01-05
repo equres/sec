@@ -12,6 +12,7 @@ import (
 	"github.com/equres/sec/pkg/download"
 	"github.com/equres/sec/pkg/sec"
 	"github.com/equres/sec/pkg/secextra"
+	"github.com/equres/sec/pkg/secindex"
 	"github.com/equres/sec/pkg/secticker"
 	"github.com/equres/sec/pkg/secworklist"
 	"github.com/spf13/cobra"
@@ -92,7 +93,7 @@ var indexCmd = &cobra.Command{
 			}
 		}
 
-		err = S.InsertAllSecItemFile(DB, rssFiles, worklist, totalCount)
+		err = secindex.InsertAllSecItemFile(DB, S, rssFiles, worklist, totalCount)
 		if err != nil {
 			return err
 		}

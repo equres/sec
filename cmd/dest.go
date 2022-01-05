@@ -8,6 +8,7 @@ import (
 
 	"github.com/equres/sec/pkg/database"
 	"github.com/equres/sec/pkg/download"
+	"github.com/equres/sec/pkg/sec"
 	"github.com/equres/sec/pkg/secworklist"
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
@@ -70,7 +71,7 @@ var destCmd = &cobra.Command{
 				}
 			}
 
-			fileSizeZIP, err := S.CalculateRSSFilesZIP(rssFile)
+			fileSizeZIP, err := sec.CalculateRSSFilesZIP(rssFile)
 			if err != nil {
 				return err
 			}
