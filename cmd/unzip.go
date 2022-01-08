@@ -12,7 +12,7 @@ var unzipCmd = &cobra.Command{
 	Short: "extracts ZIP files to the cache unpacked directory",
 	Long:  `extracts ZIP files to the cache unpacked directory`,
 	RunE: func(cmd *cobra.Command, args []string) error {
-		return secutil.ForEachWorklist(S, DB, secutil.UnzipFiles, "")
+		return secutil.UnzipFiles(DB, S)
 	},
 }
 
