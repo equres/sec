@@ -21,15 +21,14 @@ import (
 	"jaytaylor.com/html2text"
 )
 
-func InsertAllSecItemFile(db *sqlx.DB, s *sec.SEC, rssFiles []sec.RSSFile, worklist []secworklist.Worklist, totalCount int) error {
+func InsertAllSecItemFile(db *sqlx.DB, s *sec.SEC, rssFiles []sec.RSSFile, worklistMap map[string]sec.Entry, totalCount int) error {
 	currentCount := 0
 	for _, rssFile := range rssFiles {
 		for _, v1 := range rssFile.Channel.Item {
-			err := SecItemFileUpsert(db, s, v1)
+			err := SecItemFileUpsert(db, s, v1, worklistMap, &currentCount)
 			if err != nil {
 				return err
 			}
-			currentCount++
 
 			if s.Verbose {
 				currentCountFloat := float64(currentCount)
@@ -43,7 +42,7 @@ func InsertAllSecItemFile(db *sqlx.DB, s *sec.SEC, rssFiles []sec.RSSFile, workl
 	return nil
 }
 
-func SecItemFileUpsert(db *sqlx.DB, s *sec.SEC, item sec.Item) error {
+func SecItemFileUpsert(db *sqlx.DB, s *sec.SEC, item sec.Item, worklist map[string]sec.Entry, currentCount *int) error {
 	var err error
 
 	var enclosureLength int
@@ -83,10 +82,15 @@ func SecItemFileUpsert(db *sqlx.DB, s *sec.SEC, item sec.Item) error {
 		return err
 	}
 	if len(ciks) == 0 {
+		log.Info("files_skipped_for_invalid_cik ", len(item.XbrlFiling.XbrlFiles.XbrlFile))
+		*currentCount += len(item.XbrlFiling.XbrlFiles.XbrlFile)
 		return nil
 	}
 
 	for _, v := range item.XbrlFiling.XbrlFiles.XbrlFile {
+		if _, ok := worklist[v.URL]; ok {
+			continue
+		}
 		var xbrlInline bool
 		if v.InlineXBRL != "" {
 			xbrlInline, err = strconv.ParseBool(v.InlineXBRL)
@@ -161,6 +165,8 @@ func SecItemFileUpsert(db *sqlx.DB, s *sec.SEC, item sec.Item) error {
 			}
 			return err
 		}
+
+		*currentCount++
 
 		eventErr := database.CreateIndexEvent(db, filePath, "success")
 		if eventErr != nil {

@@ -346,70 +346,7 @@ func DownloadFinancialStatementDataSets(db *sqlx.DB, s *sec.SEC) error {
 	return nil
 }
 
-func DownloadRawFiles(s *sec.SEC, db *sqlx.DB) error {
-	worklist, err := secworklist.WillDownloadGet(db)
-	if err != nil {
-		return err
-	}
-
-	type File struct {
-		Path string
-		Done bool
-	}
-
-	files := make(map[string]File)
-
-	for _, v := range worklist {
-		fileURL, err := secutil.FormatFilePathDate(s.Config.Main.CacheDir, v.Year, v.Month)
-		if err != nil {
-			return err
-		}
-
-		_, err = os.Stat(fileURL)
-		if err != nil {
-			return fmt.Errorf("please run sec dow index to download all index files first")
-		}
-
-		rssFile, err := secutil.ParseRSSGoXML(fileURL)
-		if err != nil {
-			return err
-		}
-
-		for _, v1 := range rssFile.Channel.Item {
-			for _, v2 := range v1.XbrlFiling.XbrlFiles.XbrlFile {
-				files[v2.URL] = File{
-					Path: v2.URL,
-					Done: false,
-				}
-			}
-		}
-	}
-
-	var filesInDB []struct {
-		XbrlURL      string
-		XbrlFilePath string
-	}
-
-	err = db.Select(&filesInDB, "SELECT xbrlurl, xbrlfilepath FROM sec.secItemFile WHERE xbrlfilepath IS NOT NULL AND xbrlfilepath != '';")
-	if err != nil {
-		return err
-	}
-
-	for _, fn := range filesInDB {
-		if file, ok := files[fn.XbrlURL]; ok {
-			file.Done = true
-
-			files[fn.XbrlURL] = file
-		}
-	}
-
-	var filesToDownload []string
-	for _, file := range files {
-		if !file.Done {
-			filesToDownload = append(filesToDownload, file.Path)
-		}
-	}
-
+func DownloadRawFiles(s *sec.SEC, db *sqlx.DB, filesToDownload []string) error {
 	if s.Verbose {
 		log.Info("Number of files to be downloaded: ", len(filesToDownload))
 	}

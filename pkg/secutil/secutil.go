@@ -736,3 +736,105 @@ func CompareRawFiles(s *sec.SEC, db *sqlx.DB) error {
 
 	return nil
 }
+
+func GetAllRSSFiles(s *sec.SEC, db *sqlx.DB) ([]sec.RSSFile, error) {
+	worklist, err := secworklist.WillDownloadGet(db)
+	if err != nil {
+		return nil, err
+	}
+
+	var allRSSFiles []sec.RSSFile
+	for _, v := range worklist {
+		fileURL, err := FormatFilePathDate(s.Config.Main.CacheDir, v.Year, v.Month)
+		if err != nil {
+			return nil, err
+		}
+
+		_, err = os.Stat(fileURL)
+		if err != nil {
+			return nil, fmt.Errorf("please run sec dow index to download all index files first")
+		}
+
+		rssFile, err := ParseRSSGoXML(fileURL)
+		if err != nil {
+			return nil, err
+		}
+
+		allRSSFiles = append(allRSSFiles, rssFile)
+	}
+
+	return allRSSFiles, nil
+}
+
+func MapFilesInWorklistGetAll(allRSSFiles []sec.RSSFile) (map[string]sec.Entry, error) {
+	entries := make(map[string]sec.Entry)
+	for _, v1 := range allRSSFiles {
+		for _, v2 := range v1.Channel.Item {
+			for _, v3 := range v2.XbrlFiling.XbrlFiles.XbrlFile {
+				size, err := strconv.Atoi(v3.Size)
+				if err != nil {
+					return nil, err
+				}
+
+				entries[v3.URL] = sec.Entry{
+					URL:  v3.URL,
+					Path: "",
+					Size: size,
+				}
+			}
+		}
+	}
+
+	return entries, nil
+}
+
+func MapFilesOnDiskGetAll(s *sec.SEC, worklistMap map[string]sec.Entry) (map[string]sec.Entry, error) {
+	entries := make(map[string]sec.Entry)
+	for _, v := range worklistMap {
+		fileURL, err := url.Parse(v.URL)
+		if err != nil {
+			return nil, err
+		}
+
+		filePath := filepath.Join(s.Config.Main.CacheDir, fileURL.Path)
+		_, err = os.Stat(filePath)
+		if err != nil {
+			filePath = filepath.Join(s.Config.Main.CacheDirUnpacked, fileURL.Path)
+			_, err = os.Stat(filePath)
+			if err != nil {
+				continue
+			}
+		}
+
+		entries[v.URL] = sec.Entry{
+			URL:  v.URL,
+			Path: filePath,
+			Size: v.Size,
+		}
+	}
+
+	return entries, nil
+}
+
+func MapFilesInDBGetAll(db *sqlx.DB, s *sec.SEC, worklistMap map[string]sec.Entry) (map[string]sec.Entry, error) {
+	var filesInDB []struct {
+		URL      string `db:"xbrlurl"`
+		FilePath string `db:"xbrlfilepath"`
+	}
+
+	err := db.Select(&filesInDB, "SELECT xbrlurl, xbrlfilepath FROM sec.secItemFile WHERE xbrlfilepath IS NOT NULL AND xbrlfilepath != '';")
+	if err != nil {
+		return nil, err
+	}
+
+	entries := make(map[string]sec.Entry)
+	for _, v := range filesInDB {
+		entry := worklistMap[v.URL]
+
+		entry.Path = v.FilePath
+
+		entries[v.URL] = entry
+	}
+
+	return entries, nil
+}

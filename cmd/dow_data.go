@@ -6,6 +6,7 @@ import (
 
 	"github.com/equres/sec/pkg/database"
 	"github.com/equres/sec/pkg/secdow"
+	"github.com/equres/sec/pkg/secutil"
 	"github.com/spf13/cobra"
 )
 
@@ -28,12 +29,34 @@ to quickly create a Cobra application.`,
 			log.Info("Checking/Downloading index files...")
 		}
 
-		err := secdow.DownloadIndex(DB, S)
+		allRSSFiles, err := secutil.GetAllRSSFiles(S, DB)
 		if err != nil {
 			return err
 		}
 
-		err = secdow.DownloadRawFiles(S, DB)
+		worklistMap, err := secutil.MapFilesInWorklistGetAll(allRSSFiles)
+		if err != nil {
+			return err
+		}
+
+		filesOnDisk, err := secutil.MapFilesOnDiskGetAll(S, worklistMap)
+		if err != nil {
+			return err
+		}
+
+		err = secdow.DownloadIndex(DB, S)
+		if err != nil {
+			return err
+		}
+
+		var filesToDownload []string
+		for _, v := range worklistMap {
+			if _, ok := filesOnDisk[v.URL]; !ok {
+				filesToDownload = append(filesToDownload, v.URL)
+			}
+		}
+
+		err = secdow.DownloadRawFiles(S, DB, filesToDownload)
 		if err != nil {
 			return err
 		}
