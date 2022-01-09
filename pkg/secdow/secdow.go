@@ -385,21 +385,28 @@ func DownloadRawFiles(s *sec.SEC, db *sqlx.DB) error {
 		}
 	}
 
-	var filesToDownload []string
-	for _, fn := range files {
-		fileURL, err := url.Parse(fn.Path)
-		if err != nil {
-			return err
-		}
+	var filesInDB []struct {
+		XbrlURL      string
+		XbrlFilePath string
+	}
 
-		filePath := filepath.Join(s.Config.Main.CacheDir, fileURL.Path)
-		_, err = os.Stat(filePath)
-		if err != nil {
-			filePath = filepath.Join(s.Config.Main.CacheDirUnpacked, fileURL.Path)
-			_, err = os.Stat(filePath)
-			if err != nil {
-				filesToDownload = append(filesToDownload, fn.Path)
-			}
+	err = db.Select(&filesInDB, "SELECT xbrlurl, xbrlfilepath FROM sec.secItemFile WHERE xbrlfilepath IS NOT NULL AND xbrlfilepath != '';")
+	if err != nil {
+		return err
+	}
+
+	for _, fn := range filesInDB {
+		if file, ok := files[fn.XbrlURL]; ok {
+			file.Done = true
+
+			files[fn.XbrlURL] = file
+		}
+	}
+
+	var filesToDownload []string
+	for _, file := range files {
+		if !file.Done {
+			filesToDownload = append(filesToDownload, file.Path)
 		}
 	}
 
