@@ -345,3 +345,93 @@ func DownloadFinancialStatementDataSets(db *sqlx.DB, s *sec.SEC) error {
 	}
 	return nil
 }
+
+func DownloadRawFiles(s *sec.SEC, db *sqlx.DB) error {
+	worklist, err := secworklist.WillDownloadGet(db)
+	if err != nil {
+		return err
+	}
+
+	type File struct {
+		Path string
+		Done bool
+	}
+
+	files := make(map[string]File)
+
+	for _, v := range worklist {
+		fileURL, err := secutil.FormatFilePathDate(s.Config.Main.CacheDir, v.Year, v.Month)
+		if err != nil {
+			return err
+		}
+
+		_, err = os.Stat(fileURL)
+		if err != nil {
+			return fmt.Errorf("please run sec dow index to download all index files first")
+		}
+
+		rssFile, err := secutil.ParseRSSGoXML(fileURL)
+		if err != nil {
+			return err
+		}
+
+		for _, v1 := range rssFile.Channel.Item {
+			for _, v2 := range v1.XbrlFiling.XbrlFiles.XbrlFile {
+				files[v2.URL] = File{
+					Path: v2.URL,
+					Done: false,
+				}
+			}
+		}
+	}
+
+	var filesToDownload []string
+	for _, fn := range files {
+		fileURL, err := url.Parse(fn.Path)
+		if err != nil {
+			return err
+		}
+
+		filePath := filepath.Join(s.Config.Main.CacheDir, fileURL.Path)
+		_, err = os.Stat(filePath)
+		if err != nil {
+			filePath = filepath.Join(s.Config.Main.CacheDirUnpacked, fileURL.Path)
+			_, err = os.Stat(filePath)
+			if err != nil {
+				filesToDownload = append(filesToDownload, fn.Path)
+			}
+		}
+	}
+
+	if s.Verbose {
+		log.Info("Number of files to be downloaded: ", len(filesToDownload))
+	}
+
+	downloader := download.NewDownloader(s.Config)
+	downloader.IsEtag = true
+	downloader.Verbose = s.Verbose
+	downloader.Debug = s.Debug
+	downloader.TotalDownloadsCount = len(filesToDownload)
+	downloader.CurrentDownloadCount = 1
+
+	rateLimit, err := time.ParseDuration(fmt.Sprintf("%vms", s.Config.Main.RateLimitMs))
+	if err != nil {
+		return err
+	}
+
+	for _, v := range filesToDownload {
+		if s.Verbose {
+			log.Info(fmt.Sprintf("Download progress [%d/%d/%f%%]", downloader.CurrentDownloadCount, downloader.TotalDownloadsCount, downloader.GetDownloadPercentage()))
+		}
+
+		err = downloader.DownloadFile(db, v)
+		if err != nil {
+			return err
+		}
+		time.Sleep(rateLimit)
+
+		downloader.CurrentDownloadCount += 1
+	}
+
+	return nil
+}
