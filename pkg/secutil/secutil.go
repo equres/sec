@@ -555,37 +555,8 @@ func GetFiveRecentFilings(db *sqlx.DB) ([]sec.SECItemFile, error) {
 	return secitemfiles, nil
 }
 
-func CompareUnzippedFiles(s *sec.SEC, db *sqlx.DB) error {
-	worklist, err := secworklist.WillDownloadGet(db)
-	if err != nil {
-		return err
-	}
-	var totalCount int
+func CompareUnzippedFiles(s *sec.SEC, db *sqlx.DB, rssFiles []sec.RSSFile, totalCount int) error {
 	var correctCount int
-	var rssFiles []sec.RSSFile
-
-	for _, v := range worklist {
-		fileURL, err := FormatFilePathDate(s.Config.Main.CacheDir, v.Year, v.Month)
-		if err != nil {
-			return err
-		}
-
-		_, err = os.Stat(fileURL)
-		if err != nil {
-			return fmt.Errorf("please run sec dow index to download all index files first")
-		}
-
-		rssFile, err := ParseRSSGoXML(fileURL)
-		if err != nil {
-			return err
-		}
-
-		rssFiles = append(rssFiles, rssFile)
-		for _, v1 := range rssFile.Channel.Item {
-			totalCount += len(v1.XbrlFiling.XbrlFiles.XbrlFile)
-		}
-	}
-
 	for _, v := range rssFiles {
 		for _, v1 := range v.Channel.Item {
 			for _, v2 := range v1.XbrlFiling.XbrlFiles.XbrlFile {
@@ -617,35 +588,8 @@ func CompareUnzippedFiles(s *sec.SEC, db *sqlx.DB) error {
 	return nil
 }
 
-func CompareZipFiles(s *sec.SEC, db *sqlx.DB) error {
-	worklist, err := secworklist.WillDownloadGet(db)
-	if err != nil {
-		return err
-	}
-	var totalCount int
+func CompareZipFiles(s *sec.SEC, db *sqlx.DB, rssFiles []sec.RSSFile, totalCount int) error {
 	var correctCount int
-	var rssFiles []sec.RSSFile
-
-	for _, v := range worklist {
-		fileURL, err := FormatFilePathDate(s.Config.Main.CacheDir, v.Year, v.Month)
-		if err != nil {
-			return err
-		}
-
-		_, err = os.Stat(fileURL)
-		if err != nil {
-			return fmt.Errorf("please run sec dow index to download all index files first")
-		}
-
-		rssFile, err := ParseRSSGoXML(fileURL)
-		if err != nil {
-			return err
-		}
-
-		rssFiles = append(rssFiles, rssFile)
-		totalCount += len(rssFile.Channel.Item)
-	}
-
 	for _, v := range rssFiles {
 		for _, v1 := range v.Channel.Item {
 			fileURL, err := url.Parse(v1.Enclosure.URL)
@@ -675,37 +619,8 @@ func CompareZipFiles(s *sec.SEC, db *sqlx.DB) error {
 	return nil
 }
 
-func CompareRawFiles(s *sec.SEC, db *sqlx.DB) error {
-	worklist, err := secworklist.WillDownloadGet(db)
-	if err != nil {
-		return err
-	}
-	var totalCount int
+func CompareRawFiles(s *sec.SEC, db *sqlx.DB, rssFiles []sec.RSSFile, totalCount int) error {
 	var correctCount int
-	var rssFiles []sec.RSSFile
-
-	for _, v := range worklist {
-		fileURL, err := FormatFilePathDate(s.Config.Main.CacheDir, v.Year, v.Month)
-		if err != nil {
-			return err
-		}
-
-		_, err = os.Stat(fileURL)
-		if err != nil {
-			return fmt.Errorf("please run sec dow index to download all index files first")
-		}
-
-		rssFile, err := ParseRSSGoXML(fileURL)
-		if err != nil {
-			return err
-		}
-
-		rssFiles = append(rssFiles, rssFile)
-		for _, v1 := range rssFile.Channel.Item {
-			totalCount += len(v1.XbrlFiling.XbrlFiles.XbrlFile)
-		}
-	}
-
 	for _, v := range rssFiles {
 		for _, v1 := range v.Channel.Item {
 			for _, v2 := range v1.XbrlFiling.XbrlFiles.XbrlFile {

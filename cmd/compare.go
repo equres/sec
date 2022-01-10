@@ -1,7 +1,12 @@
 package cmd
 
 import (
+	"fmt"
+	"os"
+
+	"github.com/equres/sec/pkg/sec"
 	"github.com/equres/sec/pkg/secutil"
+	"github.com/equres/sec/pkg/secworklist"
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 )
@@ -17,13 +22,44 @@ var compareCmd = &cobra.Command{
 			return nil
 		}
 
+		worklist, err := secworklist.WillDownloadGet(DB)
+		if err != nil {
+			return err
+		}
+
+		var rssFiles []sec.RSSFile
+		var totalItems int
+		var totalXbrlFiles int
+		for _, v := range worklist {
+			indexFilePath, err := secutil.FormatFilePathDate(S.Config.Main.CacheDir, v.Year, v.Month)
+			if err != nil {
+				return err
+			}
+
+			_, err = os.Stat(indexFilePath)
+			if err != nil {
+				return fmt.Errorf("please run sec dow index to download all index files first")
+			}
+
+			rssFile, err := secutil.ParseRSSGoXML(indexFilePath)
+			if err != nil {
+				return err
+			}
+
+			rssFiles = append(rssFiles, rssFile)
+			totalItems += len(rssFile.Channel.Item)
+			for _, v1 := range rssFile.Channel.Item {
+				totalXbrlFiles += len(v1.XbrlFiling.XbrlFiles.XbrlFile)
+			}
+		}
+
 		switch args[0] {
 		case "zip":
-			return secutil.CompareZipFiles(S, DB)
+			return secutil.CompareZipFiles(S, DB, rssFiles, totalItems)
 		case "unzipped":
-			return secutil.CompareUnzippedFiles(S, DB)
+			return secutil.CompareUnzippedFiles(S, DB, rssFiles, totalXbrlFiles)
 		case "raw":
-			return secutil.CompareRawFiles(S, DB)
+			return secutil.CompareRawFiles(S, DB, rssFiles, totalXbrlFiles)
 		default:
 			log.Info("Please type 'zip' to compare ZIP files, 'unzipped' to compare unzipped files, and 'raw' to compare the raw files")
 		}
