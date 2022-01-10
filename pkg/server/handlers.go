@@ -6,7 +6,6 @@ import (
 	"html/template"
 	"io/fs"
 	"net/http"
-	"net/url"
 	"os"
 	"path/filepath"
 	"strconv"
@@ -52,7 +51,7 @@ func (s Server) HandlerHome(w http.ResponseWriter, r *http.Request) {
 
 	type FormattedFiling struct {
 		CompanyName string
-		PubDate     string
+		FillingDate string
 		FormType    string
 		XbrlURL     string
 	}
@@ -60,17 +59,13 @@ func (s Server) HandlerHome(w http.ResponseWriter, r *http.Request) {
 	var recentFilingsFormatted []FormattedFiling
 
 	for _, filing := range recentFilings {
-		fileLink, err := url.Parse(filing.XbrlURL)
-		if err != nil {
-			http.Error(w, err.Error(), http.StatusBadRequest)
-			return
-		}
+		filingURL := fmt.Sprintf("/filings/%v/%v/%v/%v", filing.FillingDate.Year(), int(filing.FillingDate.Month()), filing.FillingDate.Day(), filing.CIKNumber)
 
 		formattedFiling := FormattedFiling{
 			CompanyName: filing.CompanyName,
-			PubDate:     filing.PubDate.Format("2006-01-02"),
+			FillingDate: filing.FillingDate.Format("2006-01-02"),
 			FormType:    filing.FormType,
-			XbrlURL:     fileLink.Path,
+			XbrlURL:     filingURL,
 		}
 		recentFilingsFormatted = append(recentFilingsFormatted, formattedFiling)
 	}
