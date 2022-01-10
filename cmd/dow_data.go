@@ -29,22 +29,25 @@ to quickly create a Cobra application.`,
 			log.Info("Checking/Downloading index files...")
 		}
 
+		err := secdow.DownloadIndex(DB, S)
+		if err != nil {
+			return err
+		}
+
+		log.Info("Getting all RSSFiles...")
 		allRSSFiles, err := secutil.GetAllRSSFiles(S, DB)
 		if err != nil {
 			return err
 		}
 
+		log.Info("Getting all files in worklist...")
 		worklistMap, err := secutil.MapFilesInWorklistGetAll(allRSSFiles)
 		if err != nil {
 			return err
 		}
 
+		log.Info("Getting all files that exist on disk...")
 		filesOnDisk, err := secutil.MapFilesOnDiskGetAll(S, worklistMap)
-		if err != nil {
-			return err
-		}
-
-		err = secdow.DownloadIndex(DB, S)
 		if err != nil {
 			return err
 		}
@@ -56,6 +59,7 @@ to quickly create a Cobra application.`,
 			}
 		}
 
+		log.Info("Downloading files...")
 		err = secdow.DownloadRawFiles(S, DB, filesToDownload)
 		if err != nil {
 			return err
