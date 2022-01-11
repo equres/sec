@@ -8,6 +8,7 @@ import (
 
 	"github.com/equres/sec/pkg/database"
 	"github.com/equres/sec/pkg/download"
+	"github.com/equres/sec/pkg/secutil"
 	"github.com/equres/sec/pkg/secworklist"
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
@@ -31,13 +32,15 @@ var destCmd = &cobra.Command{
 		downloader.IsEtag = true
 
 		if S.Verbose {
-			log.Info("File Name\tUncompressed Sized\tZIP Sizes\n")
+			log.Info("File Name - Uncompressed Sized - ZIP Sizes")
 		}
 
 		var totalSize float64
 		var totalSizeZIP int
-		for _, v := range worklist {
-			filePath, err := S.FormatFilePathDate(S.Config.Main.CacheDir, v.Year, v.Month)
+		totalSizeForYear := make(map[int]float64)
+		totalSizeZIPForYear := make(map[int]int)
+		for index, downloadable := range worklist {
+			filePath, err := secutil.FormatFilePathDate(S.Config.Main.CacheDir, downloadable.Year, downloadable.Month)
 			if err != nil {
 				return err
 			}
@@ -47,11 +50,7 @@ var destCmd = &cobra.Command{
 				return fmt.Errorf("please run sec dow index to download the necessary files then run sec dest again")
 			}
 
-			if S.Verbose {
-				log.Info(fmt.Sprintf("%v", filepath.Base(filePath)), "\t\t")
-			}
-
-			rssFile, err := S.ParseRSSGoXML(filePath)
+			rssFile, err := secutil.ParseRSSGoXML(filePath)
 			if err != nil {
 				return err
 			}
@@ -71,24 +70,35 @@ var destCmd = &cobra.Command{
 					fileSize += val
 				}
 			}
-			if S.Verbose {
-				log.Info(parseSize(fileSize), "\t\t")
-			}
 
-			fileSizeZIP, err := S.CalculateRSSFilesZIP(rssFile)
+			fileSizeZIP, err := secutil.CalculateRSSFilesZIP(rssFile)
 			if err != nil {
 				return err
 			}
 
 			if S.Verbose {
-				log.Info(parseSize(float64(fileSizeZIP)), "\t\t", "\n")
+				log.Info(fmt.Sprintf("fn %v %v %v", filepath.Base(filePath), parseSize(fileSize), parseSize(float64(fileSizeZIP))))
 			}
+
+			if _, ok := totalSizeForYear[downloadable.Year]; !ok {
+				totalSizeForYear[downloadable.Year] = 0
+				totalSizeZIPForYear[downloadable.Year] = 0
+			}
+
+			totalSizeForYear[downloadable.Year] += fileSize
+			totalSizeZIPForYear[downloadable.Year] += fileSizeZIP
 
 			totalSize += fileSize
 			totalSizeZIP += fileSizeZIP
+
+			if downloadable.Month == 12 || len(worklist)-1 == index {
+				if S.Verbose {
+					log.Info(fmt.Sprintf("Year %v - %v - %v", downloadable.Year, parseSize(totalSizeForYear[downloadable.Year]), parseSize(float64(totalSizeZIPForYear[downloadable.Year]))))
+				}
+			}
 		}
 
-		log.Info("Total Size", "\t\t", parseSize(totalSize), "\t\t", parseSize(float64(totalSizeZIP)), "\n")
+		log.Info("Total Size", " - ", parseSize(totalSize), " - ", parseSize(float64(totalSizeZIP)), "\n")
 		return nil
 	},
 }

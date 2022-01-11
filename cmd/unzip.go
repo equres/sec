@@ -2,6 +2,7 @@
 package cmd
 
 import (
+	"github.com/equres/sec/pkg/secutil"
 	"github.com/spf13/cobra"
 )
 
@@ -11,7 +12,7 @@ var unzipCmd = &cobra.Command{
 	Short: "extracts ZIP files to the cache unpacked directory",
 	Long:  `extracts ZIP files to the cache unpacked directory`,
 	RunE: func(cmd *cobra.Command, args []string) error {
-		return S.ForEachWorklist(DB, S.UnzipFiles, "")
+		return secutil.UnzipFiles(DB, S)
 	},
 }
 

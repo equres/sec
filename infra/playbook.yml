@@ -251,6 +251,8 @@
         - { src: 'backup_do.sh' }
         - { src: 'db_backup.sh' }
         - { src: 'sec.cron.daily.sh' }
+        - { src: 'stats.cron.daily.sh' }
+        - { src: 'certbot_renew.sh' }
         - { src: '.creds' }
     - name: Copy Monit Config File
       become: yes
@@ -377,7 +379,7 @@
         name: "Update SSL Certificate"
         minute: "0"
         hour: "12"
-        job: '/usr/bin/certbot renew --pre-hook "service nginx stop" --post-hook "service nginx start"'
+        job: '/root/certbot_renew.sh'
     - name: Run Backup Script Everyday at 3 AM
       become: yes
       become_user: root
@@ -386,13 +388,18 @@
         name: "Backup ZIP & XML"
         minute: "0"
         hour: "3"
-        job: "/root/backup_do.sh | logger"
+        user: sec
+        job: "/root/backup_do.sh"
     - name: Generate AWStats HTML File Everyday at 1 AM
+      become: yes
+      become_user: root
+      become_method: sudo
       ansible.builtin.cron:
         name: "Generate AWStats HTML File"
         minute: "0"
         hour: "1"
-        job: "perl /usr/lib/cgi-bin/awstats.pl -config=equres.com -output > /home/sec/_stats/$(date +%F)-stats.html | logger"
+        user: sec
+        job: "/root/stats.cron.daily.sh"
     - name: Run Download Script Everyday at 4 AM
       become: yes
       become_user: root

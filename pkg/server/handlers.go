@@ -18,6 +18,7 @@ import (
 	humanize "github.com/dustin/go-humanize"
 	"github.com/equres/sec/pkg/sec"
 	"github.com/equres/sec/pkg/seccik"
+	"github.com/equres/sec/pkg/secutil"
 	"github.com/equres/sec/pkg/secworklist"
 	"github.com/gorilla/mux"
 	"github.com/gosimple/slug"
@@ -47,7 +48,7 @@ func (s Server) GenerateRouter() (*mux.Router, error) {
 
 func (s Server) HandlerHome(w http.ResponseWriter, r *http.Request) {
 	content := make(map[string]interface{})
-	recentFilings, err := sec.GetFiveRecentFilings(s.DB)
+	recentFilings, err := secutil.GetFiveRecentFilings(s.DB)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
@@ -55,7 +56,7 @@ func (s Server) HandlerHome(w http.ResponseWriter, r *http.Request) {
 
 	type FormattedFiling struct {
 		CompanyName string
-		PubDate     string
+		FillingDate string
 		FormType    string
 		XbrlURL     string
 	}
@@ -63,17 +64,13 @@ func (s Server) HandlerHome(w http.ResponseWriter, r *http.Request) {
 	var recentFilingsFormatted []FormattedFiling
 
 	for _, filing := range recentFilings {
-		fileLink, err := url.Parse(filing.XbrlURL)
-		if err != nil {
-			http.Error(w, err.Error(), http.StatusBadRequest)
-			return
-		}
+		filingURL := fmt.Sprintf("/filings/%v/%v/%v/%v", filing.FillingDate.Year(), int(filing.FillingDate.Month()), filing.FillingDate.Day(), filing.CIKNumber)
 
 		formattedFiling := FormattedFiling{
 			CompanyName: filing.CompanyName,
-			PubDate:     filing.PubDate.Format("2006-01-02"),
+			FillingDate: filing.FillingDate.Format("2006-01-02"),
 			FormType:    filing.FormType,
-			XbrlURL:     fileLink.Path,
+			XbrlURL:     filingURL,
 		}
 		recentFilingsFormatted = append(recentFilingsFormatted, formattedFiling)
 	}
@@ -140,13 +137,7 @@ func (s Server) HandlerDaysPage(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	secVar, err := sec.NewSEC(s.Config)
-	if err != nil {
-		http.Error(w, err.Error(), http.StatusBadRequest)
-		return
-	}
-
-	days, err := secVar.GetFilingDaysFromMonthYear(s.DB, year, month)
+	days, err := secutil.GetFilingDaysFromMonthYear(s.DB, year, month)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
@@ -185,13 +176,7 @@ func (s Server) HandlerCompaniesPage(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	secVar, err := sec.NewSEC(s.Config)
-	if err != nil {
-		http.Error(w, err.Error(), http.StatusBadRequest)
-		return
-	}
-
-	companies, err := secVar.GetFilingCompaniesFromYearMonthDay(s.DB, year, month, day)
+	companies, err := secutil.GetFilingCompaniesFromYearMonthDay(s.DB, year, month, day)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
@@ -240,13 +225,7 @@ func (s Server) HandlerFilingsPage(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	secVar, err := sec.NewSEC(s.Config)
-	if err != nil {
-		http.Error(w, err.Error(), http.StatusBadRequest)
-		return
-	}
-
-	filings, err := secVar.SearchFilingsByYearMonthDayCIK(s.DB, year, month, day, cik)
+	filings, err := secutil.SearchFilingsByYearMonthDayCIK(s.DB, year, month, day, cik)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
@@ -280,7 +259,7 @@ func (s Server) HandlerFilingsPage(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s Server) HandlerCompaniesListPage(w http.ResponseWriter, r *http.Request) {
-	companies, err := sec.GetAllCompanies(s.DB)
+	companies, err := secutil.GetAllCompanies(s.DB)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
@@ -301,7 +280,7 @@ func (s Server) HandlerCompanyFilingsPage(w http.ResponseWriter, r *http.Request
 
 	companySlug := vars["companySlug"]
 
-	companies, err := sec.GetAllCompanies(s.DB)
+	companies, err := secutil.GetAllCompanies(s.DB)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
@@ -314,7 +293,7 @@ func (s Server) HandlerCompanyFilingsPage(w http.ResponseWriter, r *http.Request
 		return
 	}
 
-	filings, err := sec.GetCompanyFilingsFromCIK(s.DB, cik)
+	filings, err := secutil.GetCompanyFilingsFromCIK(s.DB, cik)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
@@ -337,7 +316,7 @@ func (s Server) HandlerCompanyFilingsPage(w http.ResponseWriter, r *http.Request
 
 	for year, secItemFiles := range filings {
 		for _, item := range secItemFiles {
-			formType := sec.GetFullFormType(item.FormType)
+			formType := secutil.GetFullFormType(item.FormType)
 
 			fileLink, err := url.Parse(item.XbrlURL)
 			if err != nil {
@@ -366,12 +345,12 @@ func (s Server) HandlerCompanyFilingsPage(w http.ResponseWriter, r *http.Request
 }
 
 func (s Server) HandlerStatsPage(w http.ResponseWriter, r *http.Request) {
-	failedCount, err := sec.GetFailedDownloadEventCount(s.DB)
+	failedCount, err := secutil.GetFailedDownloadEventCount(s.DB)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 	}
 
-	successCount, err := sec.GetSuccessfulDownloadEventCount(s.DB)
+	successCount, err := secutil.GetSuccessfulDownloadEventCount(s.DB)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 	}

@@ -3,6 +3,8 @@ package cmd
 
 import (
 	"github.com/equres/sec/pkg/database"
+	"github.com/equres/sec/pkg/secindex"
+	"github.com/equres/sec/pkg/secutil"
 	"github.com/spf13/cobra"
 )
 
@@ -15,7 +17,7 @@ var indexzCmd = &cobra.Command{
 		return database.CheckMigration(RootConfig)
 	},
 	RunE: func(cmd *cobra.Command, args []string) error {
-		return S.ForEachWorklist(DB, S.IndexZIPFileContent, "")
+		return secutil.ForEachWorklist(S, DB, secindex.IndexZIPFileContent, "")
 	},
 }
 

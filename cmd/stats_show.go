@@ -4,7 +4,7 @@ package cmd
 import (
 	log "github.com/sirupsen/logrus"
 
-	"github.com/equres/sec/pkg/sec"
+	"github.com/equres/sec/pkg/secutil"
 	"github.com/spf13/cobra"
 )
 
@@ -14,11 +14,11 @@ var statsShowCmd = &cobra.Command{
 	Short: "Show the download stats",
 	Long:  `Show the download stats`,
 	RunE: func(cmd *cobra.Command, args []string) error {
-		failedCount, err := sec.GetFailedDownloadEventCount(DB)
+		failedCount, err := secutil.GetFailedDownloadEventCount(DB)
 		if err != nil {
 			return err
 		}
-		successCount, err := sec.GetSuccessfulDownloadEventCount(DB)
+		successCount, err := secutil.GetSuccessfulDownloadEventCount(DB)
 		if err != nil {
 			return err
 		}

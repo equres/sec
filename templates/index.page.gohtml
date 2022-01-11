@@ -12,7 +12,7 @@
                 {{ range .RecentFilings }}
                     <li>{{ .CompanyName }}</li>
                     <ul>
-                        <li><a href="{{ .XbrlURL }}">{{ .PubDate }} ({{ .FormType }})</a></li>
+                        <li><a href="{{ .XbrlURL }}">{{ .FillingDate }} ({{ .FormType }})</a></li>
                     </ul>
                 {{ end }}
             <ul>

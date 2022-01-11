@@ -2,6 +2,7 @@
 package cmd
 
 import (
+	"github.com/equres/sec/pkg/secdow"
 	log "github.com/sirupsen/logrus"
 
 	"github.com/spf13/cobra"
@@ -13,12 +14,12 @@ var dowIndexCmd = &cobra.Command{
 	Short: "Download only index (RSS/XML) files into the local disk",
 	Long:  ``,
 	RunE: func(cmd *cobra.Command, args []string) error {
-		err := S.DownloadTickerFile(DB, "files/company_tickers.json")
+		err := secdow.DownloadTickerFile(DB, S, "files/company_tickers.json")
 		if err != nil {
 			return err
 		}
 
-		err = S.DownloadTickerFile(DB, "files/company_tickers_exchange.json")
+		err = secdow.DownloadTickerFile(DB, S, "files/company_tickers_exchange.json")
 		if err != nil {
 			return err
 		}
@@ -27,7 +28,7 @@ var dowIndexCmd = &cobra.Command{
 			log.Info("Checking/Downloading index files...")
 		}
 
-		err = S.DownloadIndex(DB)
+		err = secdow.DownloadIndex(DB, S)
 		if err != nil {
 			return err
 		}
@@ -37,7 +38,7 @@ var dowIndexCmd = &cobra.Command{
 				log.Info("Downloading financial statement data sets...:")
 			}
 
-			err = S.DownloadFinancialStatementDataSets(DB)
+			err = secdow.DownloadFinancialStatementDataSets(DB, S)
 			if err != nil {
 				return err
 			}

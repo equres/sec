@@ -5,6 +5,8 @@ import (
 	log "github.com/sirupsen/logrus"
 
 	"github.com/equres/sec/pkg/database"
+	"github.com/equres/sec/pkg/secdow"
+	"github.com/equres/sec/pkg/secutil"
 	"github.com/spf13/cobra"
 )
 
@@ -27,12 +29,38 @@ to quickly create a Cobra application.`,
 			log.Info("Checking/Downloading index files...")
 		}
 
-		err := S.DownloadIndex(DB)
+		err := secdow.DownloadIndex(DB, S)
 		if err != nil {
 			return err
 		}
 
-		err = S.ForEachWorklist(DB, S.DownloadAllItemFiles, "Checking/Downloading XBRL files listed in index files...")
+		log.Info("Getting all RSSFiles...")
+		allRSSFiles, err := secutil.GetAllRSSFiles(S, DB)
+		if err != nil {
+			return err
+		}
+
+		log.Info("Getting all files in worklist...")
+		worklistMap, err := secutil.MapFilesInWorklistGetAll(allRSSFiles)
+		if err != nil {
+			return err
+		}
+
+		log.Info("Getting all files that exist on disk...")
+		filesOnDisk, err := secutil.MapFilesOnDiskGetAll(S, worklistMap)
+		if err != nil {
+			return err
+		}
+
+		var filesToDownload []string
+		for _, v := range worklistMap {
+			if _, ok := filesOnDisk[v.URL]; !ok {
+				filesToDownload = append(filesToDownload, v.URL)
+			}
+		}
+
+		log.Info("Downloading files...")
+		err = secdow.DownloadRawFiles(S, DB, filesToDownload)
 		if err != nil {
 			return err
 		}
