@@ -6,7 +6,6 @@ import (
 	"html/template"
 	"io/fs"
 	"net/http"
-	"net/url"
 	"os"
 	"path/filepath"
 	"strconv"
@@ -16,7 +15,6 @@ import (
 	log "github.com/sirupsen/logrus"
 
 	humanize "github.com/dustin/go-humanize"
-	"github.com/equres/sec/pkg/sec"
 	"github.com/equres/sec/pkg/seccik"
 	"github.com/equres/sec/pkg/secutil"
 	"github.com/equres/sec/pkg/secworklist"
