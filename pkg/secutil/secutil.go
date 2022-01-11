@@ -542,12 +542,17 @@ func GetFiveRecentFilings(db *sqlx.DB) ([]sec.SECItemFile, error) {
 	var secitemfiles []sec.SECItemFile
 
 	err := db.Select(&secitemfiles, `
-	SELECT companyname, formtype, pubdate, xbrlurl 
-	FROM sec.secitemfile
-	WHERE RIGHT(xbrlurl, 3) = 'htm' 
-		OR RIGHT(xbrlurl, 4) = 'html'
-		OR RIGHT(xbrlurl, 3) = 'xml'
-	ORDER BY created_at desc LIMIT 5;`)
+	SELECT * FROM (
+		SELECT DISTINCT ON (ciknumber)
+		ciknumber, companyname, formtype, fillingdate, xbrlurl
+		FROM sec.secitemfile
+		WHERE RIGHT(xbrlurl, 3) = 'htm' 
+			OR RIGHT(xbrlurl, 4) = 'html'
+			OR RIGHT(xbrlurl, 3) = 'xml'
+		ORDER BY ciknumber desc
+	) distinct_ciks
+	ORDER BY fillingdate desc
+	LIMIT 5;`)
 	if err != nil {
 		return nil, err
 	}
