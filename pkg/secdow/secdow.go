@@ -345,3 +345,37 @@ func DownloadFinancialStatementDataSets(db *sqlx.DB, s *sec.SEC) error {
 	}
 	return nil
 }
+
+func DownloadRawFiles(s *sec.SEC, db *sqlx.DB, filesToDownload []string) error {
+	if s.Verbose {
+		log.Info("Number of files to be downloaded: ", len(filesToDownload))
+	}
+
+	downloader := download.NewDownloader(s.Config)
+	downloader.IsEtag = true
+	downloader.Verbose = s.Verbose
+	downloader.Debug = s.Debug
+	downloader.TotalDownloadsCount = len(filesToDownload)
+	downloader.CurrentDownloadCount = 1
+
+	rateLimit, err := time.ParseDuration(fmt.Sprintf("%vms", s.Config.Main.RateLimitMs))
+	if err != nil {
+		return err
+	}
+
+	for _, v := range filesToDownload {
+		if s.Verbose {
+			log.Info(fmt.Sprintf("Download progress [%d/%d/%f%%]", downloader.CurrentDownloadCount, downloader.TotalDownloadsCount, downloader.GetDownloadPercentage()))
+		}
+
+		err = downloader.DownloadFile(db, v)
+		if err != nil {
+			return err
+		}
+		time.Sleep(rateLimit)
+
+		downloader.CurrentDownloadCount += 1
+	}
+
+	return nil
+}

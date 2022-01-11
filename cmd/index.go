@@ -87,14 +87,18 @@ var indexCmd = &cobra.Command{
 			rssFiles = append(rssFiles, rssFile)
 		}
 
-		var totalCount int
-		for _, rssFile := range rssFiles {
-			for _, item := range rssFile.Channel.Item {
-				totalCount += len(item.XbrlFiling.XbrlFiles.XbrlFile)
-			}
+		allFilesInRSS, err := secutil.MapFilesInWorklistGetAll(rssFiles)
+		if err != nil {
+			return err
 		}
 
-		err = secindex.InsertAllSecItemFile(DB, S, rssFiles, worklist, totalCount)
+		filesInDB, err := secutil.MapFilesInDBGetAll(DB, S, allFilesInRSS)
+		if err != nil {
+			return err
+		}
+
+		totalCount := len(allFilesInRSS) - len(filesInDB)
+		err = secindex.InsertAllSecItemFile(DB, S, rssFiles, filesInDB, totalCount)
 		if err != nil {
 			return err
 		}

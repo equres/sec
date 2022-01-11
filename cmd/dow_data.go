@@ -34,7 +34,33 @@ to quickly create a Cobra application.`,
 			return err
 		}
 
-		err = secutil.ForEachWorklist(S, DB, secdow.DownloadAllItemFiles, "Checking/Downloading XBRL files listed in index files...")
+		log.Info("Getting all RSSFiles...")
+		allRSSFiles, err := secutil.GetAllRSSFiles(S, DB)
+		if err != nil {
+			return err
+		}
+
+		log.Info("Getting all files in worklist...")
+		worklistMap, err := secutil.MapFilesInWorklistGetAll(allRSSFiles)
+		if err != nil {
+			return err
+		}
+
+		log.Info("Getting all files that exist on disk...")
+		filesOnDisk, err := secutil.MapFilesOnDiskGetAll(S, worklistMap)
+		if err != nil {
+			return err
+		}
+
+		var filesToDownload []string
+		for _, v := range worklistMap {
+			if _, ok := filesOnDisk[v.URL]; !ok {
+				filesToDownload = append(filesToDownload, v.URL)
+			}
+		}
+
+		log.Info("Downloading files...")
+		err = secdow.DownloadRawFiles(S, DB, filesToDownload)
 		if err != nil {
 			return err
 		}

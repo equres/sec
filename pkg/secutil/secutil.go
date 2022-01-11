@@ -16,6 +16,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/equres/sec/pkg/database"
 	"github.com/equres/sec/pkg/sec"
 	"github.com/equres/sec/pkg/secworklist"
 	"github.com/jmoiron/sqlx"
@@ -366,44 +367,83 @@ func ForEachWorklist(s *sec.SEC, db *sqlx.DB, implementFunc func(*sqlx.DB, *sec.
 	return nil
 }
 
-func UnzipFiles(db *sqlx.DB, s *sec.SEC, rssFile sec.RSSFile, worklist []secworklist.Worklist) error {
-	totalCount := len(rssFile.Channel.Item)
+func UnzipFiles(db *sqlx.DB, s *sec.SEC) error {
+	worklist, err := secworklist.WillDownloadGet(db)
+	if err != nil {
+		return err
+	}
+	var totalCount int
+	var rssFiles []sec.RSSFile
+	for _, v := range worklist {
+		fileURL, err := FormatFilePathDate(s.Config.Main.CacheDir, v.Year, v.Month)
+		if err != nil {
+			return err
+		}
+
+		_, err = os.Stat(fileURL)
+		if err != nil {
+			return fmt.Errorf("please run sec dow index to download all index files first")
+		}
+
+		rssFile, err := ParseRSSGoXML(fileURL)
+		if err != nil {
+			return err
+		}
+
+		rssFiles = append(rssFiles, rssFile)
+		totalCount += len(rssFile.Channel.Item)
+	}
+
 	currentCount := 0
-	for _, v1 := range rssFile.Channel.Item {
-		parsedURL, err := url.Parse(v1.Enclosure.URL)
-		if err != nil {
-			return err
-		}
-		zipPath := parsedURL.Path
+	for _, v := range rssFiles {
+		for _, v1 := range v.Channel.Item {
+			parsedURL, err := url.Parse(v1.Enclosure.URL)
+			if err != nil {
+				return err
+			}
+			zipPath := parsedURL.Path
 
-		zipCachePath := filepath.Join(s.Config.Main.CacheDir, zipPath)
-		_, err = os.Stat(zipCachePath)
-		if err != nil {
-			log.Info("please run sec dowz to download all ZIP files then run sec indexz again to index them")
-			return err
-		}
+			zipCachePath := filepath.Join(s.Config.Main.CacheDir, zipPath)
+			_, err = os.Stat(zipCachePath)
+			if err != nil {
+				err = database.CreateOtherEvent(db, "unzip", zipCachePath, "failed")
+				if err != nil {
+					return err
+				}
+				log.Error(fmt.Sprintf("failed_to_find %v", zipCachePath))
+				continue
+			}
 
-		if strings.ToLower(filepath.Ext(zipCachePath)) != ".zip" {
-			continue
-		}
+			if strings.ToLower(filepath.Ext(zipCachePath)) != ".zip" {
+				continue
+			}
 
-		reader, err := zip.OpenReader(zipCachePath)
-		if err != nil {
-			log.Info("error opening the file:", zipCachePath)
-			return err
-		}
+			reader, err := zip.OpenReader(zipCachePath)
+			if err != nil {
+				err = database.CreateOtherEvent(db, "unzip", zipCachePath, "failed")
+				if err != nil {
+					return err
+				}
+				log.Error(fmt.Sprintf("failed_to_open_file %v", zipCachePath))
+				continue
+			}
 
-		err = CreateFilesFromZIP(s, zipPath, reader.File)
-		if err != nil {
-			log.Info("error creating files from ZIP:", zipPath)
-			return err
-		}
+			err = CreateFilesFromZIP(s, zipPath, reader.File)
+			if err != nil {
+				err = database.CreateOtherEvent(db, "unzip", zipCachePath, "failed")
+				if err != nil {
+					return err
+				}
+				log.Error(fmt.Sprintf("failed_to_create_from_zip %v", zipCachePath))
+				continue
+			}
 
-		reader.Close()
+			reader.Close()
 
-		currentCount++
-		if s.Verbose {
-			log.Info(fmt.Sprintf("[%d/%d] %s unpacked...\n", currentCount, totalCount, time.Now().Format("2006-01-02 03:04:05")))
+			currentCount++
+			if s.Verbose {
+				log.Info(fmt.Sprintf("[%d/%d] %s unpacked...\n", currentCount, totalCount, time.Now().Format("2006-01-02 03:04:05")))
+			}
 		}
 	}
 	return nil
@@ -513,4 +553,203 @@ func GetFiveRecentFilings(db *sqlx.DB) ([]sec.SECItemFile, error) {
 	}
 
 	return secitemfiles, nil
+}
+
+func CompareUnzippedFiles(s *sec.SEC, db *sqlx.DB, rssFiles []sec.RSSFile, totalCount int) error {
+	var correctCount int
+	for _, v := range rssFiles {
+		for _, v1 := range v.Channel.Item {
+			for _, v2 := range v1.XbrlFiling.XbrlFiles.XbrlFile {
+				fileURL, err := url.Parse(v2.URL)
+				if err != nil {
+					return err
+				}
+
+				filePath := filepath.Join(s.Config.Main.CacheDirUnpacked, fileURL.Path)
+
+				_, err = os.Stat(filePath)
+				if err != nil {
+					if s.Verbose {
+						log.Info(fmt.Sprintf("fn %v does_not_exist", filePath))
+					}
+					continue
+				}
+
+				correctCount++
+				if s.Verbose {
+					log.Info(fmt.Sprintf("[%d/%d] files found...\n", correctCount, totalCount))
+				}
+			}
+		}
+	}
+
+	log.Info(fmt.Sprintf("Found [%d/%d] files based on comparison ...\n", correctCount, totalCount))
+
+	return nil
+}
+
+func CompareZipFiles(s *sec.SEC, db *sqlx.DB, rssFiles []sec.RSSFile, totalCount int) error {
+	var correctCount int
+	for _, v := range rssFiles {
+		for _, v1 := range v.Channel.Item {
+			fileURL, err := url.Parse(v1.Enclosure.URL)
+			if err != nil {
+				return err
+			}
+
+			filePath := filepath.Join(s.Config.Main.CacheDir, fileURL.Path)
+
+			_, err = os.Stat(filePath)
+			if err != nil {
+				if s.Verbose {
+					log.Info(fmt.Sprintf("fn %v does_not_exist", filePath))
+				}
+				continue
+			}
+
+			correctCount++
+			if s.Verbose {
+				log.Info(fmt.Sprintf("[%d/%d] files found...\n", correctCount, totalCount))
+			}
+		}
+	}
+
+	log.Info(fmt.Sprintf("Found [%d/%d] files based on comparison ...\n", correctCount, totalCount))
+
+	return nil
+}
+
+func CompareRawFiles(s *sec.SEC, db *sqlx.DB, rssFiles []sec.RSSFile, totalCount int) error {
+	var correctCount int
+	for _, v := range rssFiles {
+		for _, v1 := range v.Channel.Item {
+			for _, v2 := range v1.XbrlFiling.XbrlFiles.XbrlFile {
+				fileURL, err := url.Parse(v2.URL)
+				if err != nil {
+					return err
+				}
+
+				filePath := filepath.Join(s.Config.Main.CacheDir, fileURL.Path)
+
+				_, err = os.Stat(filePath)
+				if err != nil {
+					if s.Verbose {
+						log.Info(fmt.Sprintf("fn %v does_not_exist", filePath))
+					}
+					continue
+				}
+
+				correctCount++
+				if s.Verbose {
+					log.Info(fmt.Sprintf("[%d/%d] files found...\n", correctCount, totalCount))
+				}
+			}
+		}
+	}
+
+	log.Info(fmt.Sprintf("Found [%d/%d] files based on comparison ...\n", correctCount, totalCount))
+
+	return nil
+}
+
+func GetAllRSSFiles(s *sec.SEC, db *sqlx.DB) ([]sec.RSSFile, error) {
+	worklist, err := secworklist.WillDownloadGet(db)
+	if err != nil {
+		return nil, err
+	}
+
+	var allRSSFiles []sec.RSSFile
+	for _, v := range worklist {
+		fileURL, err := FormatFilePathDate(s.Config.Main.CacheDir, v.Year, v.Month)
+		if err != nil {
+			return nil, err
+		}
+
+		_, err = os.Stat(fileURL)
+		if err != nil {
+			return nil, fmt.Errorf("please run sec dow index to download all index files first")
+		}
+
+		rssFile, err := ParseRSSGoXML(fileURL)
+		if err != nil {
+			return nil, err
+		}
+
+		allRSSFiles = append(allRSSFiles, rssFile)
+	}
+
+	return allRSSFiles, nil
+}
+
+func MapFilesInWorklistGetAll(allRSSFiles []sec.RSSFile) (map[string]sec.Entry, error) {
+	entries := make(map[string]sec.Entry)
+	for _, v1 := range allRSSFiles {
+		for _, v2 := range v1.Channel.Item {
+			for _, v3 := range v2.XbrlFiling.XbrlFiles.XbrlFile {
+				size, err := strconv.Atoi(v3.Size)
+				if err != nil {
+					return nil, err
+				}
+
+				entries[v3.URL] = sec.Entry{
+					URL:  v3.URL,
+					Path: "",
+					Size: size,
+				}
+			}
+		}
+	}
+
+	return entries, nil
+}
+
+func MapFilesOnDiskGetAll(s *sec.SEC, worklistMap map[string]sec.Entry) (map[string]sec.Entry, error) {
+	entries := make(map[string]sec.Entry)
+	for _, v := range worklistMap {
+		fileURL, err := url.Parse(v.URL)
+		if err != nil {
+			return nil, err
+		}
+
+		filePath := filepath.Join(s.Config.Main.CacheDir, fileURL.Path)
+		_, err = os.Stat(filePath)
+		if err != nil {
+			filePath = filepath.Join(s.Config.Main.CacheDirUnpacked, fileURL.Path)
+			_, err = os.Stat(filePath)
+			if err != nil {
+				continue
+			}
+		}
+
+		entries[v.URL] = sec.Entry{
+			URL:  v.URL,
+			Path: filePath,
+			Size: v.Size,
+		}
+	}
+
+	return entries, nil
+}
+
+func MapFilesInDBGetAll(db *sqlx.DB, s *sec.SEC, worklistMap map[string]sec.Entry) (map[string]sec.Entry, error) {
+	var filesInDB []struct {
+		URL      string `db:"xbrlurl"`
+		FilePath string `db:"xbrlfilepath"`
+	}
+
+	err := db.Select(&filesInDB, "SELECT xbrlurl, xbrlfilepath FROM sec.secItemFile WHERE xbrlfilepath IS NOT NULL AND xbrlfilepath != '';")
+	if err != nil {
+		return nil, err
+	}
+
+	entries := make(map[string]sec.Entry)
+	for _, v := range filesInDB {
+		entry := worklistMap[v.URL]
+
+		entry.Path = v.FilePath
+
+		entries[v.URL] = entry
+	}
+
+	return entries, nil
 }

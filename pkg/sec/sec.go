@@ -85,6 +85,12 @@ type XbrlFile struct {
 	URL         string `xml:"url,attr"`
 }
 
+type Entry struct {
+	URL  string
+	Path string
+	Size int
+}
+
 type SECItemFile struct {
 	ID                 int       `db:"id"`
 	Ticker             string    `db:"ticker"`
