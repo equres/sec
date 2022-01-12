@@ -94,7 +94,7 @@ func NoExchangeFileGet(s *sec.SEC, db *sqlx.DB) error {
 	for _, v := range allCompanyTickers {
 		err = seccik.SaveCIK(db, v.Cik)
 		if err != nil {
-			eventErr := database.CreateIndexEvent(db, "company_tickers.json", "failed")
+			eventErr := database.CreateIndexEvent(db, "company_tickers.json", "failed", "error_inserting_cik_in_database")
 			if eventErr != nil {
 				return eventErr
 			}
@@ -111,7 +111,7 @@ func NoExchangeFileGet(s *sec.SEC, db *sqlx.DB) error {
 		}
 		err := ticker.Save(db)
 		if err != nil {
-			eventErr := database.CreateIndexEvent(db, "company_tickers.json", "failed")
+			eventErr := database.CreateIndexEvent(db, "company_tickers.json", "failed", "error_inserting_ticker_in_database")
 			if eventErr != nil {
 				return eventErr
 			}
@@ -122,7 +122,7 @@ func NoExchangeFileGet(s *sec.SEC, db *sqlx.DB) error {
 	if s.Verbose {
 		log.Info("\u2713")
 	}
-	eventErr := database.CreateIndexEvent(db, "company_tickers.json", "success")
+	eventErr := database.CreateIndexEvent(db, "company_tickers.json", "success", "")
 	if eventErr != nil {
 		return eventErr
 	}
@@ -157,7 +157,7 @@ func ExchangeFileGet(s *sec.SEC, db *sqlx.DB) error {
 	for _, v := range fileExchange.Data {
 		err = seccik.SaveCIK(db, int(v[0].(float64)))
 		if err != nil {
-			eventErr := database.CreateIndexEvent(db, "company_tickers_exchange.json", "failed")
+			eventErr := database.CreateIndexEvent(db, "company_tickers_exchange.json", "failed", "error_inserting_cik_in_database")
 			if eventErr != nil {
 				return eventErr
 			}
@@ -195,7 +195,7 @@ func ExchangeFileGet(s *sec.SEC, db *sqlx.DB) error {
 		}
 		err := sec.Save(db)
 		if err != nil {
-			eventErr := database.CreateIndexEvent(db, "company_tickers_exchange.json", "failed")
+			eventErr := database.CreateIndexEvent(db, "company_tickers_exchange.json", "failed", "error_inserting_ticker_in_database")
 			if eventErr != nil {
 				return eventErr
 			}
@@ -205,7 +205,7 @@ func ExchangeFileGet(s *sec.SEC, db *sqlx.DB) error {
 	if s.Verbose {
 		log.Info("\u2713")
 	}
-	eventErr := database.CreateIndexEvent(db, "company_tickers_exchange.json", "success")
+	eventErr := database.CreateIndexEvent(db, "company_tickers_exchange.json", "success", "")
 	if eventErr != nil {
 		return eventErr
 	}
