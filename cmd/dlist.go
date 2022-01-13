@@ -29,7 +29,7 @@ to quickly create a Cobra application.`,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		log.Info("Year/Month that will be downloaded:")
 
-		worklist, err := secworklist.WillDownloadGet(DB)
+		worklist, err := secworklist.WillDownloadGet(DB, false)
 		if err != nil {
 			return err
 		}

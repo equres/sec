@@ -22,7 +22,7 @@ var compareCmd = &cobra.Command{
 			return nil
 		}
 
-		worklist, err := secworklist.WillDownloadGet(DB)
+		worklist, err := secworklist.WillDownloadGet(DB, false)
 		if err != nil {
 			return err
 		}

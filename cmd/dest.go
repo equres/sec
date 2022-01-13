@@ -23,7 +23,7 @@ var destCmd = &cobra.Command{
 		return database.CheckMigration(RootConfig)
 	},
 	RunE: func(cmd *cobra.Command, args []string) error {
-		worklist, err := secworklist.WillDownloadGet(DB)
+		worklist, err := secworklist.WillDownloadGet(DB, false)
 		if err != nil {
 			return err
 		}

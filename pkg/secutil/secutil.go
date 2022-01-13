@@ -334,7 +334,7 @@ func FormatFilePathDate(basepath string, year int, month int) (string, error) {
 }
 
 func ForEachWorklist(s *sec.SEC, db *sqlx.DB, implementFunc func(*sqlx.DB, *sec.SEC, sec.RSSFile, []secworklist.Worklist) error, verboseMessage string) error {
-	worklist, err := secworklist.WillDownloadGet(db)
+	worklist, err := secworklist.WillDownloadGet(db, false)
 	if err != nil {
 		return err
 	}
@@ -368,7 +368,7 @@ func ForEachWorklist(s *sec.SEC, db *sqlx.DB, implementFunc func(*sqlx.DB, *sec.
 }
 
 func UnzipFiles(db *sqlx.DB, s *sec.SEC) error {
-	worklist, err := secworklist.WillDownloadGet(db)
+	worklist, err := secworklist.WillDownloadGet(db, false)
 	if err != nil {
 		return err
 	}
@@ -666,7 +666,7 @@ func CompareRawFiles(s *sec.SEC, db *sqlx.DB, rssFiles []sec.RSSFile, totalCount
 }
 
 func GetAllRSSFiles(s *sec.SEC, db *sqlx.DB) ([]sec.RSSFile, error) {
-	worklist, err := secworklist.WillDownloadGet(db)
+	worklist, err := secworklist.WillDownloadGet(db, false)
 	if err != nil {
 		return nil, err
 	}
