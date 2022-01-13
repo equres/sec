@@ -25,24 +25,16 @@ func InsertAllSecItemFile(db *sqlx.DB, s *sec.SEC, rssFiles []sec.RSSFile, workl
 	currentCount := 0
 	for _, rssFile := range rssFiles {
 		for _, v1 := range rssFile.Channel.Item {
-			err := SecItemFileUpsert(db, s, v1, worklistMap, &currentCount)
+			err := SecItemFileUpsert(db, s, v1, worklistMap, &currentCount, totalCount)
 			if err != nil {
 				return err
-			}
-
-			if s.Verbose {
-				currentCountFloat := float64(currentCount)
-				totalCountFloat := float64(totalCount)
-				percentage := (currentCountFloat / totalCountFloat) * 100
-
-				log.Info(fmt.Sprintf("[%d/%d/%f%%] %s inserted for current file...\n", currentCount, totalCount, percentage, time.Now().Format("2006-01-02 03:04:05")))
 			}
 		}
 	}
 	return nil
 }
 
-func SecItemFileUpsert(db *sqlx.DB, s *sec.SEC, item sec.Item, worklist map[string]sec.Entry, currentCount *int) error {
+func SecItemFileUpsert(db *sqlx.DB, s *sec.SEC, item sec.Item, worklist map[string]sec.Entry, currentCount *int, totalCount int) error {
 	var err error
 
 	var enclosureLength int
@@ -91,6 +83,14 @@ func SecItemFileUpsert(db *sqlx.DB, s *sec.SEC, item sec.Item, worklist map[stri
 		if _, ok := worklist[v.URL]; ok {
 			continue
 		}
+		if s.Verbose {
+			currentCountFloat := float64(*currentCount)
+			totalCountFloat := float64(totalCount)
+			percentage := (currentCountFloat / totalCountFloat) * 100
+
+			log.Info(fmt.Sprintf("[%d/%d/%f%%] %s inserting file %v", *currentCount, totalCount, percentage, time.Now().Format("2006-01-02 03:04:05"), v.URL))
+		}
+
 		var xbrlInline bool
 		if v.InlineXBRL != "" {
 			xbrlInline, err = strconv.ParseBool(v.InlineXBRL)
