@@ -382,11 +382,19 @@ func UnzipFiles(db *sqlx.DB, s *sec.SEC) error {
 
 		_, err = os.Stat(fileURL)
 		if err != nil {
+			eventErr := database.CreateUnzipEvent(db, fileURL, "failed", "rss_file_does_not_exist")
+			if eventErr != nil {
+				return eventErr
+			}
 			return fmt.Errorf("please run sec dow index to download all index files first")
 		}
 
 		rssFile, err := ParseRSSGoXML(fileURL)
 		if err != nil {
+			eventErr := database.CreateUnzipEvent(db, fileURL, "failed", "could_not_parse_rss_file")
+			if eventErr != nil {
+				return eventErr
+			}
 			return err
 		}
 
@@ -406,9 +414,9 @@ func UnzipFiles(db *sqlx.DB, s *sec.SEC) error {
 			zipCachePath := filepath.Join(s.Config.Main.CacheDir, zipPath)
 			_, err = os.Stat(zipCachePath)
 			if err != nil {
-				err = database.CreateOtherEvent(db, "unzip", zipCachePath, "failed")
-				if err != nil {
-					return err
+				eventErr := database.CreateUnzipEvent(db, zipCachePath, "failed", "zip_file_does_not_exist")
+				if eventErr != nil {
+					return eventErr
 				}
 				log.Error(fmt.Sprintf("failed_to_find %v", zipCachePath))
 				continue
@@ -420,9 +428,9 @@ func UnzipFiles(db *sqlx.DB, s *sec.SEC) error {
 
 			reader, err := zip.OpenReader(zipCachePath)
 			if err != nil {
-				err = database.CreateOtherEvent(db, "unzip", zipCachePath, "failed")
-				if err != nil {
-					return err
+				eventErr := database.CreateUnzipEvent(db, zipCachePath, "failed", "corrupt_zip_file")
+				if eventErr != nil {
+					return eventErr
 				}
 				log.Error(fmt.Sprintf("failed_to_open_file %v", zipCachePath))
 				continue
@@ -430,9 +438,9 @@ func UnzipFiles(db *sqlx.DB, s *sec.SEC) error {
 
 			err = CreateFilesFromZIP(s, zipPath, reader.File)
 			if err != nil {
-				err = database.CreateOtherEvent(db, "unzip", zipCachePath, "failed")
-				if err != nil {
-					return err
+				eventErr := database.CreateUnzipEvent(db, zipCachePath, "failed", "could_not_create_files_from_zip")
+				if eventErr != nil {
+					return eventErr
 				}
 				log.Error(fmt.Sprintf("failed_to_create_from_zip %v", zipCachePath))
 				continue

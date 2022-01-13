@@ -19,12 +19,20 @@ type IndexEvent struct {
 	Event  string `json:"event"`
 	File   string `json:"file"`
 	Status string `json:"status"`
+	Reason string `json:"reason"`
 }
 
 type DownloadEvent struct {
 	Event  string `json:"event"`
 	File   string `json:"file"`
 	URL    string `json:"url"`
+	Status string `json:"status"`
+	Reason string `json:"reason"`
+}
+
+type UnzipEvent struct {
+	Event  string `json:"event"`
+	File   string `json:"file"`
 	Status string `json:"status"`
 	Reason string `json:"reason"`
 }
@@ -114,11 +122,12 @@ func CheckMigration(config config.Config) error {
 	return nil
 }
 
-func CreateIndexEvent(db *sqlx.DB, file string, status string) error {
+func CreateIndexEvent(db *sqlx.DB, file string, status string, reason string) error {
 	event := IndexEvent{
 		Event:  "index",
 		File:   file,
 		Status: status,
+		Reason: reason,
 	}
 	eventJson, err := json.Marshal(event)
 	if err != nil {
@@ -137,6 +146,25 @@ func CreateDownloadEvent(db *sqlx.DB, file string, url string, status string, re
 		Event:  "download",
 		File:   file,
 		URL:    url,
+		Status: status,
+		Reason: reason,
+	}
+	eventJson, err := json.Marshal(event)
+	if err != nil {
+		return err
+	}
+	_, err = db.Exec(`INSERT INTO sec.events (ev) VALUES ($1)`, eventJson)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func CreateUnzipEvent(db *sqlx.DB, file string, status string, reason string) error {
+	event := UnzipEvent{
+		Event:  "unzip",
+		File:   file,
 		Status: status,
 		Reason: reason,
 	}

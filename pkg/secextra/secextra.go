@@ -109,7 +109,7 @@ func IndexFinancialStatementDataSets(s *sec.SEC, db *sqlx.DB) error {
 
 		err = FinancialStatementDataSetsZIPUpsert(s, db, filesPath, reader.File)
 		if err != nil {
-			eventErr := database.CreateIndexEvent(db, filesPath, "failed")
+			eventErr := database.CreateIndexEvent(db, filesPath, "failed", "error_inserting_financial_statements_in_database")
 			if eventErr != nil {
 				return eventErr
 			}
@@ -121,7 +121,7 @@ func IndexFinancialStatementDataSets(s *sec.SEC, db *sqlx.DB) error {
 		if s.Verbose {
 			log.Info("\u2713")
 		}
-		eventErr := database.CreateIndexEvent(db, filesPath, "success")
+		eventErr := database.CreateIndexEvent(db, filesPath, "success", "")
 		if eventErr != nil {
 			return eventErr
 		}
@@ -157,7 +157,7 @@ func FinancialStatementDataSetsZIPUpsert(s *sec.SEC, db *sqlx.DB, pathname strin
 
 		reader, err := file.Open()
 		if err != nil {
-			eventErr := database.CreateIndexEvent(db, pathname, "failed")
+			eventErr := database.CreateIndexEvent(db, pathname, "failed", "could_not_open_zip_file")
 			if eventErr != nil {
 				return eventErr
 			}
@@ -171,7 +171,7 @@ func FinancialStatementDataSetsZIPUpsert(s *sec.SEC, db *sqlx.DB, pathname strin
 
 		reader.Close()
 	}
-	eventErr := database.CreateIndexEvent(db, pathname, "failed")
+	eventErr := database.CreateIndexEvent(db, pathname, "success", "")
 	if eventErr != nil {
 		return eventErr
 	}
