@@ -77,7 +77,7 @@ func DownloadTickerFile(db *sqlx.DB, s *sec.SEC, path string) error {
 }
 
 func DownloadIndex(db *sqlx.DB, s *sec.SEC) error {
-	worklist, err := secworklist.WillDownloadGet(db)
+	worklist, err := secworklist.WillDownloadGet(db, true)
 	if err != nil {
 		return err
 	}
@@ -217,7 +217,7 @@ func DownloadZIPFiles(db *sqlx.DB, s *sec.SEC) error {
 		return err
 	}
 
-	worklist, err := secworklist.WillDownloadGet(db)
+	worklist, err := secworklist.WillDownloadGet(db, true)
 	if err != nil {
 		return err
 	}
@@ -282,7 +282,7 @@ func DownloadZIPFiles(db *sqlx.DB, s *sec.SEC) error {
 }
 
 func DownloadFinancialStatementDataSets(db *sqlx.DB, s *sec.SEC) error {
-	worklist, err := secworklist.WillDownloadGet(db)
+	worklist, err := secworklist.WillDownloadGet(db, true)
 	if err != nil {
 		return err
 	}

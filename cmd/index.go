@@ -61,7 +61,7 @@ var indexCmd = &cobra.Command{
 			}
 		}
 
-		worklist, err := secworklist.WillDownloadGet(DB)
+		worklist, err := secworklist.WillDownloadGet(DB, false)
 		if err != nil {
 			return err
 		}

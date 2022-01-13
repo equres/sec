@@ -8,11 +8,15 @@ type Worklist struct {
 	WillDownload bool `db:"will_download"`
 }
 
-func WillDownloadGet(db *sqlx.DB) ([]Worklist, error) {
+func WillDownloadGet(db *sqlx.DB, isNewestToOlder bool) ([]Worklist, error) {
 	// Retrieve from DB
 	var worklist []Worklist
 
-	err := db.Select(&worklist, "SELECT year, month, will_download FROM sec.worklist WHERE will_download = true ORDER BY year, month ASC")
+	query := "SELECT year, month, will_download FROM sec.worklist WHERE will_download = true ORDER BY year, month ASC"
+	if isNewestToOlder {
+		query = "SELECT year, month, will_download FROM sec.worklist WHERE will_download = true ORDER BY year DESC, month DESC"
+	}
+	err := db.Select(&worklist, query)
 	if err != nil {
 		return nil, err
 	}
