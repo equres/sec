@@ -259,7 +259,7 @@ func (s Server) HandlerFilingsPage(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s Server) HandlerCompaniesListPage(w http.ResponseWriter, r *http.Request) {
-	companies, err := secutil.GetAllCompanies(s.DB)
+	companies, err := sec.GetAllCompanies(s.DB)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
@@ -276,15 +276,13 @@ func (s Server) HandlerCompaniesListPage(w http.ResponseWriter, r *http.Request)
 }
 
 func (s Server) HandlerCompanyFilingsPage(w http.ResponseWriter, r *http.Request) {
-	vars := mux.Vars(r)
-
-	companySlug := vars["companySlug"]
-
-	companies, err := secutil.GetAllCompanies(s.DB)
+	companies, err := sec.GetAllCompanies(s.DB)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
+	vars := mux.Vars(r)
+	companySlug := vars["companySlug"]
 	company := GetCompanyFromSlug(companies, companySlug)
 
 	cik, err := strconv.Atoi(company.CIKNumber)
@@ -293,7 +291,7 @@ func (s Server) HandlerCompanyFilingsPage(w http.ResponseWriter, r *http.Request
 		return
 	}
 
-	filings, err := secutil.GetCompanyFilingsFromCIK(s.DB, cik)
+	filings, err := sec.GetCompanyFilingsFromCIK(s.DB, cik)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
@@ -316,14 +314,12 @@ func (s Server) HandlerCompanyFilingsPage(w http.ResponseWriter, r *http.Request
 
 	for year, secItemFiles := range filings {
 		for _, item := range secItemFiles {
-			formType := secutil.GetFullFormType(item.FormType)
-
 			fileLink, err := url.Parse(item.XbrlURL)
 			if err != nil {
 				http.Error(w, err.Error(), http.StatusBadRequest)
 				return
 			}
-
+			formType := secutil.GetFullFormType(item.FormType)
 			formattedFilings[year] = append(formattedFilings[year], FormattedFiling{
 				CompanyName: item.CompanyName,
 				FillingDate: item.FillingDate.Format("2006-01-02"),
@@ -416,7 +412,6 @@ func GetCompanySlugs(companies []sec.Company) map[string]sec.Company {
 
 func GetCompanyFromSlug(companies []sec.Company, companySlug string) sec.Company {
 	companySlugs := GetCompanySlugs(companies)
-
 	if company, ok := companySlugs[companySlug]; ok {
 		return company
 	}

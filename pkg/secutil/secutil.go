@@ -759,35 +759,6 @@ func MapFilesInDBGetAll(db *sqlx.DB, s *sec.SEC, worklistMap map[string]sec.Entr
 	return entries, nil
 }
 
-func GetAllCompanies(db *sqlx.DB) ([]sec.Company, error) {
-	var companies []sec.Company
-
-	err := db.Select(&companies, "SELECT DISTINCT companyname, ciknumber FROM sec.secitemfile;")
-	if err != nil {
-		return nil, err
-	}
-
-	return companies, err
-}
-
-func GetCompanyFilingsFromCIK(db *sqlx.DB, cik int) (map[string][]sec.SECItemFile, error) {
-	var secItemFiles []sec.SECItemFile
-
-	err := db.Select(&secItemFiles, "SELECT companyname, ciknumber, formtype, fillingdate, xbrlurl FROM sec.secItemFile WHERE ciknumber = $1 ORDER BY fillingdate desc;", cik)
-	if err != nil {
-		return nil, err
-	}
-
-	filings := make(map[string][]sec.SECItemFile)
-
-	for _, item := range secItemFiles {
-		year := strconv.Itoa(item.FillingDate.Year())
-		filings[year] = append(filings[year], item)
-	}
-
-	return filings, nil
-}
-
 func GetFullFormType(formType string) string {
 	if formType == "10-Q" || formType == "10-Q/A" {
 		return fmt.Sprintf("%v Quarterly Report", formType)
