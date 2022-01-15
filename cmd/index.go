@@ -54,6 +54,14 @@ var indexCmd = &cobra.Command{
 			return err
 		}
 
+		if S.Verbose {
+			log.Info("Inserting SIC Code List...")
+		}
+		err = secindex.IndexSICCodes(DB)
+		if err != nil {
+			return err
+		}
+
 		if S.Config.IndexMode.FinancialStatementDataSets == "enabled" || S.Config.IndexMode.FinancialStatementDataSets == "true" {
 			err = secextra.IndexFinancialStatementDataSets(S, DB)
 			if err != nil {

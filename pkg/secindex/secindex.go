@@ -15,6 +15,7 @@ import (
 
 	"github.com/equres/sec/pkg/database"
 	"github.com/equres/sec/pkg/sec"
+	"github.com/equres/sec/pkg/secutil"
 	"github.com/equres/sec/pkg/secworklist"
 	"github.com/jmoiron/sqlx"
 	log "github.com/sirupsen/logrus"
@@ -350,5 +351,36 @@ func IndexZIPFileContent(db *sqlx.DB, s *sec.SEC, rssFile sec.RSSFile, worklist 
 			log.Info(fmt.Sprintf("[%d/%d] %s inserted for current file...\n", currentCount, totalCount, time.Now().Format("2006-01-02 03:04:05")))
 		}
 	}
+	return nil
+}
+
+func IndexSICCodes(db *sqlx.DB) error {
+	sicList, err := secutil.GetSICCodes()
+	if err != nil {
+		return err
+	}
+
+	for _, sic := range sicList {
+		_, err = db.Exec(`
+		INSERT INTO sec.sics (sic, office, title, created_at, updated_at)
+		VALUES ($1, $2, $3, NOW(), NOW()) 
+
+		ON CONFLICT (sic)
+		DO UPDATE SET sic=EXCLUDED.sic, office=EXCLUDED.office, title=EXCLUDED.title, updated_at=NOW()
+		WHERE sics.sic=EXCLUDED.sic AND sics.office=EXCLUDED.office AND sics.title=EXCLUDED.title;`,
+			sic.SIC, sic.Office, sic.Title)
+		if err != nil {
+			eventErr := database.CreateOtherEvent(db, "index", "sic", "failed")
+			if eventErr != nil {
+				return eventErr
+			}
+			return err
+		}
+	}
+	eventErr := database.CreateOtherEvent(db, "index", "sic", "success")
+	if eventErr != nil {
+		return eventErr
+	}
+
 	return nil
 }

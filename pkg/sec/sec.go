@@ -130,6 +130,12 @@ type Company struct {
 	CIKNumber   string
 }
 
+type SIC struct {
+	SIC    string `db:"SIC"`
+	Office string `db:"office"`
+	Title  string `db:"title"`
+}
+
 // Ticker Struct Based on JSON
 type SecTicker struct {
 	Cik      int    `json:"cik_str"`
