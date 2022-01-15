@@ -1,0 +1,2 @@
+ALTER TABLE sec.secItemFile
+DROP CONSTRAINT fk_cik;

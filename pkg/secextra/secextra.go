@@ -194,18 +194,6 @@ func SubDataUpsert(s *sec.SEC, db *sqlx.DB, reader io.ReadCloser) (err error) {
 	}
 
 	for _, v := range subs {
-		ciks := []struct {
-			CIK string
-		}{}
-		err = db.Select(&ciks, "SELECT cik FROM sec.ciks WHERE cik = $1", v.CIK)
-		if err != nil {
-			return err
-		}
-
-		if len(ciks) == 0 {
-			continue
-		}
-
 		var period sql.NullString
 		if v.Period != "" {
 			period = sql.NullString{
