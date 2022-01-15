@@ -521,7 +521,7 @@ func GetEventStats(db *sqlx.DB) ([]sec.EventStat, error) {
 	SELECT 
 		created_at::date as events_date, 
 		COUNT(case when ev->>'event' = 'download' AND ev->>'status' = 'success' then 1 end) as files_downloaded,
-		COUNT(case when ev->>'event' = 'download' AND ev->>'status' = 'failed' then 1 end) as files_broken,
+		COUNT(case when (ev->>'event' = 'download' OR ev->>'event' = 'unzip') AND ev->>'status' = 'failed' then 1 end) as files_broken,
 		COUNT(case when ev->>'event' = 'index' AND ev->>'status' = 'success' then 1 end) as files_indexed
 	FROM sec.events GROUP BY created_at::date;
 	`)
