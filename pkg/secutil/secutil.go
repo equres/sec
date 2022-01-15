@@ -515,6 +515,23 @@ func GetSuccessfulDownloadEventCount(db *sqlx.DB) (int, error) {
 	return 0, nil
 }
 
+func GetEventStats(db *sqlx.DB) ([]sec.EventStat, error) {
+	var allEventStats []sec.EventStat
+	err := db.Select(&allEventStats, `
+	SELECT 
+		created_at::date as events_date, 
+		COUNT(case when ev->>'event' = 'download' AND ev->>'status' = 'success' then 1 end) as files_downloaded,
+		COUNT(case when ev->>'event' = 'download' AND ev->>'status' = 'failed' then 1 end) as files_broken,
+		COUNT(case when ev->>'event' = 'index' AND ev->>'status' = 'success' then 1 end) as files_indexed
+	FROM sec.events GROUP BY created_at::date;
+	`)
+	if err != nil {
+		return nil, err
+	}
+
+	return allEventStats, nil
+}
+
 func GetTotalZIPFilesToBeDownloaded(db *sqlx.DB, s *sec.SEC, worklist []secworklist.Worklist) (int, error) {
 	if s.Verbose {
 		log.Info("Getting Number of ZIP Files To Be Downloaded...")
