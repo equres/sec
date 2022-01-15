@@ -67,18 +67,6 @@ func SecItemFileUpsert(db *sqlx.DB, s *sec.SEC, item sec.Item, worklist map[stri
 		}
 	}
 
-	// Check if CIK here is in CIKs table
-	var ciks []int
-	err = db.Select(&ciks, "SELECT cik FROM sec.ciks WHERE cik = $1", cikNumber)
-	if err != nil {
-		return err
-	}
-	if len(ciks) == 0 {
-		log.Info("files_skipped_for_invalid_cik ", len(item.XbrlFiling.XbrlFiles.XbrlFile))
-		*currentCount += len(item.XbrlFiling.XbrlFiles.XbrlFile)
-		return nil
-	}
-
 	for _, v := range item.XbrlFiling.XbrlFiles.XbrlFile {
 		if _, ok := worklist[v.URL]; ok {
 			continue
@@ -265,16 +253,6 @@ func ZIPContentUpsert(db *sqlx.DB, pathname string, files []*zip.File) error {
 
 	cik := dirs[0]
 	accession := dirs[1]
-
-	// Check if CIK here is in CIKs table
-	var ciks []int
-	err := db.Select(&ciks, "SELECT cik FROM sec.ciks WHERE cik = $1", cik)
-	if err != nil {
-		return err
-	}
-	if len(ciks) == 0 {
-		return nil
-	}
 
 	for _, file := range files {
 		reader, err := file.Open()
