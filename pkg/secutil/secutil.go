@@ -766,3 +766,39 @@ func MapFilesInDBGetAll(db *sqlx.DB, s *sec.SEC, worklistMap map[string]sec.Entr
 
 	return entries, nil
 }
+
+func GetFullFormType(formType string) string {
+	if formType == "10-Q" || formType == "10-Q/A" {
+		return fmt.Sprintf("%v Quarterly Report", formType)
+	}
+
+	if formType == "10-K/A" || formType == "10-K" {
+		return fmt.Sprintf("%v Annual Report", formType)
+	}
+
+	if formType == "8-K/A" || formType == "8-K" {
+		return fmt.Sprintf("%v Current Report", formType)
+	}
+
+	if formType == "20-F" || formType == "20-F/A" {
+		return fmt.Sprintf("%v Annual/Transition Report", formType)
+	}
+
+	if formType == "POS AM" {
+		return fmt.Sprintf("%v Post-Effective Filing Amendment", formType)
+	}
+
+	if formType == "10-12G/A" {
+		return fmt.Sprintf("%v Initial General Form For Registration of a Class of Securities Pursuant To Section", formType)
+	}
+
+	if formType == "6-K" {
+		return fmt.Sprintf("%v Foreign Issuer Report", formType)
+	}
+
+	if formType == "S-1" {
+		return fmt.Sprintf("%v IPO Investment Prospectus", formType)
+	}
+
+	return formType
+}

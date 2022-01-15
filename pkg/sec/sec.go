@@ -4,9 +4,11 @@ package sec
 
 import (
 	"encoding/xml"
+	"strconv"
 	"time"
 
 	"github.com/equres/sec/pkg/config"
+	"github.com/jmoiron/sqlx"
 )
 
 type RSSFile struct {
@@ -123,6 +125,19 @@ type SECItemFile struct {
 	XbrlBody           string    `db:"xbrlbody"`
 }
 
+type Company struct {
+	CompanyName string
+	CIKNumber   string
+}
+
+// Ticker Struct Based on JSON
+type SecTicker struct {
+	Cik      int    `json:"cik_str"`
+	Ticker   string `json:"ticker"`
+	Title    string `json:"title"`
+	Exchange string `json:"exchange"`
+}
+
 type SEC struct {
 	BaseURL string
 	Verbose bool
@@ -135,4 +150,33 @@ func NewSEC(config config.Config) (*SEC, error) {
 		BaseURL: config.Main.BaseURL,
 		Config:  config,
 	}, nil
+}
+
+func GetAllCompanies(db *sqlx.DB) ([]Company, error) {
+	var companies []Company
+
+	err := db.Select(&companies, "SELECT DISTINCT companyname, ciknumber FROM sec.secitemfile;")
+	if err != nil {
+		return nil, err
+	}
+
+	return companies, err
+}
+
+func GetCompanyFilingsFromCIK(db *sqlx.DB, cik int) (map[string][]SECItemFile, error) {
+	var secItemFiles []SECItemFile
+
+	err := db.Select(&secItemFiles, "SELECT companyname, ciknumber, formtype, fillingdate, xbrlurl FROM sec.secItemFile WHERE ciknumber = $1 ORDER BY fillingdate desc;", cik)
+	if err != nil {
+		return nil, err
+	}
+
+	filings := make(map[string][]SECItemFile)
+
+	for _, item := range secItemFiles {
+		year := strconv.Itoa(item.FillingDate.Year())
+		filings[year] = append(filings[year], item)
+	}
+
+	return filings, nil
 }
