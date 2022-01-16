@@ -18,6 +18,7 @@ import (
 	humanize "github.com/dustin/go-humanize"
 	"github.com/equres/sec/pkg/sec"
 	"github.com/equres/sec/pkg/seccik"
+	"github.com/equres/sec/pkg/secevent"
 	"github.com/equres/sec/pkg/secutil"
 	"github.com/equres/sec/pkg/secworklist"
 	"github.com/gorilla/mux"
@@ -341,19 +342,26 @@ func (s Server) HandlerCompanyFilingsPage(w http.ResponseWriter, r *http.Request
 }
 
 func (s Server) HandlerStatsPage(w http.ResponseWriter, r *http.Request) {
-	failedCount, err := secutil.GetFailedDownloadEventCount(s.DB)
+	eventStatsArr, err := secevent.GetEventStats(s.DB)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 	}
+	allStats := make(map[string]int)
+	for _, event := range eventStatsArr {
+		statValue := 2
+		if event.FilesBroken > 0 {
+			statValue--
+		}
 
-	successCount, err := secutil.GetSuccessfulDownloadEventCount(s.DB)
-	if err != nil {
-		http.Error(w, err.Error(), http.StatusBadRequest)
+		if event.FilesIndexed == 0 || event.FilesDownloaded == 0 {
+			statValue--
+		}
+
+		allStats[event.Date] = statValue
 	}
 
 	content := make(map[string]interface{})
-	content["FailedDownloadsCount"] = failedCount
-	content["SuccessfulDownloadsCount"] = successCount
+	content["EventStats"] = allStats
 
 	err = s.RenderTemplate(w, "stats.page.gohtml", content)
 	if err != nil {

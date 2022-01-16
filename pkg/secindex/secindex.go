@@ -13,8 +13,8 @@ import (
 	"strings"
 	"time"
 
-	"github.com/equres/sec/pkg/database"
 	"github.com/equres/sec/pkg/sec"
+	"github.com/equres/sec/pkg/secevent"
 	"github.com/equres/sec/pkg/secworklist"
 	"github.com/jmoiron/sqlx"
 	log "github.com/sirupsen/logrus"
@@ -132,10 +132,7 @@ func SecItemFileUpsert(db *sqlx.DB, s *sec.SEC, item sec.Item, worklist map[stri
 		}
 
 		if fileBody == "" && IsFileIndexable(filePath) {
-			eventErr := database.CreateIndexEvent(db, v.URL, "failed", "could_not_find_file")
-			if eventErr != nil {
-				return eventErr
-			}
+			secevent.CreateIndexEvent(db, v.URL, "failed", "could_not_find_file")
 		}
 
 		_, err = db.Exec(`
@@ -147,19 +144,13 @@ func SecItemFileUpsert(db *sqlx.DB, s *sec.SEC, item sec.Item, worklist map[stri
 		WHERE secItemFile.xbrlsequence=EXCLUDED.xbrlsequence AND secItemFile.xbrlfile=EXCLUDED.xbrlfile AND secItemFile.xbrltype=EXCLUDED.xbrltype AND secItemFile.xbrlsize=EXCLUDED.xbrlsize AND secItemFile.xbrldescription=EXCLUDED.xbrldescription AND secItemFile.xbrlinlinexbrl=EXCLUDED.xbrlinlinexbrl AND secItemFile.xbrlurl=EXCLUDED.xbrlurl AND secItemFile.xbrlbody=EXCLUDED.xbrlbody;`,
 			item.Title, item.Link, item.Guid, item.Enclosure.URL, enclosureLength, item.Enclosure.Type, item.Description, item.PubDate, item.XbrlFiling.CompanyName, item.XbrlFiling.FormType, item.XbrlFiling.FilingDate, cikNumber, item.XbrlFiling.AccessionNumber, item.XbrlFiling.FileNumber, item.XbrlFiling.AcceptanceDatetime, item.XbrlFiling.Period, item.XbrlFiling.AssistantDirector, assignedSic, fiscalYearEnd, xbrlSequence, v.File, v.Type, xbrlSize, v.Description, xbrlInline, v.URL, fileBody, filePath)
 		if err != nil {
-			eventErr := database.CreateIndexEvent(db, filePath, "failed", "error_inserting_in_database")
-			if eventErr != nil {
-				return eventErr
-			}
+			secevent.CreateIndexEvent(db, filePath, "failed", "error_inserting_in_database")
 			return err
 		}
 
 		*currentCount++
 
-		eventErr := database.CreateIndexEvent(db, filePath, "success", "")
-		if eventErr != nil {
-			return eventErr
-		}
+		secevent.CreateIndexEvent(db, filePath, "success", "")
 	}
 	return nil
 }
@@ -280,18 +271,12 @@ func ZIPContentUpsert(db *sqlx.DB, pathname string, files []*zip.File) error {
 			ON CONFLICT (cikNumber, accessionNumber, xbrlFile, xbrlSize)
 			DO NOTHING;`, cik, accession, file.Name, int(file.FileInfo().Size()), xbrlBody)
 		if err != nil {
-			eventErr := database.CreateIndexEvent(db, pathname, "failed", "indexz_error_inserting_in_database")
-			if eventErr != nil {
-				return eventErr
-			}
-			return err
+			secevent.CreateIndexEvent(db, pathname, "failed", "indexz_error_inserting_in_database")
 		}
 	}
 
-	eventErr := database.CreateIndexEvent(db, pathname, "success", "")
-	if eventErr != nil {
-		return eventErr
-	}
+	secevent.CreateIndexEvent(db, pathname, "success", "")
+
 	return nil
 }
 
@@ -311,37 +296,25 @@ func IndexZIPFileContent(db *sqlx.DB, s *sec.SEC, rssFile sec.RSSFile, worklist 
 		zipCachePath := filepath.Join(s.Config.Main.CacheDir, zipPath)
 		_, err = os.Stat(zipCachePath)
 		if err != nil {
-			eventErr := database.CreateIndexEvent(db, zipCachePath, "failed", "zip_file_does_not_exist")
-			if eventErr != nil {
-				return eventErr
-			}
+			secevent.CreateIndexEvent(db, zipCachePath, "failed", "zip_file_does_not_exist")
 			log.Info("please run sec dowz to download all ZIP files then run sec indexz again to index them")
 			return err
 		}
 
 		reader, err := zip.OpenReader(zipCachePath)
 		if err != nil {
-			eventErr := database.CreateIndexEvent(db, zipCachePath, "failed", "corrupt_zip_file")
-			if eventErr != nil {
-				return eventErr
-			}
+			secevent.CreateIndexEvent(db, zipCachePath, "failed", "corrupt_zip_file")
 			log.Errorf("Could not access the file %v", zipCachePath)
 			continue
 		}
 
 		err = ZIPContentUpsert(db, zipPath, reader.File)
 		if err != nil {
-			eventErr := database.CreateIndexEvent(db, zipCachePath, "failed", "indexz_error_inserting_in_database")
-			if eventErr != nil {
-				return eventErr
-			}
+			secevent.CreateIndexEvent(db, zipCachePath, "failed", "indexz_error_inserting_in_database")
 			return err
 		}
 
-		eventErr := database.CreateIndexEvent(db, zipCachePath, "success", "")
-		if eventErr != nil {
-			return eventErr
-		}
+		secevent.CreateIndexEvent(db, zipCachePath, "success", "")
 
 		reader.Close()
 		currentCount++
