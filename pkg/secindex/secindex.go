@@ -354,8 +354,8 @@ func IndexZIPFileContent(db *sqlx.DB, s *sec.SEC, rssFile sec.RSSFile, worklist 
 	return nil
 }
 
-func IndexSICCodes(db *sqlx.DB) error {
-	sicList, err := secutil.GetSICCodes()
+func IndexSICCodes(s *sec.SEC, db *sqlx.DB) error {
+	sicList, err := secutil.GetSICCodes(s, db)
 	if err != nil {
 		return err
 	}

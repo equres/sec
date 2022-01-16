@@ -57,7 +57,7 @@ var indexCmd = &cobra.Command{
 		if S.Verbose {
 			log.Info("Inserting SIC Code List...")
 		}
-		err = secindex.IndexSICCodes(DB)
+		err = secindex.IndexSICCodes(S, DB)
 		if err != nil {
 			return err
 		}

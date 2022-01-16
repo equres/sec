@@ -804,18 +804,21 @@ func GetFullFormType(formType string) string {
 	return formType
 }
 
-func GetSICCodes() ([]sec.SIC, error) {
-	res, err := http.Get("https://www.sec.gov/corpfin/division-of-corporation-finance-standard-industrial-classification-sic-code-list")
+func GetSICCodes(s *sec.SEC, db *sqlx.DB) ([]sec.SIC, error) {
+	filePath := filepath.Join(s.Config.Main.CacheDir, "/corpfin/division-of-corporation-finance-standard-industrial-classification-sic-code-list")
+
+	_, err := os.Stat(filePath)
 	if err != nil {
 		return nil, err
 	}
 
-	defer res.Body.Close()
-	if res.StatusCode != 200 {
+	sicFile, err := os.Open(filePath)
+	if err != nil {
 		return nil, err
 	}
+	defer sicFile.Close()
 
-	doc, err := goquery.NewDocumentFromReader(res.Body)
+	doc, err := goquery.NewDocumentFromReader(sicFile)
 	if err != nil {
 		return nil, err
 	}
