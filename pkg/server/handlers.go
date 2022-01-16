@@ -346,7 +346,6 @@ func (s Server) HandlerStatsPage(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 	}
-
 	allStats := make(map[string]int)
 	for _, event := range eventStatsArr {
 		statValue := 2
