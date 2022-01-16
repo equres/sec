@@ -18,6 +18,7 @@ import (
 	humanize "github.com/dustin/go-humanize"
 	"github.com/equres/sec/pkg/sec"
 	"github.com/equres/sec/pkg/seccik"
+	"github.com/equres/sec/pkg/secevent"
 	"github.com/equres/sec/pkg/secutil"
 	"github.com/equres/sec/pkg/secworklist"
 	"github.com/gorilla/mux"
@@ -341,7 +342,7 @@ func (s Server) HandlerCompanyFilingsPage(w http.ResponseWriter, r *http.Request
 }
 
 func (s Server) HandlerStatsPage(w http.ResponseWriter, r *http.Request) {
-	eventStatsArr, err := secutil.GetEventStats(s.DB)
+	eventStatsArr, err := secevent.GetEventStats(s.DB)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 	}
