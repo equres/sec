@@ -343,17 +343,11 @@ func IndexSICCodes(s *sec.SEC, db *sqlx.DB) error {
 		WHERE sics.sic=EXCLUDED.sic AND sics.office=EXCLUDED.office AND sics.title=EXCLUDED.title;`,
 			sic.SIC, sic.Office, sic.Title)
 		if err != nil {
-			eventErr := database.CreateOtherEvent(db, "index", "sic", "failed")
-			if eventErr != nil {
-				return eventErr
-			}
+			secevent.CreateOtherEvent(db, "index", "sic", "failed")
 			return err
 		}
 	}
-	eventErr := database.CreateOtherEvent(db, "index", "sic", "success")
-	if eventErr != nil {
-		return eventErr
-	}
+	secevent.CreateOtherEvent(db, "index", "sic", "success")
 
 	return nil
 }

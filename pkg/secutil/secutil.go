@@ -17,7 +17,6 @@ import (
 	"time"
 
 	"github.com/PuerkitoBio/goquery"
-	"github.com/equres/sec/pkg/database"
 	"github.com/equres/sec/pkg/sec"
 	"github.com/equres/sec/pkg/secevent"
 	"github.com/equres/sec/pkg/secworklist"
