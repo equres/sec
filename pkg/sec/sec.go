@@ -130,11 +130,10 @@ type Company struct {
 	CIKNumber   string
 }
 
-type EventStat struct {
-	Date            string `db:"events_date"`
-	FilesDownloaded int    `db:"files_downloaded"`
-	FilesBroken     int    `db:"files_broken"`
-	FilesIndexed    int    `db:"files_indexed"`
+type SIC struct {
+	SIC    string `db:"SIC"`
+	Office string `db:"office"`
+	Title  string `db:"title"`
 }
 
 // Ticker Struct Based on JSON

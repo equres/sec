@@ -3,6 +3,7 @@ module github.com/equres/sec
 go 1.16
 
 require (
+	github.com/PuerkitoBio/goquery v1.8.0 // indirect
 	github.com/adrg/xdg v0.3.3
 	github.com/dustin/go-humanize v1.0.0
 	github.com/gocarina/gocsv v0.0.0-20210516172204-ca9e8a8ddea8
@@ -21,7 +22,7 @@ require (
 	github.com/spf13/cobra v1.2.1
 	github.com/spf13/viper v1.9.0
 	github.com/ssor/bom v0.0.0-20170718123548-6386211fdfcf // indirect
-	golang.org/x/net v0.0.0-20210805182204-aaa1db679c0d
+	golang.org/x/net v0.0.0-20210916014120-12bc252f5db8
 	golang.org/x/sys v0.0.0-20211025201205-69cdffdb9359 // indirect
 	golang.org/x/text v0.3.7 // indirect
 	gopkg.in/check.v1 v1.0.0-20200227125254-8fa46927fb4f // indirect

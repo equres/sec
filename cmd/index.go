@@ -11,6 +11,7 @@ import (
 	"github.com/equres/sec/pkg/database"
 	"github.com/equres/sec/pkg/download"
 	"github.com/equres/sec/pkg/sec"
+	"github.com/equres/sec/pkg/seccik"
 	"github.com/equres/sec/pkg/secextra"
 	"github.com/equres/sec/pkg/secindex"
 	"github.com/equres/sec/pkg/secticker"
@@ -50,6 +51,22 @@ var indexCmd = &cobra.Command{
 		}
 
 		err = secticker.UpdateAll(S, DB)
+		if err != nil {
+			return err
+		}
+
+		if S.Verbose {
+			log.Info("Inserting SIC Code List...")
+		}
+		err = secindex.IndexSICCodes(S, DB)
+		if err != nil {
+			return err
+		}
+
+    if S.Verbose {
+			log.Info("Inserting CIK From Txt File...")
+		}
+		err = seccik.GetCIKsFromTxtFile(S, DB)
 		if err != nil {
 			return err
 		}

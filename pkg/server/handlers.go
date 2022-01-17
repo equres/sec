@@ -36,6 +36,7 @@ func (s Server) GenerateRouter() (*mux.Router, error) {
 	router.PathPrefix("/_assets").Handler(http.StripPrefix("/_assets", http.FileServer(http.FS(assets))))
 
 	router.HandleFunc("/", s.HandlerHome).Methods("GET")
+	router.HandleFunc("/about", s.HandlerAbout).Methods("GET")
 	router.HandleFunc("/filings/{year}", s.HandlerMonthsPage).Methods("GET")
 	router.HandleFunc("/filings/{year}/{month}", s.HandlerDaysPage).Methods("GET")
 	router.HandleFunc("/filings/{year}/{month}/{day}", s.HandlerCompaniesPage).Methods("GET")
@@ -107,6 +108,15 @@ func (s Server) HandlerHome(w http.ResponseWriter, r *http.Request) {
 	}
 
 	err = s.RenderTemplate(w, "index.page.gohtml", content)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+}
+
+func (s Server) HandlerAbout(w http.ResponseWriter, r *http.Request) {
+	content := make(map[string]interface{})
+	err := s.RenderTemplate(w, "about.page.gohtml", content)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
