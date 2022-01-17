@@ -7,9 +7,9 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/equres/sec/pkg/database"
 	"github.com/equres/sec/pkg/sec"
 	"github.com/equres/sec/pkg/seccik"
+	"github.com/equres/sec/pkg/secevent"
 	"github.com/jmoiron/sqlx"
 	log "github.com/sirupsen/logrus"
 )
@@ -94,10 +94,7 @@ func NoExchangeFileGet(s *sec.SEC, db *sqlx.DB) error {
 	for _, v := range allCompanyTickers {
 		err = seccik.SaveCIK(db, v.Cik)
 		if err != nil {
-			eventErr := database.CreateIndexEvent(db, "company_tickers.json", "failed", "error_inserting_cik_in_database")
-			if eventErr != nil {
-				return eventErr
-			}
+			secevent.CreateIndexEvent(db, "company_tickers.json", "failed", "error_inserting_cik_in_database")
 			return err
 		}
 	}
@@ -111,10 +108,7 @@ func NoExchangeFileGet(s *sec.SEC, db *sqlx.DB) error {
 		}
 		err := ticker.Save(db)
 		if err != nil {
-			eventErr := database.CreateIndexEvent(db, "company_tickers.json", "failed", "error_inserting_ticker_in_database")
-			if eventErr != nil {
-				return eventErr
-			}
+			secevent.CreateIndexEvent(db, "company_tickers.json", "failed", "error_inserting_ticker_in_database")
 			return err
 		}
 	}
@@ -122,10 +116,7 @@ func NoExchangeFileGet(s *sec.SEC, db *sqlx.DB) error {
 	if s.Verbose {
 		log.Info("\u2713")
 	}
-	eventErr := database.CreateIndexEvent(db, "company_tickers.json", "success", "")
-	if eventErr != nil {
-		return eventErr
-	}
+	secevent.CreateIndexEvent(db, "company_tickers.json", "success", "")
 
 	return nil
 }
@@ -157,10 +148,7 @@ func ExchangeFileGet(s *sec.SEC, db *sqlx.DB) error {
 	for _, v := range fileExchange.Data {
 		err = seccik.SaveCIK(db, int(v[0].(float64)))
 		if err != nil {
-			eventErr := database.CreateIndexEvent(db, "company_tickers_exchange.json", "failed", "error_inserting_cik_in_database")
-			if eventErr != nil {
-				return eventErr
-			}
+			secevent.CreateIndexEvent(db, "company_tickers_exchange.json", "failed", "error_inserting_cik_in_database")
 			return err
 		}
 	}
@@ -195,20 +183,14 @@ func ExchangeFileGet(s *sec.SEC, db *sqlx.DB) error {
 		}
 		err := sec.Save(db)
 		if err != nil {
-			eventErr := database.CreateIndexEvent(db, "company_tickers_exchange.json", "failed", "error_inserting_ticker_in_database")
-			if eventErr != nil {
-				return eventErr
-			}
+			secevent.CreateIndexEvent(db, "company_tickers_exchange.json", "failed", "error_inserting_ticker_in_database")
 			return err
 		}
 	}
 	if s.Verbose {
 		log.Info("\u2713")
 	}
-	eventErr := database.CreateIndexEvent(db, "company_tickers_exchange.json", "success", "")
-	if eventErr != nil {
-		return eventErr
-	}
+	secevent.CreateIndexEvent(db, "company_tickers_exchange.json", "success", "")
 	return nil
 }
 

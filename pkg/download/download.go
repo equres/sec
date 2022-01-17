@@ -19,6 +19,7 @@ import (
 
 	"github.com/equres/sec/pkg/config"
 	"github.com/equres/sec/pkg/database"
+	"github.com/equres/sec/pkg/secevent"
 	"github.com/equres/sec/pkg/secreq"
 	"github.com/jmoiron/sqlx"
 )
@@ -188,10 +189,7 @@ func (d Downloader) DownloadFile(db *sqlx.DB, fullurl string) error {
 
 	resp, err := req.SendRequest(retryLimit, rateLimit, fullurl)
 	if err != nil {
-		eventErr := database.CreateDownloadEvent(db, cachePath, fullurl, "failed", err.Error())
-		if eventErr != nil {
-			return eventErr
-		}
+		secevent.CreateDownloadEvent(db, cachePath, fullurl, "failed", err.Error())
 
 		if err.Error() == errors.New("404").Error() {
 			insertErr := database.SkipFileInsert(db, fullurl)
@@ -218,10 +216,7 @@ func (d Downloader) DownloadFile(db *sqlx.DB, fullurl string) error {
 
 	log.Info(fmt.Sprintf("File %v progress [%d/%d/%f%%] status_code_%d", fullurl, d.CurrentDownloadCount, d.TotalDownloadsCount, d.GetDownloadPercentage(), resp.StatusCode))
 	if IsErrorPage(string(responseBody)) {
-		eventErr := database.CreateDownloadEvent(db, cachePath, fullurl, "failed", fmt.Sprintf("returned error page - Status Code: %v", resp.StatusCode))
-		if eventErr != nil {
-			return eventErr
-		}
+		secevent.CreateDownloadEvent(db, cachePath, fullurl, "failed", fmt.Sprintf("returned error page - Status Code: %v", resp.StatusCode))
 		return fmt.Errorf("requested file but received an error instead")
 	}
 
@@ -235,10 +230,7 @@ func (d Downloader) DownloadFile(db *sqlx.DB, fullurl string) error {
 		return err
 	}
 
-	eventErr := database.CreateDownloadEvent(db, cachePath, fullurl, "success", "")
-	if eventErr != nil {
-		return eventErr
-	}
+	secevent.CreateDownloadEvent(db, cachePath, fullurl, "success", "")
 
 	if d.IsEtag {
 		etag := resp.Header.Get("eTag")

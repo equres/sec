@@ -3,6 +3,7 @@ package cmd
 
 import (
 	"github.com/equres/sec/pkg/database"
+	"github.com/equres/sec/pkg/secevent"
 	"github.com/spf13/cobra"
 )
 
@@ -20,8 +21,8 @@ var eventCmd = &cobra.Command{
 	PreRunE: func(cmd *cobra.Command, args []string) error {
 		return database.CheckMigration(RootConfig)
 	},
-	RunE: func(cmd *cobra.Command, args []string) error {
-		return database.CreateOtherEvent(DB, GlobalEventInput, GlobalJobInput, GlobalStatusInput)
+	Run: func(cmd *cobra.Command, args []string) {
+		secevent.CreateOtherEvent(DB, GlobalEventInput, GlobalJobInput, GlobalStatusInput)
 	},
 }
 
