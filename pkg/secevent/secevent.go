@@ -3,7 +3,6 @@ package secevent
 import (
 	"encoding/json"
 
-	"github.com/equres/sec/pkg/sec"
 	"github.com/jmoiron/sqlx"
 )
 
@@ -33,6 +32,13 @@ type OtherEvent struct {
 	Event  string `json:"event"`
 	Job    string `json:"job"`
 	Status string `json:"status"`
+}
+
+type EventStat struct {
+	Date            string `db:"events_date"`
+	FilesDownloaded int    `db:"files_downloaded"`
+	FilesBroken     int    `db:"files_broken"`
+	FilesIndexed    int    `db:"files_indexed"`
 }
 
 func CreateIndexEvent(db *sqlx.DB, file string, status string, reason string) {
@@ -103,8 +109,8 @@ func CreateOtherEvent(db *sqlx.DB, eventName string, job string, status string) 
 	}
 }
 
-func GetEventStats(db *sqlx.DB) ([]sec.EventStat, error) {
-	var allEventStats []sec.EventStat
+func GetEventStats(db *sqlx.DB) ([]EventStat, error) {
+	var allEventStats []EventStat
 	err := db.Select(&allEventStats, `
 	SELECT 
 		created_at::date as events_date, 

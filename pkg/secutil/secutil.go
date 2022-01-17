@@ -16,6 +16,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/PuerkitoBio/goquery"
 	"github.com/equres/sec/pkg/sec"
 	"github.com/equres/sec/pkg/secevent"
 	"github.com/equres/sec/pkg/secworklist"
@@ -786,4 +787,45 @@ func GetFullFormType(formType string) string {
 	}
 
 	return formType
+}
+
+func GetSICCodes(s *sec.SEC, db *sqlx.DB) ([]sec.SIC, error) {
+	filePath := filepath.Join(s.Config.Main.CacheDir, "/corpfin/division-of-corporation-finance-standard-industrial-classification-sic-code-list")
+
+	_, err := os.Stat(filePath)
+	if err != nil {
+		return nil, err
+	}
+
+	sicFile, err := os.Open(filePath)
+	if err != nil {
+		return nil, err
+	}
+	defer sicFile.Close()
+
+	doc, err := goquery.NewDocumentFromReader(sicFile)
+	if err != nil {
+		return nil, err
+	}
+
+	var sics []sec.SIC
+	doc.Find(".sic").Each(func(indextr int, tablehtml *goquery.Selection) {
+		tablehtml.Find("tr").Each(func(indextr int, rowhtml *goquery.Selection) {
+			var row []string
+			rowhtml.Find("td").Each(func(indexth int, tablecell *goquery.Selection) {
+				row = append(row, tablecell.Text())
+			})
+
+			if len(row) >= 3 {
+				sics = append(sics, sec.SIC{
+					SIC:    row[0],
+					Office: row[1],
+					Title:  row[2],
+				})
+			}
+			row = nil
+		})
+	})
+
+	return sics, err
 }
