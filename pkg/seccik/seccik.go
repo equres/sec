@@ -52,6 +52,7 @@ func GetUniqueCIKCount(db *sqlx.DB) (string, error) {
 	}
 
 	return cikCount[0], nil
+}
 
 func GetCIKsFromTxtFile(s *sec.SEC, db *sqlx.DB) error {
 	filePath := filepath.Join(s.Config.Main.CacheDir, "/Archives/edgar/cik-lookup-data.txt")
