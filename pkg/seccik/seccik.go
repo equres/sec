@@ -1,6 +1,8 @@
 package seccik
 
 import (
+	"fmt"
+
 	"bufio"
 	"os"
 	"path/filepath"
@@ -36,6 +38,20 @@ func GetCompanyNameFromCIK(db *sqlx.DB, cik int) (string, error) {
 	}
 
 	return companyNames[0], nil
+}
+
+func GetUniqueCIKCount(db *sqlx.DB) (string, error) {
+	var cikCount []string
+
+	err := db.Select(&cikCount, "SELECT COUNT(DISTINCT cikNumber) FROM sec.secItemFile;")
+	if err != nil {
+		return "", err
+	}
+	if len(cikCount) < 1 {
+		return "", fmt.Errorf("could_not_get_count_of_unique_ciks")
+	}
+
+	return cikCount[0], nil
 }
 
 func GetCIKsFromTxtFile(s *sec.SEC, db *sqlx.DB) error {

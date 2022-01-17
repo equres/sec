@@ -24,4 +24,24 @@
             <li><a href="/filings/{{ . }}">{{ . }}</a></li>
         {{ end}}
     </ul>
+
+    <hr>
+
+    <div class="container">
+        <div class="row align-items-end text-center">
+            <div class="col">
+                The Database:
+            </div>
+            <div class="col">
+                {{ .UniqueCIKsCount }} CIKs
+            </div>
+            <div class="col">
+                {{ .UniqueFilesCount }} Files
+            </div>
+            <div class="col">
+                {{ .UniqueCompaniesCount }} Companies
+            </div>
+        </div>
+    </div>
+    
 {{ end }}

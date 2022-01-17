@@ -19,6 +19,7 @@ import (
 	"github.com/equres/sec/pkg/sec"
 	"github.com/equres/sec/pkg/seccik"
 	"github.com/equres/sec/pkg/secevent"
+	"github.com/equres/sec/pkg/secextra"
 	"github.com/equres/sec/pkg/secutil"
 	"github.com/equres/sec/pkg/secworklist"
 	"github.com/gorilla/mux"
@@ -49,7 +50,6 @@ func (s Server) GenerateRouter() (*mux.Router, error) {
 }
 
 func (s Server) HandlerHome(w http.ResponseWriter, r *http.Request) {
-	content := make(map[string]interface{})
 	recentFilings, err := secutil.GetFiveRecentFilings(s.DB)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
@@ -76,8 +76,31 @@ func (s Server) HandlerHome(w http.ResponseWriter, r *http.Request) {
 		}
 		recentFilingsFormatted = append(recentFilingsFormatted, formattedFiling)
 	}
-	content["RecentFilings"] = recentFilingsFormatted
 
+	ciksCount, err := seccik.GetUniqueCIKCount(s.DB)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+
+	filesCount, err := secextra.GetUniqueFilesCount(s.DB)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+
+	companiesCount, err := secextra.GetUniqueFilesCompaniesCount(s.DB)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+
+	content := make(map[string]interface{})
+
+	content["UniqueCIKsCount"] = ciksCount
+	content["UniqueFilesCount"] = filesCount
+	content["UniqueCompaniesCount"] = companiesCount
+	content["RecentFilings"] = recentFilingsFormatted
 	content["Years"], err = secworklist.UniqueYears(s.DB)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
