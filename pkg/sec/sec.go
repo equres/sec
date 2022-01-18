@@ -172,7 +172,14 @@ func GetAllCompanies(db *sqlx.DB) ([]Company, error) {
 func GetCompanyFilingsFromCIK(db *sqlx.DB, cik int) (map[string][]SECItemFile, error) {
 	var secItemFiles []SECItemFile
 
-	err := db.Select(&secItemFiles, "SELECT companyname, ciknumber, formtype, fillingdate, xbrlurl FROM sec.secItemFile WHERE ciknumber = $1 ORDER BY fillingdate desc;", cik)
+	err := db.Select(&secItemFiles, `
+	SELECT * FROM (
+		SELECT DISTINCT ON (accessionnumber) 
+			companyname, ciknumber, formtype, fillingdate 
+		FROM sec.secItemFile WHERE ciknumber = $1
+		) filings 
+	ORDER BY fillingdate desc;
+	`, cik)
 	if err != nil {
 		return nil, err
 	}
