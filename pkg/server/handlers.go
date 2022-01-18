@@ -6,7 +6,6 @@ import (
 	"html/template"
 	"io/fs"
 	"net/http"
-	"net/url"
 	"os"
 	"path/filepath"
 	"strconv"
@@ -341,24 +340,20 @@ func (s Server) HandlerCompanyFilingsPage(w http.ResponseWriter, r *http.Request
 		CompanyName string
 		FillingDate string
 		FormType    string
-		XbrlURL     string
+		FilingsURL  string
 	}
 
 	formattedFilings := make(map[string][]FormattedFiling)
 
 	for year, secItemFiles := range filings {
 		for _, item := range secItemFiles {
-			fileLink, err := url.Parse(item.XbrlURL)
-			if err != nil {
-				http.Error(w, err.Error(), http.StatusBadRequest)
-				return
-			}
+			filingsURL := fmt.Sprintf("/filings/%v/%v/%v/%v", item.FillingDate.Year(), int(item.FillingDate.Month()), item.FillingDate.Day(), item.CIKNumber)
 			formType := secutil.GetFullFormType(item.FormType)
 			formattedFilings[year] = append(formattedFilings[year], FormattedFiling{
 				CompanyName: item.CompanyName,
 				FillingDate: item.FillingDate.Format("2006-01-02"),
 				FormType:    formType,
-				XbrlURL:     fileLink.Path,
+				FilingsURL:  filingsURL,
 			})
 		}
 	}

@@ -10,7 +10,7 @@
             <li>{{ $Year }}</li>
             <ul>
                 {{ range $Index, $Filing := $YearFilings }}
-                    <li><a href="{{ $Filing.XbrlURL }}">{{ $Filing.CompanyName }} {{ $Year }} {{ $Filing.FormType }} (filled: {{ $Filing.FillingDate }})</a></li>
+                    <li><a href="{{ $Filing.FilingsURL }}">{{ $Filing.CompanyName }} {{ $Year }} {{ $Filing.FormType }} (filled: {{ $Filing.FillingDate }})</a></li>
                 {{ end }}
             </ul>
         {{ end }}
