@@ -202,6 +202,13 @@
         src: /etc/nginx/sites-available/equres.com.conf
         dest: /etc/nginx/sites-enabled/equres.com.conf
         state: link
+    - name: Create Nginx Cache Directory
+      become: yes
+      become_user: root
+      become_method: sudo
+      file:
+        path: /var/nginx/cache
+        state: directory
     - name: Reload Nginx Service
       become: yes
       become_user: root
