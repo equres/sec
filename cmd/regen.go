@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"net/http"
 	"os"
+	"path/filepath"
 	"time"
 
 	"github.com/equres/sec/pkg/sec"
@@ -49,13 +50,13 @@ var regenCmd = &cobra.Command{
 			})
 		}
 
-		out, err := os.Create("./_cache/sitemap.xml")
+		sitemap, err := os.Create(filepath.Join(S.Config.Main.CacheDir, "sitemap.xml"))
 		if err != nil {
 			return err
 		}
-		defer out.Close()
+		defer sitemap.Close()
 
-		_, err = sm.WriteTo(out)
+		_, err = sm.WriteTo(sitemap)
 		if err != nil {
 			return err
 		}

@@ -34,7 +34,6 @@ func (s Server) GenerateRouter() (*mux.Router, error) {
 		return nil, err
 	}
 	router.PathPrefix("/_assets").Handler(http.StripPrefix("/_assets", http.FileServer(http.FS(assets))))
-	router.PathPrefix("/_cache").Handler(http.StripPrefix("/_cache", http.FileServer(http.Dir("/home/sec/_cache/"))))
 
 	router.HandleFunc("/", s.HandlerHome).Methods("GET")
 	router.HandleFunc("/about", s.HandlerAbout).Methods("GET")
@@ -46,6 +45,7 @@ func (s Server) GenerateRouter() (*mux.Router, error) {
 	router.HandleFunc("/company/{companySlug}", s.HandlerCompanyFilingsPage).Methods("GET")
 	router.HandleFunc("/stats", s.HandlerStatsPage).Methods("GET")
 	router.HandleFunc("/api/v1/uptime", s.HandlerUptime).Methods("GET")
+	router.HandleFunc("/robots.txt", s.HanderRobots).Methods("GET")
 	router.PathPrefix("/").HandlerFunc(s.HandlerFiles)
 	return router, nil
 }
@@ -405,6 +405,14 @@ func (s Server) HandlerStatsPage(w http.ResponseWriter, r *http.Request) {
 
 func (s Server) HandlerUptime(w http.ResponseWriter, r *http.Request) {
 	fmt.Fprint(w, "OK: ", GlobalUptime)
+}
+
+func (s Server) HanderRobots(w http.ResponseWriter, r *http.Request) {
+	fmt.Fprint(w, `User-agent: *
+Allow: /
+
+Sitemap: https://equres.com/_cache/sitemap.xml
+	`)
 }
 
 func (s Server) RenderTemplate(w http.ResponseWriter, tmplName string, data interface{}) error {
