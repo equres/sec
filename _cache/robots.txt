@@ -1,0 +1,4 @@
+User-agent: *
+Allow: /
+
+Sitemap: https://equres.com/_cache/sitemap.xml
