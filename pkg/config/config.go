@@ -26,6 +26,7 @@ type DatabaseConfig struct {
 
 type MainConfig struct {
 	BaseURL          string `mapstructure:"baseurl"`
+	WebsiteURL       string `mapstructure:"websiteurl"`
 	CacheDir         string `mapstructure:"cachedir"`
 	RateLimitMs      string `mapstructure:"ratelimitms"`
 	RetryLimit       string `mapstructure:"retrylimit"`

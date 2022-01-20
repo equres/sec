@@ -34,6 +34,7 @@ func (s Server) GenerateRouter() (*mux.Router, error) {
 		return nil, err
 	}
 	router.PathPrefix("/_assets").Handler(http.StripPrefix("/_assets", http.FileServer(http.FS(assets))))
+	router.PathPrefix("/_cache").Handler(http.StripPrefix("/_cache", http.FileServer(http.Dir("/home/sec/_cache/"))))
 
 	router.HandleFunc("/", s.HandlerHome).Methods("GET")
 	router.HandleFunc("/about", s.HandlerAbout).Methods("GET")

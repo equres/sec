@@ -39,6 +39,13 @@ func GenerateConfig() error {
 		return err
 	}
 
+	websiteURL := "https://equres.com/"
+	fmt.Printf("Website URL [default: '%v']: ", websiteURL)
+	err = AcceptInput(reader, &websiteURL)
+	if err != nil {
+		return err
+	}
+
 	port := ":8000"
 	fmt.Printf("Server Port [default: '%v']: ", port)
 	err = AcceptInput(reader, &port)
@@ -126,6 +133,7 @@ func GenerateConfig() error {
 
 	cfg.SetDefault("main", config.MainConfig{
 		BaseURL:          url,
+		WebsiteURL:       websiteURL,
 		CacheDir:         "./cache",
 		RateLimitMs:      rateLimit,
 		RetryLimit:       retrylimit,

@@ -15,28 +15,26 @@ import (
 	"github.com/spf13/cobra"
 )
 
-const BASEURL = "https://equres.com/"
-
-// sitemapCmd represents the sitemap command
-var sitemapCmd = &cobra.Command{
-	Use:   "sitemap",
+// regenCmd represents the regen command
+var regenCmd = &cobra.Command{
+	Use:   "regen",
 	Short: "Generate a new sitemap for the website",
 	Long:  `Generate a new sitemap for the website`,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		sm := sitemap.New()
 
 		var allURLs []string
-		allURLs = append(allURLs, BASEURL)
-		allURLs = append(allURLs, fmt.Sprintf("%vabout", BASEURL))
-		allURLs = append(allURLs, fmt.Sprintf("%vcompany", BASEURL))
+		allURLs = append(allURLs, S.Config.Main.WebsiteURL)
+		allURLs = append(allURLs, fmt.Sprintf("%vabout", S.Config.Main.WebsiteURL))
+		allURLs = append(allURLs, fmt.Sprintf("%vcompany", S.Config.Main.WebsiteURL))
 
-		yearMonthDayCIKURLs, err := GenerateYearMonthDayCIKURLs(DB)
+		yearMonthDayCIKURLs, err := GenerateYearMonthDayCIKURLs(DB, S.Config.Main.WebsiteURL)
 		if err != nil {
 			return err
 		}
 		allURLs = append(allURLs, yearMonthDayCIKURLs...)
 
-		companyPageURLs, err := GenerateCompanyPageURLs(DB)
+		companyPageURLs, err := GenerateCompanyPageURLs(DB, S.Config.Main.WebsiteURL)
 		if err != nil {
 			return err
 		}
@@ -51,7 +49,7 @@ var sitemapCmd = &cobra.Command{
 			})
 		}
 
-		out, err := os.Create("/var/www/equres/sitemap.xml")
+		out, err := os.Create("./_cache/sitemap.xml")
 		if err != nil {
 			return err
 		}
@@ -63,7 +61,7 @@ var sitemapCmd = &cobra.Command{
 		}
 
 		// Ping to Google Search Engine
-		_, err = http.Get("https://www.google.com/ping?sitemap=https://equres.com/sitemap.xml")
+		_, err = http.Get("https://www.google.com/ping?sitemap=https://equres.com/_cache/sitemap.xml")
 		if err != nil {
 			return err
 		}
@@ -73,20 +71,20 @@ var sitemapCmd = &cobra.Command{
 }
 
 func init() {
-	rootCmd.AddCommand(sitemapCmd)
+	rootCmd.AddCommand(regenCmd)
 
 	// Here you will define your flags and configuration settings.
 
 	// Cobra supports Persistent Flags which will work for this command
 	// and all subcommands, e.g.:
-	// sitemapCmd.PersistentFlags().String("foo", "", "A help for foo")
+	// regenCmd.PersistentFlags().String("foo", "", "A help for foo")
 
 	// Cobra supports local flags which will only run when this command
 	// is called directly, e.g.:
-	// sitemapCmd.Flags().BoolP("toggle", "t", false, "Help message for toggle")
+	// regenCmd.Flags().BoolP("toggle", "t", false, "Help message for toggle")
 }
 
-func GenerateYearMonthDayCIKURLs(db *sqlx.DB) ([]string, error) {
+func GenerateYearMonthDayCIKURLs(db *sqlx.DB, baseURL string) ([]string, error) {
 	uniqueYears, err := secworklist.UniqueYears(DB)
 	if err != nil {
 		return nil, err
@@ -94,7 +92,7 @@ func GenerateYearMonthDayCIKURLs(db *sqlx.DB) ([]string, error) {
 
 	var urls []string
 	for _, year := range uniqueYears {
-		urls = append(urls, fmt.Sprintf("%vfilings/%v", BASEURL, year))
+		urls = append(urls, fmt.Sprintf("%vfilings/%v", baseURL, year))
 
 		months, err := secworklist.MonthsInYear(db, year)
 		if err != nil {
@@ -102,14 +100,14 @@ func GenerateYearMonthDayCIKURLs(db *sqlx.DB) ([]string, error) {
 		}
 
 		for _, month := range months {
-			urls = append(urls, fmt.Sprintf("%vfilings/%v/%v", BASEURL, year, month))
+			urls = append(urls, fmt.Sprintf("%vfilings/%v/%v", baseURL, year, month))
 
 			days, err := secutil.GetFilingDaysFromMonthYear(DB, year, month)
 			if err != nil {
 				return nil, err
 			}
 			for _, day := range days {
-				urls = append(urls, fmt.Sprintf("%vfilings/%v/%v/%v", BASEURL, year, month, day))
+				urls = append(urls, fmt.Sprintf("%vfilings/%v/%v/%v", baseURL, year, month, day))
 
 				companies, err := secutil.GetFilingCompaniesFromYearMonthDay(db, year, month, day)
 				if err != nil {
@@ -117,7 +115,7 @@ func GenerateYearMonthDayCIKURLs(db *sqlx.DB) ([]string, error) {
 				}
 
 				for _, company := range companies {
-					urls = append(urls, fmt.Sprintf("%vfilings/%v/%v/%v/%v", BASEURL, year, month, day, company.CIKNumber))
+					urls = append(urls, fmt.Sprintf("%vfilings/%v/%v/%v/%v", baseURL, year, month, day, company.CIKNumber))
 				}
 			}
 		}
@@ -126,7 +124,7 @@ func GenerateYearMonthDayCIKURLs(db *sqlx.DB) ([]string, error) {
 	return urls, nil
 }
 
-func GenerateCompanyPageURLs(db *sqlx.DB) ([]string, error) {
+func GenerateCompanyPageURLs(db *sqlx.DB, baseURL string) ([]string, error) {
 	companies, err := sec.GetAllCompanies(db)
 	if err != nil {
 		return nil, err
@@ -135,7 +133,7 @@ func GenerateCompanyPageURLs(db *sqlx.DB) ([]string, error) {
 
 	var urls []string
 	for slug := range companySlugs {
-		urls = append(urls, fmt.Sprintf("%vcompany/%v", BASEURL, slug))
+		urls = append(urls, fmt.Sprintf("%vcompany/%v", baseURL, slug))
 	}
 
 	return urls, nil
