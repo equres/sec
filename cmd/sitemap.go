@@ -2,6 +2,7 @@ package cmd
 
 import (
 	"fmt"
+	"net/http"
 	"os"
 	"time"
 
@@ -50,13 +51,19 @@ var sitemapCmd = &cobra.Command{
 			})
 		}
 
-		out, err := os.Create("./sitemap.xml")
+		out, err := os.Create("/var/www/equres/sitemap.xml")
 		if err != nil {
 			return err
 		}
 		defer out.Close()
 
 		_, err = sm.WriteTo(out)
+		if err != nil {
+			return err
+		}
+
+		// Ping to Google Search Engine
+		_, err = http.Get("https://www.google.com/ping?sitemap=https://equres.com/sitemap.xml")
 		if err != nil {
 			return err
 		}

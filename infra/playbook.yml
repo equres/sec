@@ -103,6 +103,7 @@
         path: /var/www/equres
         state: directory
         mode: '0755'
+        owner: sec
     - name: Create /.config/sec Directory
       become: yes
       become_user: root
