@@ -27,7 +27,7 @@ func UniqueYears(db *sqlx.DB) ([]int, error) {
 	// Retrieve from DB
 	var worklistYears []int
 
-	err := db.Select(&worklistYears, "SELECT DISTINCT year FROM sec.worklist WHERE will_download = true ORDER BY year ASC")
+	err := db.Select(&worklistYears, "SELECT DISTINCT year FROM sec.worklist WHERE will_download = true ORDER BY year DESC")
 	if err != nil {
 		return nil, err
 	}
