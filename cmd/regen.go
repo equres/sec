@@ -1,6 +1,8 @@
 package cmd
 
 import (
+	"context"
+	"encoding/json"
 	"fmt"
 	"net/http"
 	"os"
@@ -8,9 +10,11 @@ import (
 	"time"
 
 	"github.com/equres/sec/pkg/sec"
+	"github.com/equres/sec/pkg/secevent"
 	"github.com/equres/sec/pkg/secutil"
 	"github.com/equres/sec/pkg/secworklist"
 	"github.com/equres/sec/pkg/server"
+	"github.com/go-redis/redis/v8"
 	"github.com/jmoiron/sqlx"
 	"github.com/snabb/sitemap"
 	"github.com/spf13/cobra"
@@ -22,47 +26,12 @@ var regenCmd = &cobra.Command{
 	Short: "Generate a new sitemap for the website",
 	Long:  `Generate a new sitemap for the website`,
 	RunE: func(cmd *cobra.Command, args []string) error {
-		sm := sitemap.New()
-
-		var allURLs []string
-		allURLs = append(allURLs, S.Config.Main.WebsiteURL)
-		allURLs = append(allURLs, fmt.Sprintf("%vabout", S.Config.Main.WebsiteURL))
-		allURLs = append(allURLs, fmt.Sprintf("%vcompany", S.Config.Main.WebsiteURL))
-
-		yearMonthDayCIKURLs, err := GenerateYearMonthDayCIKURLs(DB, S.Config.Main.WebsiteURL)
-		if err != nil {
-			return err
-		}
-		allURLs = append(allURLs, yearMonthDayCIKURLs...)
-
-		companyPageURLs, err := GenerateCompanyPageURLs(DB, S.Config.Main.WebsiteURL)
-		if err != nil {
-			return err
-		}
-		allURLs = append(allURLs, companyPageURLs...)
-
-		currentTime := time.Now().UTC()
-		for _, URL := range allURLs {
-			sm.Add(&sitemap.URL{
-				Loc:        URL,
-				LastMod:    &currentTime,
-				ChangeFreq: sitemap.Daily,
-			})
-		}
-
-		sitemap, err := os.Create(filepath.Join(S.Config.Main.CacheDir, "sitemap.xml"))
-		if err != nil {
-			return err
-		}
-		defer sitemap.Close()
-
-		_, err = sm.WriteTo(sitemap)
+		err := GenerateSitemap()
 		if err != nil {
 			return err
 		}
 
-		// Ping to Google Search Engine
-		_, err = http.Get("https://www.google.com/ping?sitemap=https://equres.com/_cache/sitemap.xml")
+		err = GenerateStats(DB)
 		if err != nil {
 			return err
 		}
@@ -138,4 +107,91 @@ func GenerateCompanyPageURLs(db *sqlx.DB, baseURL string) ([]string, error) {
 	}
 
 	return urls, nil
+}
+
+func GenerateSitemap() error {
+	sm := sitemap.New()
+
+	var allURLs []string
+	allURLs = append(allURLs, S.Config.Main.WebsiteURL)
+	allURLs = append(allURLs, fmt.Sprintf("%vabout", S.Config.Main.WebsiteURL))
+	allURLs = append(allURLs, fmt.Sprintf("%vcompany", S.Config.Main.WebsiteURL))
+
+	yearMonthDayCIKURLs, err := GenerateYearMonthDayCIKURLs(DB, S.Config.Main.WebsiteURL)
+	if err != nil {
+		return err
+	}
+	allURLs = append(allURLs, yearMonthDayCIKURLs...)
+
+	companyPageURLs, err := GenerateCompanyPageURLs(DB, S.Config.Main.WebsiteURL)
+	if err != nil {
+		return err
+	}
+	allURLs = append(allURLs, companyPageURLs...)
+
+	currentTime := time.Now().UTC()
+	for _, URL := range allURLs {
+		sm.Add(&sitemap.URL{
+			Loc:        URL,
+			LastMod:    &currentTime,
+			ChangeFreq: sitemap.Daily,
+		})
+	}
+
+	sitemap, err := os.Create(filepath.Join(S.Config.Main.CacheDir, "sitemap.xml"))
+	if err != nil {
+		return err
+	}
+	defer sitemap.Close()
+
+	_, err = sm.WriteTo(sitemap)
+	if err != nil {
+		return err
+	}
+
+	// Ping to Google Search Engine
+	_, err = http.Get("https://www.google.com/ping?sitemap=https://equres.com/_cache/sitemap.xml")
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func GenerateStats(db *sqlx.DB) error {
+	rdb := redis.NewClient(&redis.Options{
+		Addr:     "localhost:6379",
+		Password: "",
+		DB:       0,
+	})
+
+	eventStatsArr, err := secevent.GetEventStats(db)
+	if err != nil {
+		return err
+	}
+	allStats := make(map[string]int)
+	for _, event := range eventStatsArr {
+		statValue := 2
+		if event.FilesBroken > 0 {
+			statValue--
+		}
+
+		if event.FilesIndexed == 0 || event.FilesDownloaded == 0 {
+			statValue--
+		}
+
+		allStats[event.Date] = statValue
+	}
+
+	allStatsJSON, err := json.Marshal(allStats)
+	if err != nil {
+		return err
+	}
+
+	err = rdb.Set(context.Background(), "sec_cache_stats", string(allStatsJSON), 0).Err()
+	if err != nil {
+		return err
+	}
+
+	return nil
 }
