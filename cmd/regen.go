@@ -16,6 +16,7 @@ import (
 	"github.com/equres/sec/pkg/server"
 	"github.com/go-redis/redis/v8"
 	"github.com/jmoiron/sqlx"
+	log "github.com/sirupsen/logrus"
 	"github.com/snabb/sitemap"
 	"github.com/spf13/cobra"
 )
@@ -26,14 +27,30 @@ var regenCmd = &cobra.Command{
 	Short: "Generate a new sitemap for the website",
 	Long:  `Generate a new sitemap for the website`,
 	RunE: func(cmd *cobra.Command, args []string) error {
-		err := GenerateSitemap()
-		if err != nil {
-			return err
+		if len(args) == 0 {
+			log.Info("please type 'sitemap' to generate the sitemap and 'stats' to generate the stats (e.g. sec regen sitemap)")
+			return nil
 		}
 
-		err = GenerateStats(DB)
-		if err != nil {
-			return err
+		switch args[0] {
+		case "sitemap":
+			if S.Verbose {
+				log.Info("Generating a sitemap.xml file...")
+			}
+			err := GenerateSitemap()
+			if err != nil {
+				return err
+			}
+		case "stats":
+			if S.Verbose {
+				log.Info("Generating & caching stats in redis...")
+			}
+			err := GenerateStats(DB)
+			if err != nil {
+				return err
+			}
+		default:
+			return fmt.Errorf("please type 'sitemap' to generate the sitemap and 'stats' to generate the stats (e.g. sec regen sitemap)")
 		}
 
 		return nil
