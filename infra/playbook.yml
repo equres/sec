@@ -261,6 +261,7 @@
         - { src: 'sec.cron.daily.sh' }
         - { src: 'stats.cron.daily.sh' }
         - { src: 'certbot_renew.sh' }
+        - { src: 'stats_caching.sh' }
         - { src: '.creds' }
     - name: Copy Monit Config File
       become: yes
@@ -418,3 +419,13 @@
         hour: "4"
         user: sec
         job: "/root/sec.cron.daily.sh"
+    - name: Run Stats Caching Script Three Times a Day
+      become: yes
+      become_user: root
+      become_method: sudo
+      ansible.builtin.cron:
+        name: "Generating & Caching Stats"
+        minute: "0"
+        hour: "*/8"
+        user: sec
+        job: "/root/stats_caching.sh"
