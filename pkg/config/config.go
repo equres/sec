@@ -13,6 +13,7 @@ type Config struct {
 	Main      MainConfig
 	IndexMode IndexModeConfig
 	Proxies   ProxiesConfig
+	Redis     RedisConfig
 }
 
 type DatabaseConfig struct {
@@ -22,6 +23,11 @@ type DatabaseConfig struct {
 	Name     string `mapstructure:"name"`
 	Password string `mapstructure:"password"`
 	User     string `mapstructure:"user"`
+}
+
+type RedisConfig struct {
+	Host string `mapstructure:"host"`
+	Port string `mapstructure:"port"`
 }
 
 type MainConfig struct {
@@ -67,4 +73,8 @@ func (c *Config) DBGetURL() string {
 		c.Database.Host,
 		c.Database.Port,
 		c.Database.Name)
+}
+
+func (rc *RedisConfig) GetRedisURL() string {
+	return fmt.Sprintf("%v:%v", rc.Host, rc.Port)
 }

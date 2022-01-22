@@ -18,6 +18,7 @@ import (
 	log "github.com/sirupsen/logrus"
 
 	humanize "github.com/dustin/go-humanize"
+	"github.com/equres/sec/pkg/config"
 	"github.com/equres/sec/pkg/sec"
 	"github.com/equres/sec/pkg/seccik"
 	"github.com/equres/sec/pkg/secextra"
@@ -373,7 +374,7 @@ func (s Server) HandlerCompanyFilingsPage(w http.ResponseWriter, r *http.Request
 }
 
 func (s Server) HandlerStatsPage(w http.ResponseWriter, r *http.Request) {
-	allStats, err := GetStatsFromRedis()
+	allStats, err := GetStatsFromRedis(s.Config.Redis)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 	}
@@ -452,9 +453,9 @@ func GetCompanyFromSlug(companies []sec.Company, companySlug string) sec.Company
 	return sec.Company{}
 }
 
-func GetStatsFromRedis() (map[string]int, error) {
+func GetStatsFromRedis(redisConfig config.RedisConfig) (map[string]int, error) {
 	rdb := redis.NewClient(&redis.Options{
-		Addr:     "localhost:6379",
+		Addr:     redisConfig.GetRedisURL(),
 		Password: "",
 		DB:       0,
 	})

@@ -111,6 +111,21 @@ func GenerateConfig() error {
 		return err
 	}
 
+	fmt.Println("Redis Config:")
+	redisHost := "localhost"
+	fmt.Printf("Host [default: '%v']: ", redisHost)
+	err = AcceptInput(reader, &redisHost)
+	if err != nil {
+		return err
+	}
+
+	redisPort := "6379"
+	fmt.Printf("Port [default: '%v']: ", redisPort)
+	err = AcceptInput(reader, &redisPort)
+	if err != nil {
+		return err
+	}
+
 	cfg := viper.New()
 
 	if _, err = os.Stat(cfgFile); err != nil {
@@ -153,6 +168,11 @@ func GenerateConfig() error {
 		Name:     dbName,
 		Password: dbPassword,
 		User:     dbUser,
+	})
+
+	cfg.SetDefault("redis", config.RedisConfig{
+		Host: redisHost,
+		Port: redisPort,
 	})
 
 	err = cfg.WriteConfig()

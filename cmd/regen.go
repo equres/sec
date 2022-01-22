@@ -45,7 +45,7 @@ var regenCmd = &cobra.Command{
 			if S.Verbose {
 				log.Info("Generating & caching stats in redis...")
 			}
-			err := GenerateStats(DB)
+			err := GenerateStats(DB, S)
 			if err != nil {
 				return err
 			}
@@ -175,9 +175,9 @@ func GenerateSitemap() error {
 	return nil
 }
 
-func GenerateStats(db *sqlx.DB) error {
+func GenerateStats(db *sqlx.DB, s *sec.SEC) error {
 	rdb := redis.NewClient(&redis.Options{
-		Addr:     "localhost:6379",
+		Addr:     s.Config.Redis.GetRedisURL(),
 		Password: "",
 		DB:       0,
 	})
