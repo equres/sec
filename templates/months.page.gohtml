@@ -5,7 +5,7 @@
 {{ end }}
 
 {{ define "content"}}
-    <h3>Year: {{ .Year }}</h3>
+    <h3>Financial Filings For {{ .Year }}</h3>
     <ul>
         {{ range .Months }}
             <li><a href="/filings/{{ $.Year }}/{{ . }}">{{ . }}</a></li>

@@ -5,8 +5,7 @@
 {{ end }}
 
 {{ define "content"}}
-    <h3>Year: {{ .Year }}</h3>
-    <h3>Month: {{ .Month }}</h3>
+    <h3>Financial Filings For {{.MonthString}}, {{.Year}}</h3>
     <table class="table">
         <thead>
             <tr>
@@ -14,9 +13,13 @@
             </tr>
         </thead>
         <tbody>
-            {{ range .Days }}
+            {{ range $Day, $IsAvailable := .Days }}
                 <tr>
-                    <td><a href="/filings/{{ $.Year }}/{{ $.Month }}/{{ . }}">{{ . }}</a></td>
+                    {{ if $IsAvailable }}
+                    <td><a href="/filings/{{ $.Year }}/{{ $.Month }}/{{ $Day }}">{{ $Day }}</a></td>
+                    {{ else }}
+                    <td><a disabled="disabled">{{ $Day }}</a></td>
+                    {{ end }}
                 </tr>
             {{ end }}
         </tbody>
