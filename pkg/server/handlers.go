@@ -1,7 +1,6 @@
 package server
 
 import (
-	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -14,7 +13,6 @@ import (
 	"strings"
 	"time"
 
-	"github.com/go-redis/redis/v8"
 	log "github.com/sirupsen/logrus"
 
 	humanize "github.com/dustin/go-humanize"
@@ -374,7 +372,7 @@ func (s Server) HandlerCompanyFilingsPage(w http.ResponseWriter, r *http.Request
 }
 
 func (s Server) HandlerStatsPage(w http.ResponseWriter, r *http.Request) {
-	allStats, err := GetStatsFromRedis(s.Config.Redis)
+	allStats, err := s.GetStatsFromRedis(s.Config.Redis)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 	}
@@ -453,14 +451,8 @@ func GetCompanyFromSlug(companies []sec.Company, companySlug string) sec.Company
 	return sec.Company{}
 }
 
-func GetStatsFromRedis(redisConfig config.RedisConfig) (map[string]int, error) {
-	rdb := redis.NewClient(&redis.Options{
-		Addr:     redisConfig.GetRedisURL(),
-		Password: "",
-		DB:       0,
-	})
-
-	allStatsJSON, err := rdb.Get(context.Background(), "sec_cache_stats").Result()
+func (s Server) GetStatsFromRedis(redisConfig config.RedisConfig) (map[string]int, error) {
+	allStatsJSON, err := s.Cache.Get("sec_cache_stats")
 	if err != nil {
 		return nil, err
 	}

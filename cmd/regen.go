@@ -1,7 +1,6 @@
 package cmd
 
 import (
-	"context"
 	"encoding/json"
 	"fmt"
 	"net/http"
@@ -14,7 +13,6 @@ import (
 	"github.com/equres/sec/pkg/secutil"
 	"github.com/equres/sec/pkg/secworklist"
 	"github.com/equres/sec/pkg/server"
-	"github.com/go-redis/redis/v8"
 	"github.com/jmoiron/sqlx"
 	log "github.com/sirupsen/logrus"
 	"github.com/snabb/sitemap"
@@ -45,7 +43,12 @@ var regenCmd = &cobra.Command{
 			if S.Verbose {
 				log.Info("Generating & caching stats in redis...")
 			}
-			err := GenerateStats(DB, S)
+			statsJSON, err := GenerateStatsJSON(DB, S)
+			if err != nil {
+				return err
+			}
+
+			err = S.Cache.MustSet("sec_cache_stats", statsJSON)
 			if err != nil {
 				return err
 			}
@@ -175,16 +178,10 @@ func GenerateSitemap() error {
 	return nil
 }
 
-func GenerateStats(db *sqlx.DB, s *sec.SEC) error {
-	rdb := redis.NewClient(&redis.Options{
-		Addr:     s.Config.Redis.GetRedisURL(),
-		Password: "",
-		DB:       0,
-	})
-
+func GenerateStatsJSON(db *sqlx.DB, s *sec.SEC) (string, error) {
 	eventStatsArr, err := secevent.GetEventStats(db)
 	if err != nil {
-		return err
+		return "", err
 	}
 	allStats := make(map[string]int)
 	for _, event := range eventStatsArr {
@@ -202,13 +199,8 @@ func GenerateStats(db *sqlx.DB, s *sec.SEC) error {
 
 	allStatsJSON, err := json.Marshal(allStats)
 	if err != nil {
-		return err
+		return "", err
 	}
 
-	err = rdb.Set(context.Background(), "sec_cache_stats", string(allStatsJSON), 0).Err()
-	if err != nil {
-		return err
-	}
-
-	return nil
+	return string(allStatsJSON), nil
 }
