@@ -177,13 +177,25 @@ func (s Server) HandlerDaysPage(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	allDays := make(map[int]bool)
+	for _, day := range days {
+		allDays[day] = true
+	}
+
+	daysCountForMonth := time.Date(year, time.Month(month), 0, 0, 0, 0, 0, time.UTC).Day()
+	for i := 1; i <= daysCountForMonth; i++ {
+		if _, ok := allDays[i]; !ok {
+			allDays[i] = false
+		}
+	}
+
 	var monthString time.Month = time.Month(month)
 
 	content := make(map[string]interface{})
 	content["Year"] = year
 	content["Month"] = month
 	content["MonthString"] = monthString.String()
-	content["Days"] = days
+	content["Days"] = allDays
 
 	err = s.RenderTemplate(w, "days.page.gohtml", content)
 	if err != nil {
