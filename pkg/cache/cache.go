@@ -2,7 +2,6 @@ package cache
 
 import (
 	"context"
-	"fmt"
 
 	"github.com/equres/sec/pkg/config"
 	"github.com/go-redis/redis/v8"
