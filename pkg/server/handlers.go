@@ -8,6 +8,7 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
+	"sort"
 	"strconv"
 	"strings"
 	"time"
@@ -371,8 +372,25 @@ func (s Server) HandlerCompanyFilingsPage(w http.ResponseWriter, r *http.Request
 		}
 	}
 
+	type YearFilings struct {
+		Year    string
+		Filings []FormattedFiling
+	}
+
+	var allYearsFilings []YearFilings
+	for year, filings := range formattedFilings {
+		allYearsFilings = append(allYearsFilings, YearFilings{
+			Year:    year,
+			Filings: filings,
+		})
+	}
+
+	sort.Slice(allYearsFilings, func(i, j int) bool {
+		return allYearsFilings[i].Year > allYearsFilings[j].Year
+	})
+
 	content := make(map[string]interface{})
-	content["Filings"] = formattedFilings
+	content["Filings"] = allYearsFilings
 	content["CompanyName"] = companyName
 
 	err = s.RenderTemplate(w, "companyfilings.page.gohtml", content)

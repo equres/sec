@@ -6,11 +6,11 @@
 
 {{ define "content"}}
     <ul>
-        {{ range $Year, $YearFilings := .Filings}}
-            <li>{{ $Year }}</li>
+        {{ range .Filings }}
+            <li>{{ .Year }}</li>
             <ul>
-                {{ range $Index, $Filing := $YearFilings }}
-                    <li><a href="{{ $Filing.FilingsURL }}">{{ $Filing.CompanyName }} {{ $Year }} {{ $Filing.FormType }} (filled: {{ $Filing.FillingDate }})</a></li>
+                {{ range .Filings }}
+                    <li><a href="{{ .FilingsURL }}">{{ .CompanyName }} {{ $.Year }} {{ .FormType }} (filled: {{ .FillingDate }})</a></li>
                 {{ end }}
             </ul>
         {{ end }}
