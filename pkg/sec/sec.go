@@ -3,6 +3,7 @@
 package sec
 
 import (
+	"database/sql"
 	"encoding/xml"
 	"strconv"
 	"time"
@@ -94,35 +95,35 @@ type Entry struct {
 }
 
 type SECItemFile struct {
-	ID                 int       `db:"id"`
-	Ticker             string    `db:"ticker"`
-	Title              string    `db:"title"`
-	Link               string    `db:"link"`
-	Guid               string    `db:"guid"`
-	EnclosureURL       string    `db:"enclosure_url"`
-	EnclosureLength    int       `db:"enclosure_length"`
-	EnclosureType      string    `db:"enclosure_type"`
-	Description        string    `db:"description"`
-	PubDate            time.Time `db:"pubdate"`
-	CompanyName        string    `db:"companyname"`
-	FormType           string    `db:"formtype"`
-	FillingDate        time.Time `db:"fillingdate"`
-	CIKNumber          string    `db:"ciknumber"`
-	AccessionNumber    string    `db:"accessionnumber"`
-	FileNumber         string    `db:"filenumber"`
-	AcceptanceDatetime string    `db:"acceptancedatetime"`
-	Period             string    `db:"period"`
-	AssistantDirector  string    `db:"assistantdirector"`
-	AssignedSic        int       `db:"assignedsic"`
-	FiscalYearEnd      int       `db:"fiscalyearend"`
-	XbrlSequence       string    `db:"xbrlsequence"`
-	XbrlFile           string    `db:"xbrlfile"`
-	XbrlType           string    `db:"xbrltype"`
-	XbrlSize           int       `db:"xbrlsize"`
-	XbrlDescription    string    `db:"xbrldescription"`
-	XbrlInlineXbrl     bool      `db:"xbrlinlinexbrl"`
-	XbrlURL            string    `db:"xbrlurl"`
-	XbrlBody           string    `db:"xbrlbody"`
+	ID                 int            `db:"id"`
+	Ticker             sql.NullString `db:"ticker"`
+	Title              string         `db:"title"`
+	Link               string         `db:"link"`
+	Guid               string         `db:"guid"`
+	EnclosureURL       string         `db:"enclosure_url"`
+	EnclosureLength    int            `db:"enclosure_length"`
+	EnclosureType      string         `db:"enclosure_type"`
+	Description        string         `db:"description"`
+	PubDate            time.Time      `db:"pubdate"`
+	CompanyName        string         `db:"companyname"`
+	FormType           string         `db:"formtype"`
+	FillingDate        time.Time      `db:"fillingdate"`
+	CIKNumber          string         `db:"ciknumber"`
+	AccessionNumber    string         `db:"accessionnumber"`
+	FileNumber         string         `db:"filenumber"`
+	AcceptanceDatetime string         `db:"acceptancedatetime"`
+	Period             string         `db:"period"`
+	AssistantDirector  string         `db:"assistantdirector"`
+	AssignedSic        int            `db:"assignedsic"`
+	FiscalYearEnd      int            `db:"fiscalyearend"`
+	XbrlSequence       string         `db:"xbrlsequence"`
+	XbrlFile           string         `db:"xbrlfile"`
+	XbrlType           string         `db:"xbrltype"`
+	XbrlSize           int            `db:"xbrlsize"`
+	XbrlDescription    string         `db:"xbrldescription"`
+	XbrlInlineXbrl     bool           `db:"xbrlinlinexbrl"`
+	XbrlURL            string         `db:"xbrlurl"`
+	XbrlBody           string         `db:"xbrlbody"`
 }
 
 type Company struct {
