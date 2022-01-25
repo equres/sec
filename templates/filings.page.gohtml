@@ -5,9 +5,7 @@
 {{ end }}
 
 {{ define "content"}}
-    <h3>Year: {{ .Year }}</h3>
-    <h3>Month: {{ .Month }}</h3>
-    <h3>Day: {{ .Day }}</h3>
+    <h3>{{ .CompanyName }} Filings for {{ .DayString }} {{ .MonthString }} {{ .DayOrdinal }}, {{ .Year }}</h3>
     <table class="table">
         <thead>
             <tr>
