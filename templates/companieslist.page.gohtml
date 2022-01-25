@@ -8,12 +8,15 @@
     <table class="table">
         <thead>
             <tr>
+                <th>#</th>
                 <th>Company Name</th>
             </tr>
         </thead>
         <tbody>
+            <script>let index = 1</script>
             {{  range $Slug, $Company := .Companies }}
                 <tr>
+                    <td><script>document.write(index++)</script></td>
                     <td><a href="/company/{{ $Slug }}">{{ $Company.CompanyName }}</a></td>
                 </tr>
             {{ end }}
