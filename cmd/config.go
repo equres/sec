@@ -126,6 +126,13 @@ func GenerateConfig() error {
 		return err
 	}
 
+	redisPassword := ""
+	fmt.Printf("Password [default: '%v']: ", redisPassword)
+	err = AcceptInput(reader, &redisPassword)
+	if err != nil {
+		return err
+	}
+
 	cfg := viper.New()
 
 	if _, err = os.Stat(cfgFile); err != nil {
@@ -171,8 +178,9 @@ func GenerateConfig() error {
 	})
 
 	cfg.SetDefault("redis", config.RedisConfig{
-		Host: redisHost,
-		Port: redisPort,
+		Host:     redisHost,
+		Port:     redisPort,
+		Password: redisPassword,
 	})
 
 	err = cfg.WriteConfig()

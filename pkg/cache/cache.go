@@ -2,24 +2,29 @@ package cache
 
 import (
 	"context"
+	"fmt"
 
 	"github.com/equres/sec/pkg/config"
 	"github.com/go-redis/redis/v8"
 )
 
 type Cache struct {
-	Redis redis.Client
+	Redis *redis.Client
 }
+
+const (
+	SECCacheStats string = "cache.SECCacheStats"
+)
 
 func NewCache(cfg *config.Config) Cache {
 	rdb := redis.NewClient(&redis.Options{
 		Addr:     cfg.Redis.GetRedisURL(),
-		Password: "",
+		Password: cfg.Redis.Password,
 		DB:       0,
 	})
 
 	return Cache{
-		Redis: *rdb,
+		Redis: rdb,
 	}
 }
 

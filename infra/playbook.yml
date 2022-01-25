@@ -230,6 +230,18 @@
         path: /var/lib/awstats
         state: directory
         mode: '0755'
+    - name: Copy Redis Config File
+      become: yes
+      become_user: root
+      become_method: sudo
+      copy: src=./etc/redis/redis.conf dest=/etc/redis/
+    - name: Reload Redis Service
+      become: yes
+      become_user: root
+      become_method: sudo
+      ansible.builtin.service:
+        name: redis
+        state: reloaded
     - name: Create /home/sec/_stats Directory
       become: yes
       become_user: root

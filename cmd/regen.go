@@ -8,6 +8,7 @@ import (
 	"path/filepath"
 	"time"
 
+	"github.com/equres/sec/pkg/cache"
 	"github.com/equres/sec/pkg/sec"
 	"github.com/equres/sec/pkg/secevent"
 	"github.com/equres/sec/pkg/secutil"
@@ -48,7 +49,7 @@ var regenCmd = &cobra.Command{
 				return err
 			}
 
-			err = S.Cache.MustSet("sec_cache_stats", statsJSON)
+			err = S.Cache.MustSet(cache.SECCacheStats, statsJSON)
 			if err != nil {
 				return err
 			}

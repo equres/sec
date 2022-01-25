@@ -26,8 +26,9 @@ type DatabaseConfig struct {
 }
 
 type RedisConfig struct {
-	Host string `mapstructure:"host"`
-	Port string `mapstructure:"port"`
+	Host     string `mapstructure:"host"`
+	Port     string `mapstructure:"port"`
+	Password string `mapstructure:"password"`
 }
 
 type MainConfig struct {

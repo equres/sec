@@ -16,6 +16,7 @@ import (
 	log "github.com/sirupsen/logrus"
 
 	humanize "github.com/dustin/go-humanize"
+	"github.com/equres/sec/pkg/cache"
 	"github.com/equres/sec/pkg/config"
 	"github.com/equres/sec/pkg/sec"
 	"github.com/equres/sec/pkg/seccik"
@@ -452,7 +453,7 @@ func GetCompanyFromSlug(companies []sec.Company, companySlug string) sec.Company
 }
 
 func (s Server) GetStatsFromRedis(redisConfig config.RedisConfig) (map[string]int, error) {
-	allStatsJSON, err := s.Cache.Get("sec_cache_stats")
+	allStatsJSON, err := s.Cache.Get(cache.SECCacheStats)
 	if err != nil {
 		return nil, err
 	}
