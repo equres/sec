@@ -85,6 +85,7 @@
           - awstats
           - libgeoip-dev
           - build-essential
+          - mailutils
     - name: Create /mnt/sec Directory
       become: yes
       become_user: root
@@ -325,6 +326,22 @@
       ansible.builtin.service:
         name: syslog-ng
         state: reloaded
+    - name: Copy Postfix Config File
+      become: yes
+      become_user: root
+      become_method: sudo
+      ansible.builtin.copy:
+        src: ./etc/postfix/main.cf
+        dest: /etc/postfix/main.cf
+        owner: sec
+        mode: '0700'
+    - name: Restart Postfix Service
+      become: yes
+      become_user: root
+      become_method: sudo
+      ansible.builtin.service:
+        name: postfix
+        state: restarted
     - name: Get /mnt/sec/db Directory Data
       become: yes
       become_user: postgres
