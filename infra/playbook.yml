@@ -236,13 +236,13 @@
       become_user: root
       become_method: sudo
       copy: src=./etc/redis/redis.conf dest=/etc/redis/
-    - name: Reload Redis Service
+    - name: Restart Redis Service
       become: yes
       become_user: root
       become_method: sudo
       ansible.builtin.service:
         name: redis
-        state: reloaded
+        state: restarted
     - name: Create /home/sec/_stats Directory
       become: yes
       become_user: root
