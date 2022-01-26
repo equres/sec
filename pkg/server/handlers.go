@@ -1,6 +1,7 @@
 package server
 
 import (
+	"encoding/json"
 	"errors"
 	"fmt"
 	"html/template"
@@ -16,9 +17,10 @@ import (
 	log "github.com/sirupsen/logrus"
 
 	humanize "github.com/dustin/go-humanize"
+	"github.com/equres/sec/pkg/cache"
+	"github.com/equres/sec/pkg/config"
 	"github.com/equres/sec/pkg/sec"
 	"github.com/equres/sec/pkg/seccik"
-	"github.com/equres/sec/pkg/secevent"
 	"github.com/equres/sec/pkg/secextra"
 	"github.com/equres/sec/pkg/secutil"
 	"github.com/equres/sec/pkg/secworklist"
@@ -401,22 +403,9 @@ func (s Server) HandlerCompanyFilingsPage(w http.ResponseWriter, r *http.Request
 }
 
 func (s Server) HandlerStatsPage(w http.ResponseWriter, r *http.Request) {
-	eventStatsArr, err := secevent.GetEventStats(s.DB)
+	allStats, err := s.GetStatsFromRedis(s.Config.Redis)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
-	}
-	allStats := make(map[string]int)
-	for _, event := range eventStatsArr {
-		statValue := 2
-		if event.FilesBroken > 0 {
-			statValue--
-		}
-
-		if event.FilesIndexed == 0 || event.FilesDownloaded == 0 {
-			statValue--
-		}
-
-		allStats[event.Date] = statValue
 	}
 
 	content := make(map[string]interface{})
@@ -491,4 +480,20 @@ func GetCompanyFromSlug(companies []sec.Company, companySlug string) sec.Company
 		return company
 	}
 	return sec.Company{}
+}
+
+func (s Server) GetStatsFromRedis(redisConfig config.RedisConfig) (map[string]int, error) {
+	allStatsJSON, err := s.Cache.Get(cache.SECCacheStats)
+	if err != nil {
+		return nil, err
+	}
+
+	allStats := make(map[string]int)
+
+	err = json.Unmarshal([]byte(allStatsJSON), &allStats)
+	if err != nil {
+		return nil, err
+	}
+
+	return allStats, nil
 }

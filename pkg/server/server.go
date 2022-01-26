@@ -7,6 +7,7 @@ import (
 
 	log "github.com/sirupsen/logrus"
 
+	"github.com/equres/sec/pkg/cache"
 	"github.com/equres/sec/pkg/config"
 	"github.com/jmoiron/sqlx"
 )
@@ -24,6 +25,7 @@ type Server struct {
 	TemplatesFS embed.FS
 	SHA1Ver     string
 	BuildTime   string
+	Cache       cache.Cache
 }
 
 func NewServer(db *sqlx.DB, config config.Config, templates embed.FS) (Server, error) {
@@ -34,6 +36,8 @@ func NewServer(db *sqlx.DB, config config.Config, templates embed.FS) (Server, e
 		SHA1Ver:     GlobalSHA1Ver,
 		BuildTime:   GlobalBuildTime,
 	}
+
+	s.Cache = cache.NewCache(&config)
 
 	return s, nil
 }
