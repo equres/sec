@@ -1,17 +1,21 @@
 package cmd
 
 import (
+	"encoding/json"
 	"fmt"
 	"net/http"
 	"os"
 	"path/filepath"
 	"time"
 
+	"github.com/equres/sec/pkg/cache"
 	"github.com/equres/sec/pkg/sec"
+	"github.com/equres/sec/pkg/secevent"
 	"github.com/equres/sec/pkg/secutil"
 	"github.com/equres/sec/pkg/secworklist"
 	"github.com/equres/sec/pkg/server"
 	"github.com/jmoiron/sqlx"
+	log "github.com/sirupsen/logrus"
 	"github.com/snabb/sitemap"
 	"github.com/spf13/cobra"
 )
@@ -22,49 +26,35 @@ var regenCmd = &cobra.Command{
 	Short: "Generate a new sitemap for the website",
 	Long:  `Generate a new sitemap for the website`,
 	RunE: func(cmd *cobra.Command, args []string) error {
-		sm := sitemap.New()
-
-		var allURLs []string
-		allURLs = append(allURLs, S.Config.Main.WebsiteURL)
-		allURLs = append(allURLs, fmt.Sprintf("%vabout", S.Config.Main.WebsiteURL))
-		allURLs = append(allURLs, fmt.Sprintf("%vcompany", S.Config.Main.WebsiteURL))
-
-		yearMonthDayCIKURLs, err := GenerateYearMonthDayCIKURLs(DB, S.Config.Main.WebsiteURL)
-		if err != nil {
-			return err
-		}
-		allURLs = append(allURLs, yearMonthDayCIKURLs...)
-
-		companyPageURLs, err := GenerateCompanyPageURLs(DB, S.Config.Main.WebsiteURL)
-		if err != nil {
-			return err
-		}
-		allURLs = append(allURLs, companyPageURLs...)
-
-		currentTime := time.Now().UTC()
-		for _, URL := range allURLs {
-			sm.Add(&sitemap.URL{
-				Loc:        URL,
-				LastMod:    &currentTime,
-				ChangeFreq: sitemap.Daily,
-			})
+		if len(args) == 0 {
+			log.Info("please type 'sitemap' to generate the sitemap and 'stats' to generate the stats (e.g. sec regen sitemap)")
+			return nil
 		}
 
-		sitemap, err := os.Create(filepath.Join(S.Config.Main.CacheDir, "sitemap.xml"))
-		if err != nil {
-			return err
-		}
-		defer sitemap.Close()
+		switch args[0] {
+		case "sitemap":
+			if S.Verbose {
+				log.Info("Generating a sitemap.xml file...")
+			}
+			err := GenerateSitemap()
+			if err != nil {
+				return err
+			}
+		case "stats":
+			if S.Verbose {
+				log.Info("Generating & caching stats in redis...")
+			}
+			statsJSON, err := GenerateStatsJSON(DB, S)
+			if err != nil {
+				return err
+			}
 
-		_, err = sm.WriteTo(sitemap)
-		if err != nil {
-			return err
-		}
-
-		// Ping to Google Search Engine
-		_, err = http.Get("https://www.google.com/ping?sitemap=https://equres.com/_cache/sitemap.xml")
-		if err != nil {
-			return err
+			err = S.Cache.MustSet(cache.SECCacheStats, statsJSON)
+			if err != nil {
+				return err
+			}
+		default:
+			return fmt.Errorf("please type 'sitemap' to generate the sitemap and 'stats' to generate the stats (e.g. sec regen sitemap)")
 		}
 
 		return nil
@@ -138,4 +128,80 @@ func GenerateCompanyPageURLs(db *sqlx.DB, baseURL string) ([]string, error) {
 	}
 
 	return urls, nil
+}
+
+func GenerateSitemap() error {
+	sm := sitemap.New()
+
+	var allURLs []string
+	allURLs = append(allURLs, S.Config.Main.WebsiteURL)
+	allURLs = append(allURLs, fmt.Sprintf("%vabout", S.Config.Main.WebsiteURL))
+	allURLs = append(allURLs, fmt.Sprintf("%vcompany", S.Config.Main.WebsiteURL))
+
+	yearMonthDayCIKURLs, err := GenerateYearMonthDayCIKURLs(DB, S.Config.Main.WebsiteURL)
+	if err != nil {
+		return err
+	}
+	allURLs = append(allURLs, yearMonthDayCIKURLs...)
+
+	companyPageURLs, err := GenerateCompanyPageURLs(DB, S.Config.Main.WebsiteURL)
+	if err != nil {
+		return err
+	}
+	allURLs = append(allURLs, companyPageURLs...)
+
+	currentTime := time.Now().UTC()
+	for _, URL := range allURLs {
+		sm.Add(&sitemap.URL{
+			Loc:        URL,
+			LastMod:    &currentTime,
+			ChangeFreq: sitemap.Daily,
+		})
+	}
+
+	sitemap, err := os.Create(filepath.Join(S.Config.Main.CacheDir, "sitemap.xml"))
+	if err != nil {
+		return err
+	}
+	defer sitemap.Close()
+
+	_, err = sm.WriteTo(sitemap)
+	if err != nil {
+		return err
+	}
+
+	// Ping to Google Search Engine
+	_, err = http.Get("https://www.google.com/ping?sitemap=https://equres.com/_cache/sitemap.xml")
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func GenerateStatsJSON(db *sqlx.DB, s *sec.SEC) (string, error) {
+	eventStatsArr, err := secevent.GetEventStats(db)
+	if err != nil {
+		return "", err
+	}
+	allStats := make(map[string]int)
+	for _, event := range eventStatsArr {
+		statValue := 2
+		if event.FilesBroken > 0 {
+			statValue--
+		}
+
+		if event.FilesIndexed == 0 || event.FilesDownloaded == 0 {
+			statValue--
+		}
+
+		allStats[event.Date] = statValue
+	}
+
+	allStatsJSON, err := json.Marshal(allStats)
+	if err != nil {
+		return "", err
+	}
+
+	return string(allStatsJSON), nil
 }

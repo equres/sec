@@ -7,6 +7,7 @@ import (
 	"strconv"
 	"time"
 
+	"github.com/equres/sec/pkg/cache"
 	"github.com/equres/sec/pkg/config"
 	"github.com/jmoiron/sqlx"
 )
@@ -149,12 +150,15 @@ type SEC struct {
 	Verbose bool
 	Config  config.Config
 	Debug   bool
+	Cache   cache.Cache
 }
 
 func NewSEC(config config.Config) (*SEC, error) {
+	redisCache := cache.NewCache(&config)
 	return &SEC{
 		BaseURL: config.Main.BaseURL,
 		Config:  config,
+		Cache:   redisCache,
 	}, nil
 }
 

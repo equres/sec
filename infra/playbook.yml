@@ -85,6 +85,7 @@
           - awstats
           - libgeoip-dev
           - build-essential
+          - mailutils
     - name: Create /mnt/sec Directory
       become: yes
       become_user: root
@@ -230,6 +231,18 @@
         path: /var/lib/awstats
         state: directory
         mode: '0755'
+    - name: Copy Redis Config File
+      become: yes
+      become_user: root
+      become_method: sudo
+      copy: src=./etc/redis/redis.conf dest=/etc/redis/
+    - name: Reload Redis Service
+      become: yes
+      become_user: root
+      become_method: sudo
+      ansible.builtin.service:
+        name: redis
+        state: reloaded
     - name: Create /home/sec/_stats Directory
       become: yes
       become_user: root
@@ -262,6 +275,7 @@
         - { src: 'stats.cron.daily.sh' }
         - { src: 'certbot_renew.sh' }
         - { src: 'testing_email.sh' }
+        - { src: 'stats_caching.sh' }
         - { src: '.creds' }
     - name: Copy Monit Config File
       become: yes
@@ -313,6 +327,22 @@
       ansible.builtin.service:
         name: syslog-ng
         state: reloaded
+    - name: Copy Postfix Config File
+      become: yes
+      become_user: root
+      become_method: sudo
+      ansible.builtin.copy:
+        src: ./etc/postfix/main.cf
+        dest: /etc/postfix/main.cf
+        owner: sec
+        mode: '0700'
+    - name: Restart Postfix Service
+      become: yes
+      become_user: root
+      become_method: sudo
+      ansible.builtin.service:
+        name: postfix
+        state: restarted
     - name: Get /mnt/sec/db Directory Data
       become: yes
       become_user: postgres
@@ -429,3 +459,13 @@
         hour: "*/12"
         user: sec
         job: "/root/testing_email.sh"
+    - name: Run Stats Caching Script Three Times a Day
+      become: yes
+      become_user: root
+      become_method: sudo
+      ansible.builtin.cron:
+        name: "Generating & Caching Stats"
+        minute: "0"
+        hour: "*/8"
+        user: sec
+        job: "/root/stats_caching.sh"

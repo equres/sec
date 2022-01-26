@@ -1,4 +1,4 @@
-. ./.creds
+. /root/.creds
 
 date=$(date +%Y%m%d)
 
