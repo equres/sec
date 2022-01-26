@@ -1,4 +1,4 @@
-. ./.creds
+. /root/.creds
 
 lftp -c "set ftp:list-options -a;
 set ssl:check-hostname no;
