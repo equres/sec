@@ -236,13 +236,13 @@
       become_user: root
       become_method: sudo
       copy: src=./etc/redis/redis.conf dest=/etc/redis/
-    - name: Reload Redis Service
+    - name: Restart Redis Service
       become: yes
       become_user: root
       become_method: sudo
       ansible.builtin.service:
         name: redis
-        state: reloaded
+        state: restarted
     - name: Create /home/sec/_stats Directory
       become: yes
       become_user: root
@@ -274,6 +274,7 @@
         - { src: 'sec.cron.daily.sh' }
         - { src: 'stats.cron.daily.sh' }
         - { src: 'certbot_renew.sh' }
+        - { src: 'testing_email.sh' }
         - { src: 'stats_caching.sh' }
         - { src: '.creds' }
     - name: Copy Monit Config File
@@ -448,6 +449,16 @@
         hour: "4"
         user: sec
         job: "/root/sec.cron.daily.sh"
+    - name: Testing Email Script Twice A Day
+      become: yes
+      become_user: root
+      become_method: sudo
+      ansible.builtin.cron:
+        name: "Testing Emails"
+        minute: "0"
+        hour: "*/12"
+        user: sec
+        job: "/root/testing_email.sh"
     - name: Run Stats Caching Script Three Times a Day
       become: yes
       become_user: root
