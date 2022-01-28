@@ -7,6 +7,8 @@
       postgresql_global_config_options:
         - option: data_directory
           value: "/mnt/sec/db"
+  vars_files:
+    - ./playbook_vars.yml
   tasks:
     - name: Set Timezone To Los Angeles
       become: yes
@@ -331,7 +333,7 @@
       become: yes
       become_user: root
       become_method: sudo
-      ansible.builtin.copy:
+      ansible.builtin.template:
         src: ./etc/postfix/main.cf
         dest: /etc/postfix/main.cf
         owner: sec
