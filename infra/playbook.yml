@@ -335,7 +335,7 @@
         src: ./etc/postfix/main.cf
         dest: /etc/postfix/main.cf
         owner: sec
-        mode: '0700'
+        mode: '0777'
     - name: Restart Postfix Service
       become: yes
       become_user: root
