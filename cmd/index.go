@@ -12,13 +12,15 @@ import (
 	"github.com/equres/sec/pkg/download"
 	"github.com/equres/sec/pkg/sec"
 	"github.com/equres/sec/pkg/seccik"
-	"github.com/equres/sec/pkg/secextra"
+	"github.com/equres/sec/pkg/secdata"
 	"github.com/equres/sec/pkg/secindex"
 	"github.com/equres/sec/pkg/secticker"
 	"github.com/equres/sec/pkg/secutil"
 	"github.com/equres/sec/pkg/secworklist"
 	"github.com/spf13/cobra"
 )
+
+var GlobalWillIndexSECData bool
 
 // indexCmd represents the index command
 var indexCmd = &cobra.Command{
@@ -63,7 +65,7 @@ var indexCmd = &cobra.Command{
 			return err
 		}
 
-    if S.Verbose {
+		if S.Verbose {
 			log.Info("Inserting CIK From Txt File...")
 		}
 		err = seccik.GetCIKsFromTxtFile(S, DB)
@@ -71,8 +73,20 @@ var indexCmd = &cobra.Command{
 			return err
 		}
 
-		if S.Config.IndexMode.FinancialStatementDataSets == "enabled" || S.Config.IndexMode.FinancialStatementDataSets == "true" {
-			err = secextra.IndexFinancialStatementDataSets(S, DB)
+		if S.Config.IndexMode.FinancialStatementDataSets == "enabled" || S.Config.IndexMode.FinancialStatementDataSets == "true" || GlobalWillIndexSECData {
+			if S.Verbose {
+				log.Info("Indexing Financial Statement Data Sets...")
+			}
+			err = secdata.IndexFinancialStatementDataSets(S, DB)
+			if err != nil {
+				return err
+			}
+
+			if S.Verbose {
+				log.Info("Indexing Mutual Fund Data...")
+			}
+
+			err = secdata.IndexMutualFundData(S, DB)
 			if err != nil {
 				return err
 			}
@@ -127,6 +141,7 @@ var indexCmd = &cobra.Command{
 func init() {
 	rootCmd.AddCommand(indexCmd)
 
+	indexCmd.Flags().BoolVarP(&GlobalWillIndexSECData, "secdata", "a", false, "Index SEC data (e.g. financial statement data sets, mutual fund data...)")
 	// Here you will define your flags and configuration settings.
 
 	// Cobra supports Persistent Flags which will work for this command
