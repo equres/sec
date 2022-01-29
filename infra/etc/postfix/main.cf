@@ -34,13 +34,16 @@ smtp_tls_session_cache_database = btree:${data_directory}/smtp_scache
 
 
 smtpd_relay_restrictions = permit_mynetworks permit_sasl_authenticated defer_unauth_destination
-myhostname = ubuntu-focal
+myhostname = equres.com
 alias_maps = hash:/etc/aliases
 alias_database = hash:/etc/aliases
-mydestination = $myhostname, ubuntu-focal, localhost.localdomain, , localhost
-relayhost = 
+mydestination = localhost.$mydomain, localhost, $myhostname
+relayhost = smtp.mailgun.org
 mynetworks = 127.0.0.0/8 [::ffff:127.0.0.0]/104 [::1]/128
 mailbox_size_limit = 0
 recipient_delimiter = +
-inet_interfaces = all
+inet_interfaces = loopback-only
 inet_protocols = all
+smtp_sasl_auth_enable = yes
+smtp_sasl_password_maps = static:{{ mailgun_email }}:{{ mailgun_password }}
+smtp_sasl_security_options = noanonymous
