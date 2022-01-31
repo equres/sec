@@ -3,6 +3,7 @@ CREATE TABLE mfd.num (
     adsh text,
     tag text,
     version text,
+    FOREIGN KEY (tag, version) REFERENCES mfd.tag (tag, version),
     ddate text,
     uom text,
     series text,
@@ -11,6 +12,7 @@ CREATE TABLE mfd.num (
     document text,
     otherdims text,
     iprx text,
+    CONSTRAINT unique_keys UNIQUE (adsh, tag, version, ddate, uom, series, class, measure, document, otherdims, iprx),
     value text,
     footnote text,
     footlen text,
@@ -18,7 +20,5 @@ CREATE TABLE mfd.num (
     dcml text,
     created_at timestamp with time zone,
     updated_at timestamp with time zone,
-    deleted_at timestamp with time zone,
-    CONSTRAINT unique_keys UNIQUE (adsh, tag, version, ddate, uom, series, class, measure, document, otherdims, iprx),
-    FOREIGN KEY (tag, version) REFERENCES mfd.tag (tag, version)
+    deleted_at timestamp with time zone
 );

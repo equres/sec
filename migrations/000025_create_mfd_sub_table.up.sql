@@ -1,7 +1,7 @@
 CREATE TABLE mfd.sub (
     id serial PRIMARY KEY,
-    adsh text,
-    cik integer,
+    adsh text UNIQUE,
+    cik integer REFERENCES sec.ciks(cik),
     name text,
     countryba text,
     stprba text,
@@ -32,7 +32,5 @@ CREATE TABLE mfd.sub (
     aciks text,
     created_at timestamp with time zone,
     updated_at timestamp with time zone,
-    deleted_at timestamp with time zone,
-    CONSTRAINT adsh_key UNIQUE (adsh),
-    CONSTRAINT fk_cik FOREIGN KEY (cik) REFERENCES sec.ciks(cik)
+    deleted_at timestamp with time zone
 );

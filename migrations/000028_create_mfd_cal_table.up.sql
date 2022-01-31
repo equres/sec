@@ -3,6 +3,7 @@ CREATE TABLE mfd.cal (
     adsh text,
     grp text,
     arc text,
+    CONSTRAINT adsh_grp UNIQUE (adsh, grp, arc),
     negative text,
     ptag text,
     pversion text,
@@ -10,6 +11,5 @@ CREATE TABLE mfd.cal (
     cversion text,
     created_at timestamp with time zone,
     updated_at timestamp with time zone,
-    deleted_at timestamp with time zone,
-    CONSTRAINT adsh_grp UNIQUE (adsh, grp, arc)
+    deleted_at timestamp with time zone
 );
