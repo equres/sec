@@ -11,6 +11,81 @@ import (
 	"github.com/jmoiron/sqlx"
 )
 
+type FSDSSUB struct {
+	Adsh       string `csv:"adsh"`
+	CIK        int    `csv:"cik"`
+	Name       string `csv:"name"`
+	SIC        string `csv:"sic"`
+	CountryBA  string `csv:"countryba"`
+	StprBA     string `csv:"stprba"`
+	CityBA     string `csv:"cityba"`
+	ZIPBA      string `csv:"zipba"`
+	BAS1       string `csv:"bas1"`
+	BAS2       string `csv:"bas2"`
+	BAPH       string `csv:"baph"`
+	CountryMA  string `csv:"countryma"`
+	StrpMA     string `csv:"strpma"`
+	CityMA     string `csv:"cityma"`
+	ZIPMA      string `csv:"zipma"`
+	MAS1       string `csv:"mas1"`
+	MAS2       string `csv:"mas2"`
+	CountryInc string `csv:"countryinc"`
+	StprInc    string `csv:"stprinc"`
+	EIN        string `csv:"ein"`
+	Former     string `csv:"former"`
+	Changed    string `csv:"changed"`
+	Afs        string `csv:"afs"`
+	Wksi       string `csv:"wksi"`
+	Fye        string `csv:"fye"`
+	Form       string `csv:"form"`
+	Period     string `csv:"period"`
+	Fy         string `csv:"fy"`
+	Fp         string `csv:"fp"`
+	Filled     string `csv:"filled"`
+	Accepted   string `csv:"accepted"`
+	Prevrpt    string `csv:"prevrpt"`
+	Detail     string `csv:"detail"`
+	Instance   string `csv:"instance"`
+	Nciks      string `csv:"nciks"`
+	Aciks      string `csv:"aciks"`
+}
+
+type FSDSNUM struct {
+	Adsh     string `csv:"adsh"`
+	Tag      string `csv:"tag"`
+	Version  string `csv:"version"`
+	Coreg    string `csv:"coreg"`
+	DDate    string `csv:"ddate"`
+	Qtrs     string `csv:"qtrs"`
+	UOM      string `csv:"uom"`
+	Value    string `csv:"value"`
+	Footnote string `csv:"footnote"`
+}
+
+type FSDSTAG struct {
+	Tag      string `csv:"tag"`
+	Version  string `csv:"version"`
+	Custom   string `csv:"custom"`
+	Abstract string `csv:"abstract"`
+	Datatype string `csv:"datatype"`
+	Lord     string `csv:"lord"`
+	Crdr     string `csv:"crdr"`
+	Tlabel   string `csv:"tlabel"`
+	Doc      string `csv:"doc"`
+}
+
+type FSDSPRE struct {
+	Adsh    string `csv:"adsh"`
+	Report  string `csv:"report"`
+	Line    string `csv:"line"`
+	Stmt    string `csv:"stmt"`
+	Inpth   string `csv:"inpth"`
+	Rfile   string `csv:"rfile"`
+	Tag     string `csv:"tag"`
+	Version string `csv:"version"`
+	Plabel  string `csv:"plabel"`
+}
+
 type SECDataOpsFSDS struct {
 	DataType string
 }

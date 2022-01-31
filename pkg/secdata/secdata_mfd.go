@@ -10,6 +10,114 @@ import (
 	"github.com/jmoiron/sqlx"
 )
 
+type MFDSUB struct {
+	Adsh       string `csv:"adsh"`
+	CIK        int    `csv:"cik"`
+	Name       string `csv:"name"`
+	CountryBA  string `csv:"countryba"`
+	StprBA     string `csv:"stprba"`
+	CityBA     string `csv:"cityba"`
+	ZIPBA      string `csv:"zipba"`
+	BAS1       string `csv:"bas1"`
+	BAS2       string `csv:"bas2"`
+	BAPH       string `csv:"baph"`
+	CountryMA  string `csv:"countryma"`
+	StrpMA     string `csv:"strpma"`
+	CityMA     string `csv:"cityma"`
+	ZIPMA      string `csv:"zipma"`
+	MAS1       string `csv:"mas1"`
+	MAS2       string `csv:"mas2"`
+	CountryInc string `csv:"countryinc"`
+	StprInc    string `csv:"stprinc"`
+	EIN        string `csv:"ein"`
+	Former     string `csv:"former"`
+	Changed    string `csv:"changed"`
+	Fye        string `csv:"fye"`
+	PDate      string `csv:"pdate"`
+	EffDate    string `csv:"effdate"`
+	Form       string `csv:"form"`
+	Filed      string `csv:"filed"`
+	Accepted   string `csv:"accepted"`
+	Instance   string `csv:"instance"`
+	NCIKs      string `csv:"nciks"`
+	ACIKs      string `csv:"aciks"`
+}
+
+type MFDTAG struct {
+	Tag      string `csv:"tag"`
+	Version  string `csv:"version"`
+	Custom   string `csv:"custom"`
+	Abstract string `csv:"abstract"`
+	Datatype string `csv:"datatype"`
+	Lord     string `csv:"lord"`
+	Tlabel   string `csv:"tlabel"`
+	Doc      string `csv:"doc"`
+}
+
+type MFDLAB struct {
+	Adsh         string `csv:"adsh"`
+	Tag          string `csv:"tag"`
+	Version      string `csv:"version"`
+	Std          string `csv:"std"`
+	Terse        string `csv:"terse"`
+	Verbose      string `csv:"verbose_val"`
+	Total        string `csv:"total"`
+	Negated      string `csv:"negated"`
+	NegatedTerse string `csv:"negatedTerse"`
+}
+
+type MFDCAL struct {
+	Adsh     string `csv:"adsh"`
+	Grp      string `csv:"grp"`
+	Arc      string `csv:"arc"`
+	Negative string `csv:"negative"`
+	PTag     string `csv:"pTag"`
+	PVersion string `csv:"pversion"`
+	CTag     string `csv:"ctag"`
+	CVersion string `csv:"cversion"`
+}
+
+type MFDNUM struct {
+	Adsh      string `csv:"adsh"`
+	Tag       string `csv:"tag"`
+	Version   string `csv:"version"`
+	DDate     string `csv:"ddate"`
+	UOM       string `csv:"uom"`
+	Series    string `csv:"series"`
+	Class     string `csv:"class"`
+	Measure   string `csv:"measure"`
+	Document  string `csv:"document"`
+	OtherDims string `csv:"otherdims"`
+	IPRX      string `csv:"iprx"`
+	Value     string `csv:"value"`
+	Footnote  string `csv:"footnote"`
+	FootLen   string `csv:"footlen"`
+	Dimn      string `csv:"dimn"`
+	Dcml      string `csv:"dcml"`
+}
+
+type MFDTXT struct {
+	Adsh      string `csv:"adsh"`
+	Tag       string `csv:"tag"`
+	Version   string `csv:"version"`
+	DDate     string `csv:"ddate"`
+	Lang      string `csv:"lang"`
+	Series    string `csv:"series"`
+	Class     string `csv:"class"`
+	Measure   string `csv:"measure"`
+	Document  string `csv:"document"`
+	OtherDims string `csv:"otherdims"`
+	IPRX      string `csv:"iprx"`
+	Dcml      string `csv:"dcml"`
+	Escaped   string `csv:"escaped"`
+	SrcLen    string `csv:"srclen"`
+	TxtLen    string `csv:"txtlen"`
+	Footnote  string `csv:"footnote"`
+	FootLen   string `csv:"footlen"`
+	Context   string `csv:"context"`
+	Value     string `csv:"value"`
+}
+
 type SECDataOpsMFD struct {
 	DataType string
 }
