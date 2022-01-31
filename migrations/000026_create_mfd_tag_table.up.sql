@@ -1,3 +1,4 @@
+-- Table structure based on data in docs/mfd.pdf
 CREATE TABLE mfd.tag (
     id serial PRIMARY KEY,
     tag text,

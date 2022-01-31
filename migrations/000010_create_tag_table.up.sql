@@ -1,3 +1,4 @@
+-- Table structure based on data in docs/fsds.pdf
 CREATE TABLE sec.tag (
     id serial PRIMARY KEY,
     tag text,

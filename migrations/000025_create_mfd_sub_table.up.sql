@@ -1,3 +1,4 @@
+-- Table structure based on data in docs/mfd.pdf
 CREATE TABLE mfd.sub (
     id serial PRIMARY KEY,
     adsh text UNIQUE,

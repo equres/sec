@@ -1,3 +1,4 @@
+-- Table structure based on data in docs/fsds.pdf
 CREATE TABLE sec.sub (
     id serial PRIMARY KEY,
     adsh text,
