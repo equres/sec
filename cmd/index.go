@@ -77,7 +77,8 @@ var indexCmd = &cobra.Command{
 			if S.Verbose {
 				log.Info("Indexing Financial Statement Data Sets...")
 			}
-			err = secdata.IndexFinancialStatementDataSets(S, DB)
+			secData := secdata.NewSECData(secdata.NewSECDataOpsFSDS())
+			err = secData.IndexData(S, DB)
 			if err != nil {
 				return err
 			}
@@ -86,7 +87,8 @@ var indexCmd = &cobra.Command{
 				log.Info("Indexing Mutual Fund Data...")
 			}
 
-			err = secdata.IndexMutualFundData(S, DB)
+			secData = secdata.NewSECData(secdata.NewSECDataOpsMFD())
+			err = secData.IndexData(S, DB)
 			if err != nil {
 				return err
 			}

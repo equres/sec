@@ -2,12 +2,10 @@ package secdata
 
 import (
 	"archive/zip"
-	"database/sql"
 	"encoding/csv"
 	"fmt"
 	"io"
 	"io/ioutil"
-	"net/url"
 	"path/filepath"
 	"strings"
 	"time"
@@ -205,46 +203,31 @@ type FSDSPRE struct {
 	Plabel  string `csv:"plabel"`
 }
 
-func DownloadFinancialStatementDataSets(db *sqlx.DB, s *sec.SEC) error {
-	if s.Verbose {
-		log.Info("Downloading financial statement data sets...")
-	}
-
-	return downloadSECData(db, s, "fsds")
+type SECDataOps interface {
+	GetDataType() string
+	GetDataFilePath(baseURL string, yearQuarter string) (string, error)
+	GetDataDirPath() string
+	GetDataTypeInsertFunc(fileName string) func(*sec.SEC, *sqlx.DB, io.ReadCloser) error
 }
 
-func DownloadMutualFundData(db *sqlx.DB, s *sec.SEC) error {
-	if s.Verbose {
-		log.Info("Downloading mutual funds data...")
-	}
-
-	return downloadSECData(db, s, "mfd")
+type SECData struct {
+	SECDataOps SECDataOps
 }
 
-func GetDataFilePath(baseURL string, yearQuarter string, fileType string) (string, error) {
-	parsedURL, err := url.Parse(baseURL)
-	if err != nil {
-		return "", err
+func NewSECData(s SECDataOps) *SECData {
+	gocsv.SetCSVReader(func(in io.Reader) gocsv.CSVReader {
+		r := csv.NewReader(in)
+		r.Comma = '\t'
+		r.FieldsPerRecord = -1
+		r.LazyQuotes = true
+		return r
+	})
+	return &SECData{
+		SECDataOps: s,
 	}
-
-	var filePath string
-	switch fileType {
-	case "fsds":
-		filePath = fmt.Sprintf("/files/dera/data/financial-statement-data-sets/%v.zip", yearQuarter)
-	case "mfd":
-		filePath = fmt.Sprintf("/files/dera/data/mutual-fund-prospectus-risk/return-summary-data-sets/%v_rr1.zip", yearQuarter)
-	default:
-		return "", nil
-	}
-
-	pathURL, err := url.Parse(filePath)
-	if err != nil {
-		return "", err
-	}
-	return parsedURL.ResolveReference(pathURL).String(), nil
 }
 
-func downloadSECData(db *sqlx.DB, s *sec.SEC, dataType string) error {
+func (sd *SECData) DownloadSECData(db *sqlx.DB, s *sec.SEC) error {
 	worklist, err := secworklist.WillDownloadGet(db, true)
 	if err != nil {
 		return err
@@ -270,7 +253,7 @@ func downloadSECData(db *sqlx.DB, s *sec.SEC, dataType string) error {
 
 		yearQuarter := fmt.Sprintf("%vq%v", v.Year, quarter)
 
-		fileURL, err := GetDataFilePath(s.BaseURL, yearQuarter, dataType)
+		fileURL, err := sd.SECDataOps.GetDataFilePath(s.BaseURL, yearQuarter)
 		if err != nil {
 			return err
 		}
@@ -305,25 +288,8 @@ func downloadSECData(db *sqlx.DB, s *sec.SEC, dataType string) error {
 	return nil
 }
 
-func IndexFinancialStatementDataSets(s *sec.SEC, db *sqlx.DB) error {
-	filesPath := filepath.Join(s.Config.Main.CacheDir, "files/dera/data/financial-statement-data-sets/")
-	err := indexData(s, db, filesPath, "fsds")
-	if err != nil {
-		return err
-	}
-	return nil
-}
-
-func IndexMutualFundData(s *sec.SEC, db *sqlx.DB) error {
-	filesPath := filepath.Join(s.Config.Main.CacheDir, "files/dera/data/mutual-fund-prospectus-risk/return-summary-data-sets/")
-	err := indexData(s, db, filesPath, "mfd")
-	if err != nil {
-		return err
-	}
-	return nil
-}
-
-func indexData(s *sec.SEC, db *sqlx.DB, filesPath string, filesType string) error {
+func (sd *SECData) IndexData(s *sec.SEC, db *sqlx.DB) error {
+	filesPath := filepath.Join(s.Config.Main.CacheDir, sd.SECDataOps.GetDataDirPath())
 	files, err := ioutil.ReadDir(filesPath)
 	if err != nil {
 		return err
@@ -337,7 +303,7 @@ func indexData(s *sec.SEC, db *sqlx.DB, filesPath string, filesType string) erro
 			return err
 		}
 
-		err = zipFileUpsert(s, db, filesPath, reader.File, filesType)
+		err = sd.ZIPFileUpsert(s, db, filesPath, reader.File)
 		if err != nil {
 			secevent.CreateIndexEvent(db, filesPath, "failed", "error_inserting_secdata_in_database")
 			return err
@@ -353,7 +319,7 @@ func indexData(s *sec.SEC, db *sqlx.DB, filesPath string, filesType string) erro
 	return nil
 }
 
-func zipFileUpsert(s *sec.SEC, db *sqlx.DB, pathname string, files []*zip.File, dataType string) error {
+func (sd *SECData) ZIPFileUpsert(s *sec.SEC, db *sqlx.DB, pathname string, files []*zip.File) error {
 	for _, file := range files {
 		fileName := strings.ToLower(file.Name)
 
@@ -361,7 +327,7 @@ func zipFileUpsert(s *sec.SEC, db *sqlx.DB, pathname string, files []*zip.File, 
 			continue
 		}
 
-		upsertFunc := getDataTypeInsertFunc(fileName, dataType)
+		upsertFunc := sd.SECDataOps.GetDataTypeInsertFunc(fileName)
 		if upsertFunc == nil {
 			return fmt.Errorf("could_not_identify_file_type_func %v", fileName)
 		}
@@ -384,373 +350,5 @@ func zipFileUpsert(s *sec.SEC, db *sqlx.DB, pathname string, files []*zip.File, 
 		reader.Close()
 	}
 	secevent.CreateIndexEvent(db, pathname, "success", "")
-	return nil
-}
-
-func getDataTypeInsertFunc(fileName string, dataType string) func(*sec.SEC, *sqlx.DB, io.ReadCloser) error {
-	if dataType == "fsds" {
-		switch fileName {
-		case "sub.txt":
-			return FSDSSubDataUpsert
-		case "tag.txt":
-			return FSDSTagDataUpsert
-		case "num.txt":
-			return FSDSNumDataUpsert
-		case "pre.txt":
-			return FSDSPreDataUpsert
-		default:
-			return nil
-		}
-	}
-
-	if dataType == "mfd" {
-		switch fileName {
-		case "sub.txt", "sub.tsv":
-			return MFDSubDataUpsert
-		case "tag.txt", "tag.tsv":
-			return MFDTagDataUpsert
-		case "num.txt", "num.tsv":
-			return MFDNumDataUpsert
-		case "cal.txt", "cal.tsv":
-			return MFDCalDataUpsert
-		case "lab.txt", "lab.tsv":
-			return MFDLabDataUpsert
-		case "txt.txt", "txt.tsv":
-			return MFDTxtDataUpsert
-		default:
-			return nil
-		}
-	}
-
-	return nil
-}
-
-func MFDSubDataUpsert(s *sec.SEC, db *sqlx.DB, reader io.ReadCloser) error {
-	gocsv.SetCSVReader(func(in io.Reader) gocsv.CSVReader {
-		r := csv.NewReader(in)
-		r.Comma = '\t'
-		r.FieldsPerRecord = -1
-		r.LazyQuotes = true
-		return r
-	})
-
-	subs := []MFDSUB{}
-	err := gocsv.Unmarshal(reader, &subs)
-	if err != nil {
-		return err
-	}
-
-	for _, v := range subs {
-		_, err = db.Exec(`
-		INSERT INTO mfd.sub (adsh, cik, name, countryba, stprba, cityba, zipba, bas1, bas2, baph, countryma, strpma, cityma, zipma, mas1, mas2, countryinc, stprinc, ein, former, changed, fye, pdate, effdate, form, filed, accepted, instance, nciks, aciks, created_at, updated_at) 
-		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23, $24, $25, $26, $27, $28, $29, $30, NOW(), NOW()) 
-		ON CONFLICT (adsh) 
-		DO NOTHING;`, v.Adsh, v.CIK, v.Name, v.CountryBA, v.StprBA, v.CityBA, v.ZIPBA, v.BAS1, v.BAS2, v.BAPH, v.CountryMA, v.StrpMA, v.CityMA, v.ZIPMA, v.MAS1, v.MAS2, v.CountryInc, v.StprInc, v.EIN, v.Former, v.Changed, v.Fye, v.PDate, v.EffDate, v.Form, v.Filed, v.Accepted, v.Instance, v.NCIKs, v.ACIKs)
-		if err != nil {
-			return err
-		}
-	}
-	return nil
-}
-
-func MFDTagDataUpsert(s *sec.SEC, db *sqlx.DB, reader io.ReadCloser) error {
-	gocsv.SetCSVReader(func(in io.Reader) gocsv.CSVReader {
-		r := csv.NewReader(in)
-		r.Comma = '\t'
-		r.FieldsPerRecord = -1
-		r.LazyQuotes = true
-		return r
-	})
-
-	tags := []MFDTAG{}
-	err := gocsv.Unmarshal(reader, &tags)
-	if err != nil {
-		return err
-	}
-
-	for _, v := range tags {
-		_, err = db.Exec(`
-			INSERT INTO mfd.tag (tag, version, custom, abstract, datatype, lord, tlabel, doc, created_at, updated_at) 
-			VALUES ($1, $2, $3, $4, $5, $6, $7, $8, NOW(), NOW()) 
-			ON CONFLICT (tag, version) 
-			DO NOTHING;`, v.Tag, v.Version, v.Custom, v.Abstract, v.Datatype, v.Lord, v.Tlabel, v.Doc)
-		if err != nil {
-			return err
-		}
-	}
-	return nil
-}
-
-func MFDLabDataUpsert(s *sec.SEC, db *sqlx.DB, reader io.ReadCloser) error {
-	gocsv.SetCSVReader(func(in io.Reader) gocsv.CSVReader {
-		r := csv.NewReader(in)
-		r.Comma = '\t'
-		r.FieldsPerRecord = -1
-		r.LazyQuotes = true
-		return r
-	})
-	labs := []MFDLAB{}
-
-	err := gocsv.Unmarshal(reader, &labs)
-	if err != nil {
-		return err
-	}
-
-	for _, v := range labs {
-		_, err = db.Exec(`
-			INSERT INTO mfd.lab (adsh, tag, version, std, terse, verbose_val, total, negated, negatedterse, created_at, updated_at) 
-			VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, NOW(), NOW()) 
-			ON CONFLICT (adsh, tag, version)
-			DO NOTHING;`, v.Adsh, v.Tag, v.Version, v.Std, v.Terse, v.Verbose, v.Total, v.Negated, v.NegatedTerse)
-		if err != nil {
-			return err
-		}
-	}
-	return nil
-}
-
-func MFDCalDataUpsert(s *sec.SEC, db *sqlx.DB, reader io.ReadCloser) error {
-	gocsv.SetCSVReader(func(in io.Reader) gocsv.CSVReader {
-		r := csv.NewReader(in)
-		r.Comma = '\t'
-		r.FieldsPerRecord = -1
-		r.LazyQuotes = true
-		return r
-	})
-
-	cals := []MFDCAL{}
-	err := gocsv.Unmarshal(reader, &cals)
-	if err != nil {
-		return err
-	}
-
-	for _, v := range cals {
-		_, err = db.Exec(`
-			INSERT INTO mfd.cal (adsh, grp, arc, negative, ptag, pversion, ctag, cversion, created_at, updated_at) 
-			VALUES ($1, $2, $3, $4, $5, $6, $7, $8, NOW(), NOW()) 
-			ON CONFLICT (adsh, grp, arc) 
-			DO NOTHING;`, v.Adsh, v.Grp, v.Arc, v.Negative, v.PTag, v.PVersion, v.CTag, v.CVersion)
-		if err != nil {
-			return err
-		}
-	}
-	return nil
-}
-
-func MFDNumDataUpsert(s *sec.SEC, db *sqlx.DB, reader io.ReadCloser) error {
-	gocsv.SetCSVReader(func(in io.Reader) gocsv.CSVReader {
-		r := csv.NewReader(in)
-		r.Comma = '\t'
-		r.FieldsPerRecord = -1
-		r.LazyQuotes = true
-		return r
-	})
-
-	nums := []MFDNUM{}
-	err := gocsv.Unmarshal(reader, &nums)
-	if err != nil {
-		return err
-	}
-
-	for _, v := range nums {
-		tags := []struct {
-			Tag     string `db:"tag"`
-			Version string `db:"version"`
-		}{}
-		err = db.Select(&tags, "SELECT tag, version FROM mfd.tag WHERE tag = $1 AND version = $2;", v.Tag, v.Version)
-		if err != nil {
-			return err
-		}
-		if len(tags) == 0 {
-			continue
-		}
-
-		_, err = db.Exec(`
-			INSERT INTO mfd.num (adsh, tag, version, ddate, uom, series, class, measure, document, otherdims, iprx, value, footnote, footlen, dimn, dcml, created_at, updated_at) 
-			VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, NOW(), NOW()) 
-			ON CONFLICT (adsh, tag, version, ddate, uom, series, class, measure, document, otherdims, iprx) 
-			DO NOTHING;`, v.Adsh, v.Tag, v.Version, v.DDate, v.UOM, v.Series, v.Class, v.Measure, v.Document, v.OtherDims, v.IPRX, v.Value, v.Footnote, v.FootLen, v.Dimn, v.Dcml)
-		if err != nil {
-			return err
-		}
-	}
-	return nil
-}
-
-func MFDTxtDataUpsert(s *sec.SEC, db *sqlx.DB, reader io.ReadCloser) error {
-	gocsv.SetCSVReader(func(in io.Reader) gocsv.CSVReader {
-		r := csv.NewReader(in)
-		r.Comma = '\t'
-		r.FieldsPerRecord = -1
-		r.LazyQuotes = true
-		return r
-	})
-
-	txt := []MFDTXT{}
-	err := gocsv.Unmarshal(reader, &txt)
-	if err != nil {
-		return err
-	}
-
-	for _, v := range txt {
-		_, err = db.Exec(`
-			INSERT INTO mfd.txt (adsh, tag, version, ddate, lang, series, class, measure, document, otherdims, iprx, dcml, escaped, srclen, txtlen, footnote, footlen, context, value, created_at, updated_at) 
-			VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, NOW(), NOW()) 
-			ON CONFLICT (adsh, tag, version, ddate, series, class, measure, document, otherdims, iprx) 
-			DO NOTHING;`, v.Adsh, v.Tag, v.Version, v.DDate, v.Lang, v.Series, v.Class, v.Measure, v.Document, v.OtherDims, v.IPRX, v.Dcml, v.Escaped, v.SrcLen, v.TxtLen, v.Footnote, v.FootLen, v.Context, v.Value)
-		if err != nil {
-			return err
-		}
-	}
-	return nil
-}
-
-func FSDSSubDataUpsert(s *sec.SEC, db *sqlx.DB, reader io.ReadCloser) error {
-	gocsv.SetCSVReader(func(in io.Reader) gocsv.CSVReader {
-		r := csv.NewReader(in)
-		r.Comma = '\t'
-		r.FieldsPerRecord = -1
-		r.LazyQuotes = true
-		return r
-	})
-
-	subs := []FSDSSUB{}
-	err := gocsv.Unmarshal(reader, &subs)
-	if err != nil {
-		return err
-	}
-
-	for _, v := range subs {
-		var period sql.NullString
-		if v.Period != "" {
-			period = sql.NullString{
-				String: v.Period,
-			}
-		}
-
-		var filled sql.NullString
-		if v.Filled != "" {
-			filled = sql.NullString{
-				String: v.Filled,
-			}
-		}
-
-		_, err = db.Exec(`
-		INSERT INTO fsds.sub (adsh, cik, name, sic, countryba, stprba, cityba, zipba, bas1, bas2, baph, countryma, strpma, cityma, zipma, mas1, mas2, countryinc, stprinc, ein, former, changed, afs, wksi, fye, form, period, fy, fp, filled, accepted, prevrpt, detail, instance, nciks, aciks, created_at, updated_at) 
-		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23, $24, $25, $26, $27, $28, $29, $30, $31, $32, $33, $34, $35, $36, NOW(), NOW()) 
-		ON CONFLICT (adsh, cik, name, sic) 
-		DO NOTHING;`, v.Adsh, v.CIK, v.Name, v.SIC, v.CountryBA, v.StprBA, v.CityBA, v.ZIPBA, v.BAS1, v.BAS2, v.BAPH, v.CountryMA, v.StrpMA, v.CityMA, v.ZIPMA, v.MAS1, v.MAS2, v.CountryInc, v.StprInc, v.EIN, v.Former, v.Changed, v.Afs, v.Wksi, v.Fye, v.Form, period, v.Fy, v.Fp, filled, v.Accepted, v.Prevrpt, v.Detail, v.Instance, v.Nciks, v.Aciks)
-		if err != nil {
-			return err
-		}
-	}
-	return nil
-}
-
-func FSDSTagDataUpsert(s *sec.SEC, db *sqlx.DB, reader io.ReadCloser) error {
-	gocsv.SetCSVReader(func(in io.Reader) gocsv.CSVReader {
-		r := csv.NewReader(in)
-		r.Comma = '\t'
-		r.FieldsPerRecord = -1
-		r.LazyQuotes = true
-		return r
-	})
-
-	tags := []FSDSTAG{}
-	err := gocsv.Unmarshal(reader, &tags)
-	if err != nil {
-		return err
-	}
-
-	for _, v := range tags {
-		_, err = db.Exec(`
-			INSERT INTO fsds.tag (tag, version, custom, abstract, datatype, lord, crdr, tlabel, doc, created_at, updated_at) 
-			VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, NOW(), NOW()) 
-			ON CONFLICT (tag, version) 
-			DO NOTHING;`, v.Tag, v.Version, v.Custom, v.Abstract, v.Datatype, v.Lord, v.Crdr, v.Tlabel, v.Doc)
-		if err != nil {
-			return err
-		}
-	}
-	return nil
-}
-
-func FSDSNumDataUpsert(s *sec.SEC, db *sqlx.DB, reader io.ReadCloser) error {
-	gocsv.SetCSVReader(func(in io.Reader) gocsv.CSVReader {
-		r := csv.NewReader(in)
-		r.Comma = '\t'
-		r.FieldsPerRecord = -1
-		r.LazyQuotes = true
-		return r
-	})
-
-	nums := []FSDSNUM{}
-	err := gocsv.Unmarshal(reader, &nums)
-	if err != nil {
-		return err
-	}
-
-	for _, v := range nums {
-		tags := []struct {
-			Tag     string `db:"tag"`
-			Version string `db:"version"`
-		}{}
-		err = db.Select(&tags, "SELECT tag, version FROM fsds.tag WHERE tag = $1 AND version = $2;", v.Tag, v.Version)
-		if err != nil {
-			return err
-		}
-		if len(tags) == 0 {
-			continue
-		}
-
-		_, err = db.Exec(`
-			INSERT INTO fsds.num (adsh, tag, version, coreg, ddate, qtrs, uom, value, footnote, created_at, updated_at) 
-			VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, NOW(), NOW()) 
-			ON CONFLICT (adsh, tag, version, coreg, ddate, qtrs, uom) 
-			DO NOTHING;`, v.Adsh, v.Tag, v.Version, v.Coreg, v.DDate, v.Qtrs, v.UOM, v.Value, v.Footnote)
-		if err != nil {
-			return err
-		}
-	}
-	return nil
-}
-
-func FSDSPreDataUpsert(s *sec.SEC, db *sqlx.DB, reader io.ReadCloser) error {
-	gocsv.SetCSVReader(func(in io.Reader) gocsv.CSVReader {
-		r := csv.NewReader(in)
-		r.Comma = '\t'
-		r.FieldsPerRecord = -1
-		r.LazyQuotes = true
-		return r
-	})
-
-	pres := []FSDSPRE{}
-	err := gocsv.Unmarshal(reader, &pres)
-	if err != nil {
-		return err
-	}
-
-	for _, v := range pres {
-		tags := []struct {
-			Tag     string `db:"tag"`
-			Version string `db:"version"`
-		}{}
-		err = db.Select(&tags, "SELECT tag, version FROM fsds.tag WHERE tag = $1 AND version = $2;", v.Tag, v.Version)
-		if err != nil {
-			return err
-		}
-		if len(tags) == 0 {
-			continue
-		}
-
-		_, err = db.Exec(`
-			INSERT INTO fsds.pre (adsh, report, line, stmt, inpth, rfile, tag, version, plabel, created_at, updated_at) 
-			VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, NOW(), NOW()) 
-			ON CONFLICT (adsh, report, line) 
-			DO NOTHING;`, v.Adsh, v.Report, v.Line, v.Stmt, v.Inpth, v.Rfile, v.Tag, v.Version, v.Plabel)
-		if err != nil {
-			return err
-		}
-	}
 	return nil
 }

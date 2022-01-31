@@ -41,7 +41,8 @@ var dowIndexCmd = &cobra.Command{
 				log.Info("Downloading financial statement data sets...:")
 			}
 
-			err = secdata.DownloadFinancialStatementDataSets(DB, S)
+			secData := secdata.NewSECData(secdata.NewSECDataOpsFSDS())
+			err = secData.DownloadSECData(DB, S)
 			if err != nil {
 				return err
 			}
@@ -50,7 +51,8 @@ var dowIndexCmd = &cobra.Command{
 				log.Info("Downloading mutual fund data...:")
 			}
 
-			err = secdata.DownloadMutualFundData(DB, S)
+			secData = secdata.NewSECData(secdata.NewSECDataOpsMFD())
+			err = secData.DownloadSECData(DB, S)
 			if err != nil {
 				return err
 			}
