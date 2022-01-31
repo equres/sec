@@ -220,11 +220,14 @@
       ansible.builtin.service:
         name: nginx
         state: restarted
-    - name: Copy AWStats Config File
+    - name: Copy AWStats Confif Files
       become: yes
       become_user: root
       become_method: sudo
-      copy: src=./etc/awstats/awstats.equres.com.conf dest=/etc/awstats/
+      copy: src=./etc/awstats/{{ item.src }} dest=/etc/awstats/ mode=0755
+      with_items:
+        - { src: 'awstats.equres.com.conf' }
+        - { src: 'awstats.conf' }
     - name: Update /var/lib/awstats Directory Permissions
       become: yes
       become_user: root
