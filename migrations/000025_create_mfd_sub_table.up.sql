@@ -1,10 +1,9 @@
--- Table structure based on data in docs/fsds.pdf
-CREATE TABLE sec.sub (
+-- Table structure based on data in docs/mfd.pdf
+CREATE TABLE mfd.sub (
     id serial PRIMARY KEY,
-    adsh text,
-    cik integer,
+    adsh text UNIQUE,
+    cik integer REFERENCES sec.ciks(cik),
     name text,
-    sic text,
     countryba text,
     stprba text,
     cityba text,
@@ -23,23 +22,16 @@ CREATE TABLE sec.sub (
     ein text,
     former text,
     changed text,
-    afs text,
-    wksi text,
     fye text,
+    pdate text,
+    effdate text,
     form text,
-    period date,
-    fy text,
-    fp text,
-    filled date,
+    filed text,
     accepted timestamp,
-    prevrpt text,
-    detail text,
     instance text,
     nciks text,
     aciks text,
     created_at timestamp with time zone,
     updated_at timestamp with time zone,
-    deleted_at timestamp with time zone,
-    CONSTRAINT sub_item UNIQUE (adsh, cik, name, sic),
-    CONSTRAINT fk_cik FOREIGN KEY (cik) REFERENCES sec.ciks(cik)
+    deleted_at timestamp with time zone
 );

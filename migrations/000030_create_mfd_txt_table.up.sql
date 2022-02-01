@@ -1,0 +1,28 @@
+-- Table structure based on data in docs/mfd.pdf
+CREATE TABLE mfd.txt (
+    id serial PRIMARY KEY,
+    adsh text,
+    tag text,
+    version text,
+    FOREIGN KEY (tag, version) REFERENCES mfd.tag (tag, version),
+    ddate text,
+    lang text,
+    series text,
+    class text,
+    measure text,
+    document text,
+    otherdims text,
+    iprx text,
+    CONSTRAINT txt_unique_keys UNIQUE (adsh, tag, version, ddate, series, class, measure, document, otherdims, iprx),
+    dcml text,
+    escaped text,
+    srclen text,
+    txtlen text,
+    footnote text,
+    footlen text,
+    context text,
+    value text,
+    created_at timestamp with time zone,
+    updated_at timestamp with time zone,
+    deleted_at timestamp with time zone
+);

@@ -1,0 +1,2 @@
+ALTER TABLE fsds.tag
+SET SCHEMA sec;

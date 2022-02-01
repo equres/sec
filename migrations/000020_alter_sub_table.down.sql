@@ -1,0 +1,2 @@
+ALTER TABLE fsds.sub
+SET SCHEMA sec;

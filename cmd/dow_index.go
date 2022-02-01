@@ -2,11 +2,14 @@
 package cmd
 
 import (
+	"github.com/equres/sec/pkg/secdata"
 	"github.com/equres/sec/pkg/secdow"
 	log "github.com/sirupsen/logrus"
 
 	"github.com/spf13/cobra"
 )
+
+var GlobalWillDownloadSECData bool
 
 // dowIndexCmd represents the index command
 var dowIndexCmd = &cobra.Command{
@@ -33,12 +36,23 @@ var dowIndexCmd = &cobra.Command{
 			return err
 		}
 
-		if RootConfig.IndexMode.FinancialStatementDataSets == "enabled" || RootConfig.IndexMode.FinancialStatementDataSets == "true" {
+		if GlobalWillDownloadSECData {
 			if S.Verbose {
 				log.Info("Downloading financial statement data sets...:")
 			}
 
-			err = secdow.DownloadFinancialStatementDataSets(DB, S)
+			secData := secdata.NewSECData(secdata.NewSECDataOpsFSDS())
+			err = secData.DownloadSECData(DB, S)
+			if err != nil {
+				return err
+			}
+
+			if S.Verbose {
+				log.Info("Downloading mutual fund data...:")
+			}
+
+			secData = secdata.NewSECData(secdata.NewSECDataOpsMFD())
+			err = secData.DownloadSECData(DB, S)
 			if err != nil {
 				return err
 			}
@@ -50,6 +64,8 @@ var dowIndexCmd = &cobra.Command{
 
 func init() {
 	dowCmd.AddCommand(dowIndexCmd)
+
+	dowIndexCmd.Flags().BoolVarP(&GlobalWillDownloadSECData, "secdata", "a", false, "Download SEC data (e.g. financial statement data sets, mutual fund data...)")
 
 	// Here you will define your flags and configuration settings.
 
