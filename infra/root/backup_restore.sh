@@ -1,5 +1,6 @@
 . /root/.creds
 
+cd /home/backups/backup
 lftp -c "set ftp:list-options -a;
 set ssl:check-hostname no;
 open ftp://$login:$password@$FTP_server; 
