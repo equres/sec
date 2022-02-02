@@ -480,8 +480,8 @@
       become_user: root
       become_method: sudo
       ansible.builtin.cron:
-        name: "Generating & Caching Stats"
+        name: "Generating Sitemap.xml File"
         minute: "0"
         hour: "2"
         user: sec
-        job: "/root/stats_caching.sh"
+        job: "/root/sitemap.cron.daily.sh"
