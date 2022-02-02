@@ -290,6 +290,7 @@
         - { src: 'db_backup.sh' }
         - { src: 'sec.cron.daily.sh' }
         - { src: 'stats.cron.daily.sh' }
+        - { src: 'sitemap.cron.daily.sh' }
         - { src: 'certbot_renew.sh' }
         - { src: 'testing_email.sh' }
         - { src: 'stats_caching.sh' }
@@ -486,3 +487,13 @@
         hour: "*/8"
         user: sec
         job: "/root/stats_caching.sh"
+    - name: Run Sitemap Generating Script Every Day
+      become: yes
+      become_user: root
+      become_method: sudo
+      ansible.builtin.cron:
+        name: "Generating Sitemap.xml File"
+        minute: "0"
+        hour: "2"
+        user: sec
+        job: "/root/sitemap.cron.daily.sh"
