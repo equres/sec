@@ -1,1 +1,1 @@
-diff -ru /mnt/sec/cache /home/sec/backup
+diff -ru /mnt/sec/cache /home/backups/backup

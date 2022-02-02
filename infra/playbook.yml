@@ -28,6 +28,18 @@
       become_user: root
       become_method: sudo
       user: name=sec state=present groups="sec"
+    - name: Create Backups Group
+      become: yes
+      become_user: root
+      become_method: sudo
+      group:
+        name: backups
+        state: present
+    - name: Create Backups User
+      become: yes
+      become_user: root
+      become_method: sudo
+      user: name=backups state=present groups="backups"
     - name: Update Golang From Apt
       become: yes
       become_user: root
