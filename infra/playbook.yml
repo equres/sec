@@ -148,6 +148,20 @@
         owner: root
         group: syslog
         mode: 0755
+    - name: Copy Aliases File
+      become: yes
+      become_user: root
+      become_method: sudo
+      ansible.builtin.copy:
+        src: ./etc/aliases
+        dest: /etc/aliases
+        owner: root
+        mode: '0755'
+    - name: Update Aliases
+      become: yes
+      become_user: root
+      become_method: sudo
+      shell: newaliases
     - name: Copy FStab File
       become: yes
       become_user: root
