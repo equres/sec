@@ -110,6 +110,15 @@
         owner: sec
         group: sec
         mode: '0755'
+    - name: Create /home/backups/db_backup Directory
+      become: yes
+      become_user: root
+      become_method: sudo
+      file:
+        path: /home/backups/db_backup
+        state: directory
+        mode: '0755'
+        owner: sec
     - name: Create /var/www/equres Directory
       become: yes
       become_user: root
@@ -502,6 +511,16 @@
         hour: "*/8"
         user: sec
         job: "/root/stats_caching.sh"
+    - name: Run DB Backup Every Day
+      become: yes
+      become_user: root
+      become_method: sudo
+      ansible.builtin.cron:
+        name: "Backup Database"
+        minute: "0"
+        hour: "23"
+        user: sec
+        job: "/root/db_backup.sh"
     - name: Run Sitemap Generating Script Every Day
       become: yes
       become_user: root
