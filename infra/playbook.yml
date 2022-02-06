@@ -118,7 +118,7 @@
         path: /home/backups/db_backup
         state: directory
         mode: '0755'
-        owner: sec
+        owner: backups
     - name: Create /var/www/equres Directory
       become: yes
       become_user: root
@@ -416,6 +416,13 @@
       postgresql_user:
         login_user: postgres
         name: sec
+        password: sec_project_2021
+        role_attr_flags: SUPERUSER,LOGIN
+    - name: Create Backups User in DB
+      become_user: postgres
+      postgresql_user:
+        login_user: postgres
+        name: backups
         password: sec_project_2021
         role_attr_flags: SUPERUSER,LOGIN
     - name: Check if database is available
