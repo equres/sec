@@ -5,7 +5,7 @@ date=$(date +%Y%m%d)
 set -x
 set -e
 
-echo "Doing the backup in /home/backups/db_backup/db_$date" && pg_basebackup -D /home/backups/db_backup/db_$date -U sec -x && 
+echo "Doing the backup in /home/backups/db_backup/db_$date" && pg_basebackup -D /home/backups/db_backup/db_$date && 
 echo "Change dir to /home/backups/db_backup/db_$date" && cd /home/backups/db_backup && 
 echo "Compressing to db_$date.tar.xz--doing" && tar cfJ db_$date.tar.xz--doing ./db_$date &&
 echo "Moving/Renaming compressed file to ../db_$date.tar.xz" && mv db_$date.tar.xz--doing db_$date.tar.xz &&
