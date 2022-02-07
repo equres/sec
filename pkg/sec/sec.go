@@ -133,7 +133,7 @@ type Company struct {
 }
 
 type SIC struct {
-	SIC    string `db:"SIC"`
+	SIC    string `db:"sic"`
 	Office string `db:"office"`
 	Title  string `db:"title"`
 }
