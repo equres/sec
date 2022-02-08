@@ -1,0 +1,27 @@
+{{ template "base" .}}
+
+{{ define "head"}}
+    <title>Equres > SICs</title>
+{{ end }}
+
+{{ define "content"}}
+    <table class="table">
+        <thead>
+            <tr>
+                <th>#</th>
+                <th>SIC</th>
+                <th>Title</th>
+            </tr>
+        </thead>
+        <tbody>
+            <script>let index = 1</script>
+            {{  range .SICs }}
+                <tr>
+                    <td><script>document.write(index++)</script></td>
+                    <td><a href="/sic/{{ .SIC }}">{{ .SIC }}</a></td>
+                    <td><a href="/sic/{{ .SIC }}">{{ .Title }}</a></td>
+                </tr>
+            {{ end }}
+        </tbody>
+    </table>
+{{ end }}

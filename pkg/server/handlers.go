@@ -22,6 +22,7 @@ import (
 	"github.com/equres/sec/pkg/sec"
 	"github.com/equres/sec/pkg/seccik"
 	"github.com/equres/sec/pkg/secextra"
+	"github.com/equres/sec/pkg/secsic"
 	"github.com/equres/sec/pkg/secutil"
 	"github.com/equres/sec/pkg/secworklist"
 	"github.com/gorilla/mux"
@@ -47,6 +48,8 @@ func (s Server) GenerateRouter() (*mux.Router, error) {
 	router.HandleFunc("/filings/{year}/{month}/{day}/{cik}", s.HandlerFilingsPage).Methods("GET")
 	router.HandleFunc("/company", s.HandlerCompaniesListPage).Methods("GET")
 	router.HandleFunc("/company/{companySlug}", s.HandlerCompanyFilingsPage).Methods("GET")
+	router.HandleFunc("/sic", s.HandlerSICListPage).Methods("GET")
+	router.HandleFunc("/sic/{sic}", s.HandlerSICCompaniesPage).Methods("GET")
 	router.HandleFunc("/stats", s.HandlerStatsPage).Methods("GET")
 	router.HandleFunc("/api/v1/uptime", s.HandlerUptime).Methods("GET")
 	router.HandleFunc("/robots.txt", s.HanderRobots).Methods("GET")
@@ -416,6 +419,43 @@ func (s Server) HandlerCompanyFilingsPage(w http.ResponseWriter, r *http.Request
 	content["CompanyName"] = companyName
 
 	err = s.RenderTemplate(w, "companyfilings.page.gohtml", content)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+}
+
+func (s Server) HandlerSICListPage(w http.ResponseWriter, r *http.Request) {
+	sics, err := secsic.GetAllSICCodes(s.DB)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+
+	content := make(map[string]interface{})
+	content["SICs"] = sics
+
+	err = s.RenderTemplate(w, "sicslist.page.gohtml", content)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+}
+
+func (s Server) HandlerSICCompaniesPage(w http.ResponseWriter, r *http.Request) {
+	vars := mux.Vars(r)
+	sic := vars["sic"]
+
+	companies, err := secsic.GetAllCompaniesWithSIC(s.DB, sic)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+
+	content := make(map[string]interface{})
+	content["Companies"] = GetCompanySlugs(companies)
+
+	err = s.RenderTemplate(w, "companieslist.page.gohtml", content)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
