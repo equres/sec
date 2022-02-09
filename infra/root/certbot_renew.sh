@@ -10,4 +10,4 @@ status=failed
 if [ $# -eq 0 ]; then
 	status=success
 fi
-$sec event --event cron --job certbot_renew --status $status
+$sec event --event cron --job certbot_renew --status $status --config /home/sec/.config/sec
