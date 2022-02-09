@@ -14,17 +14,12 @@ status=failed
 if [ $# -eq 0 ]; then
 	status=success
 fi
-$sec event --event cron --job cache_compressed --status $status --config /home/sec/.config/sec/config.yaml
+$sec event --event cron --job cache_compressed --status $status --config /home/sec/.config/sec
 
-pg_basebackup -D /home/backups/db_backup/db_$date
-cd /home/backups/db_backup 
-tar cfJ db_$date--doing.tar.xz ./db_$date
-mv /home/backups/db_backup/db_$date--doing.tar.xz /home/backups/db_backup/db_$date.tar.xz
-cd .. && rm -r /home/backups/db_backup/db_$date
-
+pg_basebackup -D /home/backups/db_backup/db_$date -z -X fetch -F tar
 status=failed
 FILE=/home/backups/db_backup/db_$date.tar.xz
 if [ -f "$FILE" ]; then
 	status=success
 fi
-$sec event --event cron --job db_backup --status $status --config /home/sec/.config/sec/config.yaml
+$sec event --event cron --job db_backup --status $status --config /home/sec/.config/sec
