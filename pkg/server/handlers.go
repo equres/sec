@@ -21,7 +21,6 @@ import (
 	"github.com/equres/sec/pkg/config"
 	"github.com/equres/sec/pkg/sec"
 	"github.com/equres/sec/pkg/seccik"
-	"github.com/equres/sec/pkg/secextra"
 	"github.com/equres/sec/pkg/secsic"
 	"github.com/equres/sec/pkg/secutil"
 	"github.com/equres/sec/pkg/secworklist"
@@ -58,7 +57,8 @@ func (s Server) GenerateRouter() (*mux.Router, error) {
 }
 
 func (s Server) HandlerHome(w http.ResponseWriter, r *http.Request) {
-	recentFilings, err := secutil.GetFiveRecentFilings(s.DB)
+	// Get top five filings from redis cache
+	recentFilingsFormattedJSON, err := s.Cache.Get(cache.SECTopFiveRecentFilings)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
@@ -73,31 +73,25 @@ func (s Server) HandlerHome(w http.ResponseWriter, r *http.Request) {
 
 	var recentFilingsFormatted []FormattedFiling
 
-	for _, filing := range recentFilings {
-		filingURL := fmt.Sprintf("/filings/%v/%v/%v/%v", filing.FillingDate.Year(), int(filing.FillingDate.Month()), filing.FillingDate.Day(), filing.CIKNumber)
-
-		formattedFiling := FormattedFiling{
-			CompanyName: filing.CompanyName,
-			FillingDate: filing.FillingDate.Format("2006-01-02"),
-			FormType:    filing.FormType,
-			XbrlURL:     filingURL,
-		}
-		recentFilingsFormatted = append(recentFilingsFormatted, formattedFiling)
-	}
-
-	ciksCount, err := seccik.GetUniqueCIKCount(s.DB)
+	err = json.Unmarshal([]byte(recentFilingsFormattedJSON), &recentFilingsFormatted)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
 
-	filesCount, err := secextra.GetUniqueFilesCount(s.DB)
+	ciksCount, err := s.Cache.Get(cache.SECCIKsCount)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
 
-	companiesCount, err := secextra.GetUniqueFilesCompaniesCount(s.DB)
+	filesCount, err := s.Cache.Get(cache.SECFilesCount)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+
+	companiesCount, err := s.Cache.Get(cache.SECCompaniesCount)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
