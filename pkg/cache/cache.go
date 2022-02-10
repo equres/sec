@@ -12,7 +12,11 @@ type Cache struct {
 }
 
 const (
-	SECCacheStats string = "cache.SECCacheStats"
+	SECCacheStats           string = "cache.SECCacheStats"
+	SECTopFiveRecentFilings string = "cache.SECTopFiveRecentFilings"
+	SECCIKsCount            string = "cache.SECCIKsCount"
+	SECFilesCount           string = "cache.SECFilesCount"
+	SECCompaniesCount       string = "cache.SECCompaniesCount"
 )
 
 func NewCache(cfg *config.Config) Cache {

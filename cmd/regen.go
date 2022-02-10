@@ -10,13 +10,16 @@ import (
 
 	"github.com/equres/sec/pkg/cache"
 	"github.com/equres/sec/pkg/sec"
+	"github.com/equres/sec/pkg/seccik"
 	"github.com/equres/sec/pkg/secevent"
+	"github.com/equres/sec/pkg/secextra"
 	"github.com/equres/sec/pkg/secutil"
 	"github.com/equres/sec/pkg/secworklist"
 	"github.com/equres/sec/pkg/server"
 	"github.com/jmoiron/sqlx"
 	log "github.com/sirupsen/logrus"
 	"github.com/snabb/sitemap"
+
 	"github.com/spf13/cobra"
 )
 
@@ -27,7 +30,7 @@ var regenCmd = &cobra.Command{
 	Long:  `Generate a new sitemap for the website`,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		if len(args) == 0 {
-			log.Info("please type 'sitemap' to generate the sitemap and 'stats' to generate the stats (e.g. sec regen sitemap)")
+			log.Info("please type 'sitemap' to generate the sitemap,'stats' to generate the stats, and 'pages' to generate the data for the web pages (e.g. sec regen sitemap)")
 			return nil
 		}
 
@@ -50,6 +53,14 @@ var regenCmd = &cobra.Command{
 			}
 
 			err = S.Cache.MustSet(cache.SECCacheStats, statsJSON)
+			if err != nil {
+				return err
+			}
+		case "pages":
+			if S.Verbose {
+				log.Info("Generating & caching pages in redis...")
+			}
+			err := GenerateHomePageDataCache(DB)
 			if err != nil {
 				return err
 			}
@@ -204,4 +215,80 @@ func GenerateStatsJSON(db *sqlx.DB, s *sec.SEC) (string, error) {
 	}
 
 	return string(allStatsJSON), nil
+}
+
+func GenerateTopFiveRecentFilingsJSON(db *sqlx.DB) (string, error) {
+	recentFilings, err := secutil.GetFiveRecentFilings(db)
+	if err != nil {
+		return "", err
+	}
+
+	type FormattedFiling struct {
+		CompanyName string
+		FillingDate string
+		FormType    string
+		XbrlURL     string
+	}
+
+	var recentFilingsFormatted []FormattedFiling
+
+	for _, filing := range recentFilings {
+		filingURL := fmt.Sprintf("/filings/%v/%v/%v/%v", filing.FillingDate.Year(), int(filing.FillingDate.Month()), filing.FillingDate.Day(), filing.CIKNumber)
+
+		formattedFiling := FormattedFiling{
+			CompanyName: filing.CompanyName,
+			FillingDate: filing.FillingDate.Format("2006-01-02"),
+			FormType:    filing.FormType,
+			XbrlURL:     filingURL,
+		}
+		recentFilingsFormatted = append(recentFilingsFormatted, formattedFiling)
+	}
+
+	recentFilingsData, err := json.Marshal(recentFilingsFormatted)
+	if err != nil {
+		return "", err
+	}
+
+	return string(recentFilingsData), nil
+}
+
+func GenerateHomePageDataCache(db *sqlx.DB) error {
+	formattedFilingsJSON, err := GenerateTopFiveRecentFilingsJSON(DB)
+	if err != nil {
+		return err
+	}
+
+	err = S.Cache.MustSet(cache.SECTopFiveRecentFilings, formattedFilingsJSON)
+	if err != nil {
+		return err
+	}
+
+	ciksCount, err := seccik.GetUniqueCIKCount(DB)
+	if err != nil {
+		return err
+	}
+	err = S.Cache.MustSet(cache.SECCIKsCount, ciksCount)
+	if err != nil {
+		return err
+	}
+
+	filesCount, err := secextra.GetUniqueFilesCount(DB)
+	if err != nil {
+		return err
+	}
+	err = S.Cache.MustSet(cache.SECFilesCount, filesCount)
+	if err != nil {
+		return err
+	}
+
+	companiesCount, err := secextra.GetUniqueFilesCompaniesCount(DB)
+	if err != nil {
+		return err
+	}
+	err = S.Cache.MustSet(cache.SECCompaniesCount, companiesCount)
+	if err != nil {
+		return err
+	}
+
+	return nil
 }

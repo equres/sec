@@ -314,6 +314,7 @@
         - { src: 'sec.cron.daily.sh' }
         - { src: 'stats.cron.daily.sh' }
         - { src: 'sitemap.cron.daily.sh' }
+        - { src: 'pages.cron.daily.sh' }
         - { src: 'report.cron.daily.sh' }
         - { src: 'certbot_renew.sh' }
         - { src: 'testing_email.sh' }
@@ -538,6 +539,16 @@
         hour: "2"
         user: sec
         job: "/root/sitemap.cron.daily.sh"
+    - name: Run Generating Pages Data Script Every Day
+      become: yes
+      become_user: root
+      become_method: sudo
+      ansible.builtin.cron:
+        name: "Generating Pages Data & Caching"
+        minute: "0"
+        hour: "*/4"
+        user: sec
+        job: "/root/pages.cron.daily.sh"
     - name: Send Report To Emails Every Day
       become: yes
       become_user: root
