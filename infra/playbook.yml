@@ -188,7 +188,7 @@
         src: ./.config/sec/config.yaml
         dest: /home/sec/.config/sec/config.yaml
         owner: sec
-        mode: '0700'
+        mode: '0755'
     - name: Copy Postgres Config Files
       become: yes
       become_user: root
@@ -306,11 +306,7 @@
       become_method: sudo
       copy: src=./root/{{ item.src }} dest=/root/ mode=0755
       with_items:
-        - { src: 'backup_store.sh' }
-        - { src: 'backup_restore.sh' }
-        - { src: 'backup_verify.sh' }
         - { src: 'backup_do.sh' }
-        - { src: 'db_backup.sh' }
         - { src: 'sec.cron.daily.sh' }
         - { src: 'stats.cron.daily.sh' }
         - { src: 'sitemap.cron.daily.sh' }
@@ -508,16 +504,6 @@
         hour: "*/8"
         user: sec
         job: "/root/stats_caching.sh"
-    - name: Run DB Backup Every Day
-      become: yes
-      become_user: root
-      become_method: sudo
-      ansible.builtin.cron:
-        name: "Backup Database"
-        minute: "0"
-        hour: "23"
-        user: sec
-        job: "/root/db_backup.sh"
     - name: Run Sitemap Generating Script Every Day
       become: yes
       become_user: root

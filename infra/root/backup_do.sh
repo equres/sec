@@ -5,30 +5,21 @@ set -e
 
 sec=/home/sec/sec
 
-/root/backup_store.sh
-status=failed
-if [ $# -eq 0 ]; then
-	status=success
-fi
-$sec event --event cron --job backup_store --status $status
+date=$(date +%Y%m%d)
 
-/root/backup_restore.sh
+# Create Cache Backup
+tar -cJf cache_$date--doing.tar.xz /mnt/sec/cache
+mv cache_$date--doing.tar.xz cache_$date.tar.xz
 status=failed
 if [ $# -eq 0 ]; then
 	status=success
 fi
-$sec event --event cron --job backup_restore --status $status
+$sec event --event cron --job cache_compressed --status $status --config /home/sec/.config/sec
 
-/root/backup_verify.sh
+pg_basebackup -D /home/backups/db_backup/db_$date -z -X fetch -F tar
 status=failed
-if [ $# -eq 0 ]; then
+FILE=/home/backups/db_backup/db_$date.tar.xz
+if [ -f "$FILE" ]; then
 	status=success
 fi
-$sec event --event cron --job backup_verify --status $status
-
-/root/db_backup.sh
-status=failed
-if [ $# -eq 0 ]; then
-	status=success
-fi
-$sec event --event cron --job db_backup --status $status
+$sec event --event cron --job db_backup --status $status --config /home/sec/.config/sec
