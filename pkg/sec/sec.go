@@ -166,7 +166,7 @@ func NewSEC(config config.Config) (*SEC, error) {
 func GetAllCompanies(db *sqlx.DB) ([]Company, error) {
 	var companies []Company
 
-	err := db.Select(&companies, "SELECT DISTINCT companyname, ciknumber FROM sec.secitemfile;")
+	err := db.Select(&companies, "SELECT DISTINCT companyname, ciknumber FROM sec.secitemfile WHERE companyname is not null;")
 	if err != nil {
 		return nil, err
 	}
