@@ -17,7 +17,7 @@ func GetAllSICCodes(db *sqlx.DB) ([]sec.SIC, error) {
 
 func GetAllCompaniesWithSIC(db *sqlx.DB, sic string) ([]sec.Company, error) {
 	var companies []sec.Company
-	err := db.Select(&companies, "SELECT DISTINCT companyname, ciknumber FROM sec.secitemfile WHERE assignedsic = $1", sic)
+	err := db.Select(&companies, "SELECT DISTINCT companyname, ciknumber FROM sec.secitemfile WHERE assignedsic = $1 AND companyname IS NOT NULL;", sic)
 	if err != nil {
 		return nil, err
 	}

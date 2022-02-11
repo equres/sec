@@ -166,7 +166,7 @@ func NewSEC(config config.Config) (*SEC, error) {
 func GetAllCompanies(db *sqlx.DB) ([]Company, error) {
 	var companies []Company
 
-	err := db.Select(&companies, "SELECT DISTINCT companyname, ciknumber FROM sec.secitemfile WHERE companyname is not null;")
+	err := db.Select(&companies, "SELECT DISTINCT companyname, ciknumber FROM sec.secitemfile WHERE companyname IS NOT NULL;")
 	if err != nil {
 		return nil, err
 	}
@@ -181,7 +181,9 @@ func GetCompanyFilingsFromCIK(db *sqlx.DB, cik int) (map[string][]SECItemFile, e
 	SELECT * FROM (
 		SELECT DISTINCT ON (accessionnumber) 
 			companyname, ciknumber, formtype, fillingdate 
-		FROM sec.secItemFile WHERE ciknumber = $1
+		FROM sec.secItemFile 
+		WHERE ciknumber = $1
+			AND companyname IS NOT NULL
 		) filings 
 	ORDER BY fillingdate desc;
 	`, cik)
