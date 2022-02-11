@@ -213,6 +213,7 @@ func SearchByFilingDate(db *sqlx.DB, startdate time.Time, enddate time.Time) ([]
 		LEFT JOIN sec.tickers
 		ON sec.secitemfile.ciknumber = sec.tickers.cik
 		WHERE DATE(fillingdate) between $1 AND $2
+			AND sec.secItemFile.companyname IS NOT NULL;
 	`, startdate.Format("2006-01-02"), enddate.Format("2006-01-02"))
 	if err != nil {
 		return nil, err
@@ -242,6 +243,7 @@ func GetFilingCompaniesFromYearMonthDay(db *sqlx.DB, year int, month int, day in
 		WHERE EXTRACT(year from fillingdate) = $1
 		AND EXTRACT(month from fillingdate) = $2
 		AND EXTRACT(day from fillingdate) = $3
+		AND companyname IS NOT NULL;
 	`, year, month, day)
 	if err != nil {
 		return nil, err
@@ -256,7 +258,8 @@ func SearchFilingsByYearMonthDayCIK(db *sqlx.DB, year int, month int, day int, c
 		FROM sec.secItemFile 
 		LEFT JOIN sec.tickers
 		ON sec.secitemfile.ciknumber = sec.tickers.cik
-		WHERE EXTRACT(year from fillingdate) = $1
+		WHERE sec.secItemFile.companyname IS NOT NULL 
+		AND EXTRACT(year from fillingdate) = $1
 		AND EXTRACT(month from fillingdate) = $2
 		AND EXTRACT(day from fillingdate) = $3
 		AND sec.secItemFile.cikNumber = $4;
@@ -543,6 +546,7 @@ func GetFiveRecentFilings(db *sqlx.DB) ([]sec.SECItemFile, error) {
 		WHERE RIGHT(xbrlurl, 3) = 'htm' 
 			OR RIGHT(xbrlurl, 4) = 'html'
 			OR RIGHT(xbrlurl, 3) = 'xml'
+			AND companyname IS NOT NULL;
 		ORDER BY ciknumber desc
 	) distinct_ciks
 	ORDER BY fillingdate desc
