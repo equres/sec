@@ -14,8 +14,8 @@ import (
 	"time"
 
 	"github.com/equres/sec/pkg/sec"
-	"github.com/equres/sec/pkg/secutil"
 	"github.com/equres/sec/pkg/secevent"
+	"github.com/equres/sec/pkg/secutil"
 	"github.com/equres/sec/pkg/secworklist"
 	"github.com/jmoiron/sqlx"
 	log "github.com/sirupsen/logrus"
@@ -299,7 +299,7 @@ func IndexZIPFileContent(db *sqlx.DB, s *sec.SEC, rssFile sec.RSSFile, worklist 
 		if err != nil {
 			secevent.CreateIndexEvent(db, zipCachePath, "failed", "zip_file_does_not_exist")
 			log.Info("please run sec dowz to download all ZIP files then run sec indexz again to index them")
-			return err
+			continue
 		}
 
 		reader, err := zip.OpenReader(zipCachePath)
