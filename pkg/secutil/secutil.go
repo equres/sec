@@ -546,7 +546,7 @@ func GetFiveRecentFilings(db *sqlx.DB) ([]sec.SECItemFile, error) {
 		WHERE RIGHT(xbrlurl, 3) = 'htm' 
 			OR RIGHT(xbrlurl, 4) = 'html'
 			OR RIGHT(xbrlurl, 3) = 'xml'
-			AND companyname IS NOT NULL;
+			AND companyname IS NOT NULL
 		ORDER BY ciknumber desc
 	) distinct_ciks
 	ORDER BY fillingdate desc
