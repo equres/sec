@@ -9,7 +9,6 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
-	"sort"
 	"strconv"
 	"strings"
 	"time"
@@ -21,7 +20,6 @@ import (
 	"github.com/equres/sec/pkg/config"
 	"github.com/equres/sec/pkg/sec"
 	"github.com/equres/sec/pkg/seccik"
-	"github.com/equres/sec/pkg/secutil"
 	"github.com/equres/sec/pkg/secworklist"
 	"github.com/gorilla/mux"
 	"github.com/gosimple/slug"
@@ -394,13 +392,25 @@ func (s Server) HandlerCompanyFilingsPage(w http.ResponseWriter, r *http.Request
 		return
 	}
 
+	type FormattedFiling struct {
+		CompanyName string
+		FillingDate string
+		FormType    string
+		FilingsURL  string
+	}
+
+	type YearFilings struct {
+		Year    string
+		Filings []FormattedFiling
+	}
+
 	filingsJSON, err := s.Cache.MustGet(fmt.Sprintf("%v_%v", cache.SECCompanyFilings, cik))
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
 
-	filings := make(map[string][]sec.SECItemFile)
+	var filings []YearFilings
 	err = json.Unmarshal([]byte(filingsJSON), &filings)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
@@ -413,47 +423,8 @@ func (s Server) HandlerCompanyFilingsPage(w http.ResponseWriter, r *http.Request
 		return
 	}
 
-	type FormattedFiling struct {
-		CompanyName string
-		FillingDate string
-		FormType    string
-		FilingsURL  string
-	}
-
-	formattedFilings := make(map[string][]FormattedFiling)
-
-	for year, secItemFiles := range filings {
-		for _, item := range secItemFiles {
-			filingsURL := fmt.Sprintf("/filings/%v/%v/%v/%v", item.FillingDate.Year(), int(item.FillingDate.Month()), item.FillingDate.Day(), item.CIKNumber)
-			formType := secutil.GetFullFormType(item.FormType)
-			formattedFilings[year] = append(formattedFilings[year], FormattedFiling{
-				CompanyName: item.CompanyName,
-				FillingDate: item.FillingDate.Format("2006-01-02"),
-				FormType:    formType,
-				FilingsURL:  filingsURL,
-			})
-		}
-	}
-
-	type YearFilings struct {
-		Year    string
-		Filings []FormattedFiling
-	}
-
-	var allYearsFilings []YearFilings
-	for year, filings := range formattedFilings {
-		allYearsFilings = append(allYearsFilings, YearFilings{
-			Year:    year,
-			Filings: filings,
-		})
-	}
-
-	sort.Slice(allYearsFilings, func(i, j int) bool {
-		return allYearsFilings[i].Year > allYearsFilings[j].Year
-	})
-
 	content := make(map[string]interface{})
-	content["Filings"] = allYearsFilings
+	content["Filings"] = filings
 	content["CompanyName"] = companyName
 
 	err = s.RenderTemplate(w, "companyfilings.page.gohtml", content)
