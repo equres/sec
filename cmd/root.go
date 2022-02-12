@@ -136,8 +136,8 @@ func initConfig() {
 	signals := make(chan os.Signal, 1)
 	signal.Notify(signals, syscall.SIGINT, syscall.SIGTERM, syscall.SIGHUP, syscall.SIGUSR1, syscall.SIGUSR2)
 	go func() {
-		<-signals
-		log.Info("Process interrupted by user...")
+		sig := <-signals
+		log.Info(sig)
 		os.Exit(0)
 	}()
 }
