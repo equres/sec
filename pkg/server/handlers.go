@@ -21,7 +21,6 @@ import (
 	"github.com/equres/sec/pkg/config"
 	"github.com/equres/sec/pkg/sec"
 	"github.com/equres/sec/pkg/seccik"
-	"github.com/equres/sec/pkg/secsic"
 	"github.com/equres/sec/pkg/secutil"
 	"github.com/equres/sec/pkg/secworklist"
 	"github.com/gorilla/mux"
@@ -163,13 +162,22 @@ func (s Server) HandlerMonthsPage(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	content := make(map[string]interface{})
-	content["Year"] = year
-	content["Months"], err = secworklist.MonthsInYear(s.DB, year)
+	monthsJSON, err := s.Cache.MustGet(fmt.Sprintf("%v_%v", cache.SECMonthsInYear, year))
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
+
+	var months []int
+	err = json.Unmarshal([]byte(monthsJSON), &months)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+
+	content := make(map[string]interface{})
+	content["Year"] = year
+	content["Months"] = months
 
 	err = s.RenderTemplate(w, "months.page.gohtml", content)
 	if err != nil {
@@ -191,7 +199,14 @@ func (s Server) HandlerDaysPage(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	days, err := secutil.GetFilingDaysFromMonthYear(s.DB, year, month)
+	daysJSON, err := s.Cache.MustGet(fmt.Sprintf("%v_%v_%v", cache.SECDaysInMonth, year, month))
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+
+	var days []int
+	err = json.Unmarshal([]byte(daysJSON), &days)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
@@ -242,7 +257,14 @@ func (s Server) HandlerCompaniesPage(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	companies, err := secutil.GetFilingCompaniesFromYearMonthDay(s.DB, year, month, day)
+	companiesJSON, err := s.Cache.MustGet(fmt.Sprintf("%v_%v_%v_%v", cache.SECCompaniesInDay, year, month, day))
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+
+	var companies []sec.SECItemFile
+	err = json.Unmarshal([]byte(companiesJSON), &companies)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
@@ -291,7 +313,14 @@ func (s Server) HandlerFilingsPage(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	filings, err := secutil.SearchFilingsByYearMonthDayCIK(s.DB, year, month, day, cik)
+	filingsJSON, err := s.Cache.MustGet(fmt.Sprintf("%v_%v_%v_%v_%v", cache.SECFilingsInDay, year, month, day, cik))
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+
+	var filings []sec.SECItemFile
+	err = json.Unmarshal([]byte(filingsJSON), &filings)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
@@ -325,14 +354,22 @@ func (s Server) HandlerFilingsPage(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s Server) HandlerCompaniesListPage(w http.ResponseWriter, r *http.Request) {
-	companies, err := sec.GetAllCompanies(s.DB)
+
+	companiesJSON, err := s.Cache.MustGet(cache.SECCompanySlugs)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+
+	companies := make(map[string]sec.Company)
+	err = json.Unmarshal([]byte(companiesJSON), &companies)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
 
 	content := make(map[string]interface{})
-	content["Companies"] = GetCompanySlugs(companies)
+	content["Companies"] = companies
 
 	err = s.RenderTemplate(w, "companieslist.page.gohtml", content)
 	if err != nil {
@@ -357,7 +394,14 @@ func (s Server) HandlerCompanyFilingsPage(w http.ResponseWriter, r *http.Request
 		return
 	}
 
-	filings, err := sec.GetCompanyFilingsFromCIK(s.DB, cik)
+	filingsJSON, err := s.Cache.MustGet(fmt.Sprintf("%v_%v", cache.SECCompanyFilings, cik))
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+
+	filings := make(map[string][]sec.SECItemFile)
+	err = json.Unmarshal([]byte(filingsJSON), &filings)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
@@ -420,7 +464,14 @@ func (s Server) HandlerCompanyFilingsPage(w http.ResponseWriter, r *http.Request
 }
 
 func (s Server) HandlerSICListPage(w http.ResponseWriter, r *http.Request) {
-	sics, err := secsic.GetAllSICCodes(s.DB)
+	sicJSON, err := s.Cache.MustGet(cache.SECSICs)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+
+	var sics []sec.SIC
+	err = json.Unmarshal([]byte(sicJSON), &sics)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
@@ -440,7 +491,14 @@ func (s Server) HandlerSICCompaniesPage(w http.ResponseWriter, r *http.Request) 
 	vars := mux.Vars(r)
 	sic := vars["sic"]
 
-	companies, err := secsic.GetAllCompaniesWithSIC(s.DB, sic)
+	companiesJSON, err := s.Cache.MustGet(fmt.Sprintf("%v_%v", cache.SECCompaniesWithSIC, sic))
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+
+	var companies []sec.Company
+	err = json.Unmarshal([]byte(companiesJSON), &companies)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
@@ -496,6 +554,9 @@ func (s Server) RenderTemplate(w http.ResponseWriter, tmplName string, data inte
 		},
 		"AppVersion": func() string {
 			return fmt.Sprintf("%s %s", s.SHA1Ver, s.BuildTime)
+		},
+		"Increment": func(i int) int {
+			return i + 1
 		},
 	}
 

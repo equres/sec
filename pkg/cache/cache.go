@@ -17,6 +17,14 @@ const (
 	SECCIKsCount            string = "cache.SECCIKsCount"
 	SECFilesCount           string = "cache.SECFilesCount"
 	SECCompaniesCount       string = "cache.SECCompaniesCount"
+	SECMonthsInYear         string = "cache.SECMonthsInYear"
+	SECDaysInMonth          string = "cache.SECDaysInMonth"
+	SECCompaniesInDay       string = "cache.SECCompaniesInDay"
+	SECFilingsInDay         string = "cache.SECFilingsInDay"
+	SECCompanySlugs         string = "cache.SECCompanySlugs"
+	SECCompanyFilings       string = "cache.SECCompanyFilings"
+	SECSICs                 string = "cache.SECSICs"
+	SECCompaniesWithSIC     string = "cache.SECCompaniesWithSIC"
 )
 
 func NewCache(cfg *config.Config) Cache {
