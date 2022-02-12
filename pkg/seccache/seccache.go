@@ -29,8 +29,8 @@ func NewSECCache(db *sqlx.DB, s *sec.SEC) *SECCache {
 	}
 }
 
-func GenerateTopFiveRecentFilingsJSON(db *sqlx.DB) (string, error) {
-	recentFilings, err := secutil.GetFiveRecentFilings(db)
+func (sc *SECCache) GenerateTopFiveRecentFilingsJSON() (string, error) {
+	recentFilings, err := secutil.GetFiveRecentFilings(sc.DB)
 	if err != nil {
 		return "", err
 	}
@@ -146,7 +146,7 @@ func (sc *SECCache) GenerateYearMonthDayCIKURLs(db *sqlx.DB, baseURL string) ([]
 }
 
 func (sc *SECCache) GenerateHomePageDataCache() error {
-	formattedFilingsJSON, err := GenerateTopFiveRecentFilingsJSON(sc.DB)
+	formattedFilingsJSON, err := sc.GenerateTopFiveRecentFilingsJSON()
 	if err != nil {
 		return err
 	}
