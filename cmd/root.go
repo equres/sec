@@ -134,7 +134,7 @@ func initConfig() {
 	S.Debug = Debug
 
 	signals := make(chan os.Signal, 1)
-	signal.Notify(signals, syscall.SIGINT, syscall.SIGTERM)
+	signal.Notify(signals, syscall.SIGINT, syscall.SIGTERM, syscall.SIGHUP, syscall.SIGUSR1, syscall.SIGUSR2)
 	go func() {
 		<-signals
 		log.Info("Process interrupted by user...")
