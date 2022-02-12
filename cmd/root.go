@@ -5,7 +5,9 @@ import (
 	"fmt"
 	"log/syslog"
 	"os"
+	"os/signal"
 	"path/filepath"
+	"syscall"
 	"time"
 
 	"github.com/adrg/xdg"
@@ -130,4 +132,12 @@ func initConfig() {
 	}
 	S.Verbose = Verbose
 	S.Debug = Debug
+
+	signals := make(chan os.Signal, 1)
+	signal.Notify(signals, syscall.SIGINT, syscall.SIGTERM, syscall.SIGHUP, syscall.SIGUSR1, syscall.SIGUSR2)
+	go func() {
+		sig := <-signals
+		log.Info(sig)
+		os.Exit(0)
+	}()
 }
