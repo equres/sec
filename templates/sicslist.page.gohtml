@@ -14,12 +14,11 @@
             </tr>
         </thead>
         <tbody>
-            <script>let index = 1</script>
-            {{  range .SICs }}
+            {{  range $Index, $SIC := .SICs }}
                 <tr>
-                    <td><script>document.write(index++)</script></td>
-                    <td><a href="/sic/{{ .SIC }}">{{ .SIC }}</a></td>
-                    <td><a href="/sic/{{ .SIC }}">{{ .Title }}</a></td>
+                    <td>{{ Increment $Index }}</td>
+                    <td><a href="/sic/{{ $SIC.SIC }}">{{ $SIC.SIC }}</a></td>
+                    <td><a href="/sic/{{ $SIC.SIC }}">{{ $SIC.Title }}</a></td>
                 </tr>
             {{ end }}
         </tbody>

@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
+	"strconv"
 	"time"
 
 	"github.com/equres/sec/pkg/cache"
@@ -13,6 +14,7 @@ import (
 	"github.com/equres/sec/pkg/seccik"
 	"github.com/equres/sec/pkg/secevent"
 	"github.com/equres/sec/pkg/secextra"
+	"github.com/equres/sec/pkg/secsic"
 	"github.com/equres/sec/pkg/secutil"
 	"github.com/equres/sec/pkg/secworklist"
 	"github.com/equres/sec/pkg/server"
@@ -64,6 +66,30 @@ var regenCmd = &cobra.Command{
 			if err != nil {
 				return err
 			}
+			if S.Verbose {
+				log.Info("Generating & caching Months in Year page in redis...")
+			}
+			err = GenerateMonthDayCIKDataCache(DB)
+			if err != nil {
+				return err
+			}
+
+			if S.Verbose {
+				log.Info("Generating & caching Companies page in redis...")
+			}
+			err = GenerateCompanySlugsDataCache(DB)
+			if err != nil {
+				return err
+			}
+
+			if S.Verbose {
+				log.Info("Generating & caching SIC page in redis...")
+			}
+			err = GenerateSICPageDataCache(DB)
+			if err != nil {
+				return err
+			}
+
 		default:
 			return fmt.Errorf("please type 'sitemap' to generate the sitemap and 'stats' to generate the stats (e.g. sec regen sitemap)")
 		}
@@ -286,6 +312,204 @@ func GenerateHomePageDataCache(db *sqlx.DB) error {
 		return err
 	}
 	err = S.Cache.MustSet(cache.SECCompaniesCount, companiesCount)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func GenerateMonthDayCIKDataCache(db *sqlx.DB) error {
+	years, err := secworklist.UniqueYears(db)
+	if err != nil {
+		return err
+	}
+
+	for _, year := range years {
+		months, err := secworklist.MonthsInYear(db, year)
+		if err != nil {
+			return err
+		}
+
+		monthsJSON, err := json.Marshal(months)
+		if err != nil {
+			return err
+		}
+
+		err = S.Cache.MustSet(fmt.Sprintf("%v_%v", cache.SECMonthsInYear, year), string(monthsJSON))
+		if err != nil {
+			return err
+		}
+
+		err = GenerateDaysInMonthPageDataCache(db, year, months)
+		if err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+func GenerateDaysInMonthPageDataCache(db *sqlx.DB, year int, months []int) error {
+	for _, month := range months {
+		days, err := secutil.GetFilingDaysFromMonthYear(db, year, month)
+		if err != nil {
+			return err
+		}
+
+		daysJSON, err := json.Marshal(days)
+		if err != nil {
+			return err
+		}
+
+		err = S.Cache.MustSet(fmt.Sprintf("%v_%v_%v", cache.SECDaysInMonth, year, month), string(daysJSON))
+		if err != nil {
+			return err
+		}
+
+		for _, day := range days {
+			err = GenerateCompaniesInDayPageData(db, year, month, day)
+			if err != nil {
+				return err
+			}
+		}
+	}
+
+	return nil
+}
+
+func GenerateCompaniesInDayPageData(db *sqlx.DB, year int, month int, day int) error {
+	companies, err := secutil.GetFilingCompaniesFromYearMonthDay(db, year, month, day)
+	if err != nil {
+		return err
+	}
+
+	companiesJSON, err := json.Marshal(companies)
+	if err != nil {
+		return err
+	}
+
+	err = S.Cache.MustSet(fmt.Sprintf("%v_%v_%v_%v", cache.SECCompaniesInDay, year, month, day), string(companiesJSON))
+	if err != nil {
+		return err
+	}
+
+	for _, company := range companies {
+		cik, err := strconv.Atoi(company.CIKNumber)
+		if err != nil {
+			return err
+		}
+		err = GenerateFilingsInDayPageDataCache(db, year, month, day, cik)
+		if err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+func GenerateFilingsInDayPageDataCache(db *sqlx.DB, year int, month int, day int, cik int) error {
+	filings, err := secutil.SearchFilingsByYearMonthDayCIK(db, year, month, day, cik)
+	if err != nil {
+		return err
+	}
+
+	filingsJSON, err := json.Marshal(filings)
+	if err != nil {
+		return err
+	}
+
+	err = S.Cache.MustSet(fmt.Sprintf("%v_%v_%v_%v_%v", cache.SECFilingsInDay, year, month, day, cik), string(filingsJSON))
+	if err != nil {
+		return err
+	}
+
+	err = GenerateCompanyFilingsPageDataCache(db, cik)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func GenerateCompanySlugsDataCache(db *sqlx.DB) error {
+	companies, err := sec.GetAllCompanies(db)
+	if err != nil {
+		return err
+	}
+
+	companySlugs := server.GetCompanySlugs(companies)
+
+	companySlugsJSON, err := json.Marshal(companySlugs)
+	if err != nil {
+		return err
+	}
+
+	err = S.Cache.MustSet(cache.SECCompanySlugs, string(companySlugsJSON))
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func GenerateCompanyFilingsPageDataCache(db *sqlx.DB, cik int) error {
+	filings, err := sec.GetCompanyFilingsFromCIK(db, cik)
+	if err != nil {
+		return err
+	}
+
+	filingsJSON, err := json.Marshal(filings)
+	if err != nil {
+		return err
+	}
+
+	err = S.Cache.MustSet(fmt.Sprintf("%v_%v", cache.SECCompanyFilings, cik), string(filingsJSON))
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func GenerateSICPageDataCache(db *sqlx.DB) error {
+	sics, err := secsic.GetAllSICCodes(db)
+	if err != nil {
+		return err
+	}
+
+	sicsJSON, err := json.Marshal(sics)
+	if err != nil {
+		return err
+	}
+
+	err = S.Cache.MustSet(cache.SECSICs, string(sicsJSON))
+	if err != nil {
+		return err
+	}
+
+	for _, sic := range sics {
+		err = GenerateCompaniesWithSICPageDataCache(db, sic.SIC)
+		if err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+func GenerateCompaniesWithSICPageDataCache(db *sqlx.DB, sic string) error {
+	companies, err := secsic.GetAllCompaniesWithSIC(db, sic)
+	if err != nil {
+		return err
+	}
+
+	companiesJSON, err := json.Marshal(companies)
+	if err != nil {
+		return err
+	}
+
+	err = S.Cache.MustSet(fmt.Sprintf("%v_%v", cache.SECCompaniesWithSIC, sic), string(companiesJSON))
 	if err != nil {
 		return err
 	}
