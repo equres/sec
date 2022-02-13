@@ -3,6 +3,7 @@ package seccache
 import (
 	"encoding/json"
 	"fmt"
+	"sort"
 	"strconv"
 
 	"github.com/equres/sec/pkg/cache"
@@ -326,7 +327,46 @@ func (sc *SECCache) GenerateCompanyFilingsPageDataCache(cik int) error {
 		return err
 	}
 
-	filingsJSON, err := json.Marshal(filings)
+	type FormattedFiling struct {
+		CompanyName string
+		FillingDate string
+		FormType    string
+		FilingsURL  string
+	}
+
+	formattedFilings := make(map[string][]FormattedFiling)
+
+	for year, secItemFiles := range filings {
+		for _, item := range secItemFiles {
+			filingsURL := fmt.Sprintf("/filings/%v/%v/%v/%v", item.FillingDate.Year(), int(item.FillingDate.Month()), item.FillingDate.Day(), item.CIKNumber)
+			formType := secutil.GetFullFormType(item.FormType)
+			formattedFilings[year] = append(formattedFilings[year], FormattedFiling{
+				CompanyName: item.CompanyName,
+				FillingDate: item.FillingDate.Format("2006-01-02"),
+				FormType:    formType,
+				FilingsURL:  filingsURL,
+			})
+		}
+	}
+
+	type YearFilings struct {
+		Year    string
+		Filings []FormattedFiling
+	}
+
+	var allYearsFilings []YearFilings
+	for year, filings := range formattedFilings {
+		allYearsFilings = append(allYearsFilings, YearFilings{
+			Year:    year,
+			Filings: filings,
+		})
+	}
+
+	sort.Slice(allYearsFilings, func(i, j int) bool {
+		return allYearsFilings[i].Year > allYearsFilings[j].Year
+	})
+
+	filingsJSON, err := json.Marshal(allYearsFilings)
 	if err != nil {
 		return err
 	}
