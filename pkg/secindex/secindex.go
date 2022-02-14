@@ -321,7 +321,7 @@ func IndexZIPFileContent(db *sqlx.DB, s *sec.SEC, rssFile sec.RSSFile, worklist 
 		currentCount++
 
 		if s.Verbose {
-			log.Info(fmt.Sprintf("[%d/%d] %s inserted for current file...\n", currentCount, totalCount, time.Now().Format("2006-01-02 03:04:05")))
+			log.Info(fmt.Sprintf("[%d/%d] %s inserted for file %v...\n", currentCount, totalCount, time.Now().Format("2006-01-02 03:04:05"), zipCachePath))
 		}
 	}
 	return nil
