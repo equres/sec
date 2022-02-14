@@ -20,6 +20,7 @@ import (
 	"github.com/equres/sec/pkg/config"
 	"github.com/equres/sec/pkg/sec"
 	"github.com/equres/sec/pkg/seccik"
+	"github.com/equres/sec/pkg/secsic"
 	"github.com/equres/sec/pkg/secworklist"
 	"github.com/gorilla/mux"
 	"github.com/gosimple/slug"
@@ -475,8 +476,15 @@ func (s Server) HandlerSICCompaniesPage(w http.ResponseWriter, r *http.Request) 
 		return
 	}
 
+	categoryName, err := secsic.GetCategoryNameFromSIC(s.DB, sic)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+
 	content := make(map[string]interface{})
 	content["Companies"] = GetCompanySlugs(companies)
+	content["CategoryName"] = categoryName
 
 	err = s.RenderTemplate(w, "companieslist.page.gohtml", content)
 	if err != nil {
