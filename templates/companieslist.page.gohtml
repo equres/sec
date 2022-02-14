@@ -5,6 +5,10 @@
 {{ end }}
 
 {{ define "content"}}
+    {{ if .CategoryName }}
+        <h3>Financial Filings For {{ .CategoryName }} Category</h3>
+    {{ end }}
+
     <table class="table">
         <thead>
             <tr>
