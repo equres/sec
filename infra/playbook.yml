@@ -472,7 +472,7 @@
         name: "Backup ZIP & XML"
         minute: "0"
         hour: "3"
-        user: sec
+        user: backups
         job: "/root/backup_do.sh"
     - name: Generate AWStats HTML File Everyday at 11:55 PM
       become: yes
