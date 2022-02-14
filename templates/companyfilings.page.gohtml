@@ -5,6 +5,7 @@
 {{ end }}
 
 {{ define "content"}}
+    <h3>All Financial Filings For {{ .CompanyName }}</h3>
     <ul>
         {{ range .Filings }}
             <li>{{ .Year }}</li>
