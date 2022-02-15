@@ -157,7 +157,7 @@ func GenerateSitemap(sc *seccache.SECCache) error {
 	}
 
 	// Ping to Google Search Engine
-	_, err = http.Get("https://www.google.com/ping?sitemap=https://equres.com/_cache/sitemap.xml")
+	_, err = http.Get("https://www.google.com/ping?sitemap=https://equres.com/sitemap.xml")
 	if err != nil {
 		return err
 	}
