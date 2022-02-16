@@ -523,6 +523,7 @@ User-agent: *
 Allow: /
 
 Sitemap: https://equres.com/sitemap.xml
+Sitemap: https://equres.com/companies-sitemap.xml
 	`)
 }
 
