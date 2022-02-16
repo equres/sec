@@ -516,6 +516,9 @@ func (s Server) HanderRobots(w http.ResponseWriter, r *http.Request) {
 	fmt.Fprint(w, `User-agent: MJ12bot
 Disallow: /
 
+User-agent: BLEXBot
+Disallow: /
+
 User-agent: *
 Disallow: /signup
 
