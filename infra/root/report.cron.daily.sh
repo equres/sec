@@ -10,4 +10,4 @@ echo "
     Downloads Completed on Todays Date ($(date +%F)): $downloadsTodayCount
     Size of Cache (Raw, Index, & ZIP Files): $sizeCache
     Size of Unzipped Cache: $sizeUnzippedCache
-" | mail -s "[equres.com] $(date +%F) daily report" sec
+" | mail -s "[equres.com] $(date +%F) daily report" sec@localhost
