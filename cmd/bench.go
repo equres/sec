@@ -6,7 +6,10 @@ import (
 	"io"
 	"io/ioutil"
 	"math/rand"
+	"os"
+	"path/filepath"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/equres/sec/pkg/download"
@@ -17,6 +20,7 @@ import (
 )
 
 var GlobalRateLimit string
+var GlobalGenerateTxt bool
 
 // benchCmd represents the bench command
 var benchCmd = &cobra.Command{
@@ -62,6 +66,16 @@ var benchCmd = &cobra.Command{
 			}
 		}
 
+		if GlobalGenerateTxt {
+			if S.Verbose {
+				log.Info("Generating a text file with the URLs...")
+			}
+			err = os.WriteFile(filepath.Join(S.Config.Main.CacheDir, "file_urls.txt"), []byte(strings.Join(fileURLs, "\n")), 0644)
+			if err != nil {
+				return err
+			}
+		}
+
 		if S.Verbose {
 			log.Info("Downloading files...")
 		}
@@ -87,6 +101,15 @@ var benchCmd = &cobra.Command{
 
 		if S.Verbose {
 			log.Info("Rate limit used between downloads in ms: ", rateLimit.Milliseconds())
+		}
+
+		if GlobalGenerateTxt {
+			data, err := os.ReadFile(filepath.Join(S.Config.Main.CacheDir, "file_urls.txt"))
+			if err != nil {
+				return err
+			}
+
+			fileURLs = strings.Split(string(data), "\n")
 		}
 
 		startTime := time.Now()
@@ -145,6 +168,7 @@ func init() {
 	rootCmd.AddCommand(benchCmd)
 
 	benchCmd.Flags().StringVarP(&GlobalRateLimit, "rate limit in ms", "w", "", "Time to sleep in between each download")
+	benchCmd.Flags().BoolVar(&GlobalGenerateTxt, "txt", false, "Generate and read from a text file")
 
 	// Here you will define your flags and configuration settings.
 
