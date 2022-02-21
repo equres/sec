@@ -6,21 +6,14 @@ import (
 	"io"
 	"io/ioutil"
 	"math/rand"
-	"os"
-	"path/filepath"
+	"net/http"
 	"strconv"
-	"strings"
 	"time"
 
-	"github.com/equres/sec/pkg/download"
-	"github.com/equres/sec/pkg/secreq"
 	"github.com/equres/sec/pkg/secutil"
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 )
-
-var GlobalRateLimit string
-var GlobalGenerateTxt bool
 
 // benchCmd represents the bench command
 var benchCmd = &cobra.Command{
@@ -28,14 +21,15 @@ var benchCmd = &cobra.Command{
 	Short: "Test how many files can be downloaded from sec.gov together",
 	Long:  `Test how many files can be downloaded from sec.gov together`,
 	RunE: func(cmd *cobra.Command, args []string) error {
-		countFilesToBeDownloaded := 20
-		if len(args) > 0 {
-			countArg, err := strconv.Atoi(args[0])
-			if err != nil {
-				return err
-			}
-			countFilesToBeDownloaded = countArg
+		if len(args) == 0 {
+			return fmt.Errorf("please insert the number of files you wish to fetch (e.g. sec bench 100)")
 		}
+
+		countArg, err := strconv.Atoi(args[0])
+		if err != nil {
+			return err
+		}
+		countFilesToBeDownloaded := countArg
 
 		if S.Verbose {
 			log.Info("Number of files to be downloaded: ", countFilesToBeDownloaded)
@@ -66,92 +60,29 @@ var benchCmd = &cobra.Command{
 			}
 		}
 
-		if GlobalGenerateTxt {
-			if S.Verbose {
-				log.Info("Generating a text file with the URLs...")
-			}
-			err = os.WriteFile(filepath.Join(S.Config.Main.CacheDir, "file_urls.txt"), []byte(strings.Join(fileURLs, "\n")), 0644)
-			if err != nil {
-				return err
-			}
-		}
-
 		if S.Verbose {
 			log.Info("Downloading files...")
 		}
 
-		downloader := download.NewDownloader(S.Config)
-		downloader.IsEtag = true
-		downloader.Verbose = S.Verbose
-		downloader.Debug = S.Debug
-		downloader.TotalDownloadsCount = countFilesToBeDownloaded
-		downloader.CurrentDownloadCount = 1
-
-		rateLimit, err := time.ParseDuration(fmt.Sprintf("%vms", S.Config.Main.RateLimitMs))
+		rateLimitString, err := cmd.Flags().GetString("rate-limit")
 		if err != nil {
 			return err
 		}
 
-		if GlobalRateLimit != "" {
-			rateLimit, err = time.ParseDuration(fmt.Sprintf("%vms", GlobalRateLimit))
+		rateLimit := time.Duration(0)
+
+		if rateLimitString != "" {
+			rateLimit, err = time.ParseDuration(fmt.Sprintf("%vms", rateLimitString))
 			if err != nil {
-				return err
+				cobra.CheckErr(err)
 			}
-		}
-
-		if S.Verbose {
-			log.Info("Rate limit used between downloads in ms: ", rateLimit.Milliseconds())
-		}
-
-		if GlobalGenerateTxt {
-			data, err := os.ReadFile(filepath.Join(S.Config.Main.CacheDir, "file_urls.txt"))
-			if err != nil {
-				return err
-			}
-
-			fileURLs = strings.Split(string(data), "\n")
 		}
 
 		startTime := time.Now()
 
-		for _, v := range fileURLs {
-			if S.Verbose {
-				log.Info(fmt.Sprintf("Download progress [%d/%d/%f%%]", downloader.CurrentDownloadCount, downloader.TotalDownloadsCount, downloader.GetDownloadPercentage()))
-			}
-
-			req := secreq.NewSECReqGET(S.Config)
-			req.IsEtag = true
-
-			if S.Verbose {
-				log.Info("Downloading File: ", v)
-			}
-
-			resp, err := req.SendRequest(10, rateLimit, v)
-			if err != nil {
-				return err
-			}
-
-			responseBody, err := ioutil.ReadAll(resp.Body)
-			if err != nil {
-				return err
-			}
-
-			log.Info(fmt.Sprintf("File %v progress [%d/%d/%f%%] status_code_%d", v, downloader.CurrentDownloadCount, downloader.TotalDownloadsCount, downloader.GetDownloadPercentage(), resp.StatusCode))
-			if download.IsErrorPage(string(responseBody)) {
-				return fmt.Errorf("requested file but received an error instead")
-			}
-
-			size, err := io.Copy(ioutil.Discard, bytes.NewReader(responseBody))
-			if err != nil {
-				return err
-			}
-			time.Sleep(rateLimit)
-
-			if S.Verbose {
-				log.Info("Size of file downloaded: ", size)
-			}
-
-			downloader.CurrentDownloadCount += 1
+		err = FetchFiles(fileURLs, rateLimit)
+		if err != nil {
+			return err
 		}
 
 		endTime := time.Now()
@@ -164,11 +95,15 @@ var benchCmd = &cobra.Command{
 	},
 }
 
-func init() {
-	rootCmd.AddCommand(benchCmd)
+func NewBenchCMD() *cobra.Command {
+	var rateLimit string
+	benchCmd.Flags().StringVarP(&rateLimit, "rate-limit", "w", "", "Time to sleep in between each download")
 
-	benchCmd.Flags().StringVarP(&GlobalRateLimit, "rate limit in ms", "w", "", "Time to sleep in between each download")
-	benchCmd.Flags().BoolVar(&GlobalGenerateTxt, "txt", false, "Generate and read from a text file")
+	return benchCmd
+}
+
+func init() {
+	rootCmd.AddCommand(NewBenchCMD())
 
 	// Here you will define your flags and configuration settings.
 
@@ -179,4 +114,52 @@ func init() {
 	// Cobra supports local flags which will only run when this command
 	// is called directly, e.g.:
 	// benchCmd.Flags().BoolP("toggle", "t", false, "Help message for toggle")
+}
+
+func FetchFiles(fileURLs []string, rateLimit time.Duration) error {
+	client := &http.Client{}
+
+	var currentDownloadCount int
+
+	for _, fileURL := range fileURLs {
+		if S.Verbose {
+			log.Info("Downloading file: ", fileURL)
+		}
+
+		if fileURL == "" {
+			continue
+		}
+
+		req, err := http.NewRequest(http.MethodGet, fileURL, nil)
+		if err != nil {
+			return err
+		}
+
+		req.Header.Set("User-Agent", "Firefox, 1234z@asd.aas")
+
+		resp, err := client.Do(req)
+		if err != nil {
+			return err
+		}
+
+		responseBody, err := ioutil.ReadAll(resp.Body)
+		if err != nil {
+			return err
+		}
+
+		size, err := io.Copy(ioutil.Discard, bytes.NewReader(responseBody))
+		if err != nil {
+			return err
+		}
+
+		if S.Verbose {
+			log.Info("File size: ", size)
+		}
+		currentDownloadCount++
+
+		log.Info(fmt.Sprintf("File progress [%d/%d] status_code_%d", currentDownloadCount, len(fileURLs), resp.StatusCode))
+
+		time.Sleep(rateLimit)
+	}
+	return nil
 }
