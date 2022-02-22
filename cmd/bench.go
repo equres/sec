@@ -5,12 +5,9 @@ import (
 	"fmt"
 	"io"
 	"io/ioutil"
-	"math/rand"
 	"net/http"
-	"strconv"
 	"time"
 
-	"github.com/equres/sec/pkg/secutil"
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 )
@@ -20,84 +17,11 @@ var benchCmd = &cobra.Command{
 	Use:   "bench",
 	Short: "Test how many files can be downloaded from sec.gov together",
 	Long:  `Test how many files can be downloaded from sec.gov together`,
-	RunE: func(cmd *cobra.Command, args []string) error {
-		if len(args) == 0 {
-			return fmt.Errorf("please insert the number of files you wish to fetch (e.g. sec bench 100)")
-		}
-
-		countArg, err := strconv.Atoi(args[0])
-		if err != nil {
-			return err
-		}
-		countFilesToBeDownloaded := countArg
-
-		if S.Verbose {
-			log.Info("Number of files to be downloaded: ", countFilesToBeDownloaded)
-		}
-
-		// Get random files:
-		if S.Verbose {
-			log.Info("Getting a random index file to fetch XBRLFiles...")
-		}
-		rssFiles, err := secutil.GetAllRSSFiles(S, DB)
-		if err != nil {
-			return err
-		}
-
-		rand.Seed(time.Now().Unix())
-		rssFileToBeUsed := rssFiles[rand.Intn(len(rssFiles))]
-
-		var fileURLs []string
-		for _, item := range rssFileToBeUsed.Channel.Item {
-			for _, files := range item.XbrlFiling.XbrlFiles.XbrlFile {
-				fileURLs = append(fileURLs, files.URL)
-				if len(fileURLs) >= countFilesToBeDownloaded {
-					break
-				}
-			}
-			if len(fileURLs) >= countFilesToBeDownloaded {
-				break
-			}
-		}
-
-		if S.Verbose {
-			log.Info("Downloading files...")
-		}
-
-		rateLimitString, err := cmd.Flags().GetString("rate-limit")
-		if err != nil {
-			return err
-		}
-
-		rateLimit := time.Duration(0)
-
-		if rateLimitString != "" {
-			rateLimit, err = time.ParseDuration(fmt.Sprintf("%vms", rateLimitString))
-			if err != nil {
-				cobra.CheckErr(err)
-			}
-		}
-
-		startTime := time.Now()
-
-		err = FetchFiles(fileURLs, rateLimit)
-		if err != nil {
-			return err
-		}
-
-		endTime := time.Now()
-
-		if S.Verbose {
-			log.Info(fmt.Sprintf("It took %v seconds to download %v files", endTime.Sub(startTime).Seconds(), countFilesToBeDownloaded))
-		}
-
-		return nil
-	},
 }
 
 func NewBenchCMD() *cobra.Command {
 	var rateLimit string
-	benchCmd.Flags().StringVarP(&rateLimit, "rate-limit", "w", "", "Time to sleep in between each download")
+	benchCmd.PersistentFlags().StringVarP(&rateLimit, "rate-limit", "w", "", "Time to sleep in between each download")
 
 	return benchCmd
 }
