@@ -1,14 +1,6 @@
 package cmd
 
 import (
-	"bytes"
-	"fmt"
-	"io"
-	"io/ioutil"
-	"net/http"
-	"time"
-
-	log "github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 )
 
@@ -40,50 +32,3 @@ func init() {
 	// benchCmd.Flags().BoolP("toggle", "t", false, "Help message for toggle")
 }
 
-func FetchFiles(fileURLs []string, rateLimit time.Duration) error {
-	client := &http.Client{}
-
-	var currentDownloadCount int
-
-	for _, fileURL := range fileURLs {
-		if S.Verbose {
-			log.Info("Downloading file: ", fileURL)
-		}
-
-		if fileURL == "" {
-			continue
-		}
-
-		req, err := http.NewRequest(http.MethodGet, fileURL, nil)
-		if err != nil {
-			return err
-		}
-
-		req.Header.Set("User-Agent", "Firefox, 1234z@asd.aas")
-
-		resp, err := client.Do(req)
-		if err != nil {
-			return err
-		}
-
-		responseBody, err := ioutil.ReadAll(resp.Body)
-		if err != nil {
-			return err
-		}
-
-		size, err := io.Copy(ioutil.Discard, bytes.NewReader(responseBody))
-		if err != nil {
-			return err
-		}
-
-		if S.Verbose {
-			log.Info("File size: ", size)
-		}
-		currentDownloadCount++
-
-		log.Info(fmt.Sprintf("File progress [%d/%d] status_code_%d", currentDownloadCount, len(fileURLs), resp.StatusCode))
-
-		time.Sleep(rateLimit)
-	}
-	return nil
-}

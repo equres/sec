@@ -5,9 +5,13 @@ import (
 	"os"
 	"strings"
 	"time"
+	"net/http"
+	"io/ioutil"
+	"io"
+	"bytes"
 
-	log "github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
+	log "github.com/sirupsen/logrus"
 )
 
 // runCmd represents the run command
@@ -49,7 +53,7 @@ var runCmd = &cobra.Command{
 
 		startTime := time.Now()
 
-		err = FetchFiles(fileURLs, rateLimit)
+		err = fetchFiles(fileURLs, rateLimit)
 		if err != nil {
 			return err
 		}
@@ -76,4 +80,52 @@ func init() {
 	// Cobra supports local flags which will only run when this command
 	// is called directly, e.g.:
 	// runCmd.Flags().BoolP("toggle", "t", false, "Help message for toggle")
+}
+
+func fetchFiles(fileURLs []string, rateLimit time.Duration) error {
+	client := &http.Client{}
+
+	var currentDownloadCount int
+
+	for _, fileURL := range fileURLs {
+		if S.Verbose {
+			log.Info("Downloading file: ", fileURL)
+		}
+
+		if fileURL == "" {
+			continue
+		}
+
+		req, err := http.NewRequest(http.MethodGet, fileURL, nil)
+		if err != nil {
+			return err
+		}
+
+		req.Header.Set("User-Agent", "Firefox, 1234z@asd.aas")
+
+		resp, err := client.Do(req)
+		if err != nil {
+			return err
+		}
+
+		responseBody, err := ioutil.ReadAll(resp.Body)
+		if err != nil {
+			return err
+		}
+
+		size, err := io.Copy(ioutil.Discard, bytes.NewReader(responseBody))
+		if err != nil {
+			return err
+		}
+
+		if S.Verbose {
+			log.Info("File size: ", size)
+		}
+		currentDownloadCount++
+
+		log.Info(fmt.Sprintf("File progress [%d/%d] status_code_%d", currentDownloadCount, len(fileURLs), resp.StatusCode))
+
+		time.Sleep(rateLimit)
+	}
+	return nil
 }
