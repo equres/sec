@@ -158,7 +158,7 @@ func fetchFiles(fileURLs []string, rateLimit time.Duration, proxies []string, pr
 
 		currentDownloadCount++
 
-		fmt.Println(fmt.Sprintf("File progress [%d/%d] status_code_%d", currentDownloadCount, len(fileURLs), resp.StatusCode))
+		fmt.Printf("File progress [%d/%d] status_code_%d\n", currentDownloadCount, len(fileURLs), resp.StatusCode)
 
 		time.Sleep(rateLimit)
 	}
