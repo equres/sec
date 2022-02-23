@@ -29,12 +29,17 @@ var showfilesCmd = &cobra.Command{
 		if S.Verbose {
 			log.Info("Getting a random index file to fetch XBRLFiles...")
 		}
+
 		rssFiles, err := secutil.GetAllRSSFiles(S, DB)
 		if err != nil {
 			return err
 		}
 
-		rand.Seed(time.Now().Unix())
+		if len(rssFiles) == 0 {
+			return fmt.Errorf("please ensure you have enabled downloading of at least 1 index file and run 'sec dow index' in order to download the index files")
+		}
+
+		rand.Seed(time.Now().UnixNano())
 		rssFileToBeUsed := rssFiles[rand.Intn(len(rssFiles))]
 
 		var fileURLs []string
