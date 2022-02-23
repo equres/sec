@@ -9,6 +9,7 @@ import (
 
 	"github.com/equres/sec/pkg/sec"
 	"github.com/equres/sec/pkg/seccache"
+	"github.com/equres/sec/pkg/secsic"
 	"github.com/equres/sec/pkg/server"
 	"github.com/jmoiron/sqlx"
 	log "github.com/sirupsen/logrus"
@@ -116,6 +117,20 @@ func GenerateCompanyPageURLs(db *sqlx.DB, baseURL string) ([]string, error) {
 	return urls, nil
 }
 
+func GenerateSICPageURLs(db *sqlx.DB, baseURL string) ([]string, error) {
+	sics, err := secsic.GetAllSICCodes(db)
+	if err != nil {
+		return nil, err
+	}
+	var urls []string
+	for _, sic := range sics {
+		urls = append(urls, fmt.Sprintf("%vsic/%v", baseURL, sic.SIC))
+
+	}
+
+	return urls, nil
+}
+
 func GenerateSitemap(sc *seccache.SECCache) error {
 	// Generating sitemap.xml
 	var mainURLs []string
@@ -143,6 +158,19 @@ func GenerateSitemap(sc *seccache.SECCache) error {
 	companyURLs = append(companyURLs, companyPageURLs...)
 
 	err = createAndSaveSitemapFile("companies-sitemap.xml", companyURLs)
+	if err != nil {
+		return err
+	}
+
+	// Generating sic-sitemap.xml
+	var sicURLs []string
+	sicPagesURLs, err := GenerateSICPageURLs(DB, S.Config.Main.WebsiteURL)
+	if err != nil {
+		return err
+	}
+	sicURLs = append(sicURLs, sicPagesURLs...)
+
+	err = createAndSaveSitemapFile("sic-sitemap.xml", sicURLs)
 	if err != nil {
 		return err
 	}
