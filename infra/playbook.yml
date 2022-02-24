@@ -521,7 +521,7 @@
       ansible.builtin.cron:
         name: "Generating Pages Data & Caching"
         minute: "0"
-        hour: "*/4"
+        hour: "7"
         user: sec
         job: "/root/pages.cron.daily.sh"
     - name: Send Report To Emails Every Day
