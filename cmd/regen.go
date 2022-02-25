@@ -79,6 +79,14 @@ var regenCmd = &cobra.Command{
 				return err
 			}
 
+			if S.Verbose {
+				log.Info("Generating & caching Download Stats page in redis...")
+			}
+			err = sc.GenerateHourlyDownloadStatsPageDataCache()
+			if err != nil {
+				return err
+			}
+
 		default:
 			return fmt.Errorf("please type 'sitemap' to generate the sitemap and 'stats' to generate the stats (e.g. sec regen sitemap)")
 		}

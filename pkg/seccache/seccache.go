@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"sort"
 	"strconv"
+	"time"
 
 	"github.com/equres/sec/pkg/cache"
 	"github.com/equres/sec/pkg/sec"
@@ -417,6 +418,80 @@ func (sc *SECCache) GenerateCompaniesWithSICPageDataCache(sic string) error {
 	}
 
 	err = sc.S.Cache.MustSet(fmt.Sprintf("%v_%v", cache.SECCompaniesWithSIC, sic), string(companiesJSON))
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (sc *SECCache) GenerateHourlyDownloadStatsPageDataCache() error {
+	allDownloadStats, err := secevent.GetDownloadEventStatsByHour(sc.DB)
+	if err != nil {
+		return err
+	}
+
+	dates := make(map[string]string)
+	for _, stat := range allDownloadStats {
+		formattedDate, err := time.Parse(time.RFC3339, stat.Date)
+		if err != nil {
+			return err
+		}
+
+		dates[stat.Date] = formattedDate.Format("2006-01-02")
+	}
+
+	datesJSON, err := json.Marshal(dates)
+	if err != nil {
+		return err
+	}
+
+	err = sc.S.Cache.MustSet(cache.SECDownloadDates, string(datesJSON))
+	if err != nil {
+		return err
+	}
+
+	hourlyDownloadStats := make(map[string][]secevent.DownloadEventStatsByHour)
+	for hour := 0; hour < 24; hour++ {
+		for unformattedDate, formattedDate := range dates {
+			var hourDateDownloadStats secevent.DownloadEventStatsByHour
+			for _, stat := range allDownloadStats {
+				if stat.Date == unformattedDate && stat.Hour == fmt.Sprint(hour) {
+					hourDateDownloadStats = stat
+				}
+			}
+
+			if hourDateDownloadStats.Hour == "" {
+				hourDateDownloadStats.Hour = fmt.Sprint(hour)
+				hourDateDownloadStats.Date = formattedDate
+				hourDateDownloadStats.FilesDownloaded = 0
+			}
+
+			hourlyDownloadStats[formattedDate] = append(hourlyDownloadStats[formattedDate], hourDateDownloadStats)
+		}
+	}
+
+	hourlyDownloadStatsJSON, err := json.Marshal(hourlyDownloadStats)
+	if err != nil {
+		return err
+	}
+
+	err = sc.S.Cache.MustSet(cache.SECHourlyDownloadStats, string(hourlyDownloadStatsJSON))
+	if err != nil {
+		return err
+	}
+
+	var hours []int
+	for hour := 0; hour < 24; hour++ {
+		hours = append(hours, hour)
+	}
+
+	hoursJSON, err := json.Marshal(hours)
+	if err != nil {
+		return err
+	}
+
+	err = sc.S.Cache.MustSet(cache.SECHours, string(hoursJSON))
 	if err != nil {
 		return err
 	}
