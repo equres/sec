@@ -20,6 +20,7 @@ import (
 	"github.com/equres/sec/pkg/config"
 	"github.com/equres/sec/pkg/sec"
 	"github.com/equres/sec/pkg/seccik"
+	"github.com/equres/sec/pkg/secevent"
 	"github.com/equres/sec/pkg/secsic"
 	"github.com/equres/sec/pkg/secworklist"
 	"github.com/gorilla/mux"
@@ -48,6 +49,7 @@ func (s Server) GenerateRouter() (*mux.Router, error) {
 	router.HandleFunc("/sic", s.HandlerSICListPage).Methods("GET")
 	router.HandleFunc("/sic/{sic}", s.HandlerSICCompaniesPage).Methods("GET")
 	router.HandleFunc("/stats", s.HandlerStatsPage).Methods("GET")
+	router.HandleFunc("/download/stats", s.HandlerDownloadStatsPage).Methods("GET")
 	router.HandleFunc("/api/v1/uptime", s.HandlerUptime).Methods("GET")
 	router.HandleFunc("/robots.txt", s.HanderRobots).Methods("GET")
 	router.PathPrefix("/").HandlerFunc(s.HandlerFiles)
@@ -508,6 +510,36 @@ func (s Server) HandlerStatsPage(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
+func (s Server) HandlerDownloadStatsPage(w http.ResponseWriter, r *http.Request) {
+	hourlyDownloadStats, err := s.GetHourlyDownloadStatsFromRedis(s.Config.Redis)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+
+	dates, err := s.GetDownloadDatesFromRedis(s.Config.Redis)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+
+	hours, err := s.GetHoursFromRedis(s.Config.Redis)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+
+	content := make(map[string]interface{})
+	content["DownloadStats"] = hourlyDownloadStats
+	content["Dates"] = dates
+	content["Hours"] = hours
+
+	err = s.RenderTemplate(w, "downloadstats.page.gohtml", content)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+	}
+}
+
 func (s Server) HandlerUptime(w http.ResponseWriter, r *http.Request) {
 	fmt.Fprint(w, "OK: ", GlobalUptime)
 }
@@ -539,6 +571,15 @@ func (s Server) RenderTemplate(w http.ResponseWriter, tmplName string, data inte
 		},
 		"Increment": func(i int) int {
 			return i + 1
+		},
+		"StatsCSSColor": func(i int) string {
+			if i == 0 {
+				return "red"
+			}
+			if i < 100 {
+				return "orange"
+			}
+			return "green"
 		},
 	}
 
@@ -599,4 +640,52 @@ func (s Server) GetStatsFromRedis(redisConfig config.RedisConfig) (map[string]in
 	}
 
 	return allStats, nil
+}
+
+func (s Server) GetHourlyDownloadStatsFromRedis(redisConfig config.RedisConfig) (map[string][]secevent.DownloadEventStatsByHour, error) {
+	hourlyDownloadStatsJSON, err := s.Cache.Get(cache.SECHourlyDownloadStats)
+	if err != nil {
+		return nil, err
+	}
+
+	hourlyDownloadStats := make(map[string][]secevent.DownloadEventStatsByHour)
+
+	err = json.Unmarshal([]byte(hourlyDownloadStatsJSON), &hourlyDownloadStats)
+	if err != nil {
+		return nil, err
+	}
+
+	return hourlyDownloadStats, nil
+}
+
+func (s Server) GetDownloadDatesFromRedis(redisConfig config.RedisConfig) (map[string]string, error) {
+	downloadDatesJSON, err := s.Cache.Get(cache.SECDownloadDates)
+	if err != nil {
+		return nil, err
+	}
+
+	downloadDates := make(map[string]string)
+
+	err = json.Unmarshal([]byte(downloadDatesJSON), &downloadDates)
+	if err != nil {
+		return nil, err
+	}
+
+	return downloadDates, nil
+}
+
+func (s Server) GetHoursFromRedis(redisConfig config.RedisConfig) ([]int, error) {
+	hoursJSON, err := s.Cache.Get(cache.SECHours)
+	if err != nil {
+		return nil, err
+	}
+
+	var hours []int
+
+	err = json.Unmarshal([]byte(hoursJSON), &hours)
+	if err != nil {
+		return nil, err
+	}
+
+	return hours, nil
 }

@@ -9,6 +9,7 @@ import (
 )
 
 var GlobalTemplatesFS embed.FS
+var GlobalServerPort string
 
 // serveCmd represents the serve command
 var serveCmd = &cobra.Command{
@@ -21,7 +22,7 @@ var serveCmd = &cobra.Command{
 			return err
 		}
 
-		err = server.StartServer()
+		err = server.StartServer(GlobalServerPort)
 		if err != nil {
 			return err
 		}
@@ -31,6 +32,9 @@ var serveCmd = &cobra.Command{
 
 func init() {
 	rootCmd.AddCommand(serveCmd)
+
+	// Add flag for the server port
+	serveCmd.Flags().StringVarP(&GlobalServerPort, "port", "p", "", "Port to serve on")
 
 	// Here you will define your flags and configuration settings.
 

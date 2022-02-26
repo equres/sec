@@ -41,6 +41,12 @@ type EventStat struct {
 	FilesIndexed    int    `db:"files_indexed"`
 }
 
+type DownloadEventStatsByHour struct {
+	Hour            string `db:"hour"`
+	Date            string `db:"date"`
+	FilesDownloaded int    `db:"files_downloaded"`
+}
+
 func CreateIndexEvent(db *sqlx.DB, file string, status string, reason string) {
 	event := IndexEvent{
 		Event:  "index",
@@ -124,4 +130,24 @@ func GetEventStats(db *sqlx.DB) ([]EventStat, error) {
 	}
 
 	return allEventStats, nil
+}
+
+func GetDownloadEventStatsByHour(db *sqlx.DB) ([]DownloadEventStatsByHour, error) {
+	var allDownloadEventStats []DownloadEventStatsByHour
+	err := db.Select(&allDownloadEventStats, `
+	SELECT 
+		EXTRACT(HOUR FROM created_at) as hour,
+		created_at::date as date,
+		COUNT(*) as files_downloaded
+	FROM sec.events 
+	WHERE 
+		ev->>'event' = 'download' 
+		AND ev->>'status' = 'success' 
+	GROUP BY created_at::date, EXTRACT(HOUR FROM created_at);
+	`)
+	if err != nil {
+		return nil, err
+	}
+
+	return allDownloadEventStats, nil
 }

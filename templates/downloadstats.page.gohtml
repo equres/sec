@@ -1,0 +1,29 @@
+{{ template "base" .}}
+
+{{ define "head"}}
+    <title>Equres > Download Stats</title>
+{{ end }}
+
+{{ define "content"}}
+
+    <table class="table">
+        <thead>
+            <tr>
+                <th>Date\Time</th>
+                {{ range $Hour := .Hours }}
+                    <th>{{ $Hour }}</th>
+                {{ end }}
+            </tr>
+        </thead>
+        <tbody>
+            {{ range $Date, $Stats := .DownloadStats }}
+                <tr>
+                    <td>{{ $Date }}</td>
+                    {{ range $DateStats := $Stats }}
+                        <td style="color: {{ StatsCSSColor $DateStats.FilesDownloaded }};">{{ $DateStats.FilesDownloaded }}</td>
+                    {{ end }}
+                </tr>
+            {{ end }}
+        </tbody>
+    </table>
+{{ end }}
