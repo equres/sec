@@ -202,6 +202,23 @@
         - { src: 'pg_ident.conf' }
         - { src: 'postgresql.conf' }
         - { src: 'start.conf' }
+    - name: Copy SEC Service File
+      become: yes
+      become_user: root
+      become_method: sudo
+      ansible.builtin.copy:
+        src: ./etc/systemd/system/sec_serve.service
+        dest: /etc/systemd/system
+        owner: root
+        mode: '0755'
+    - name: Start SEC Service
+      become: yes
+      become_user: root
+      become_method: sudo
+      ansible.builtin.systemd:
+        state: started
+        daemon_reload: yes
+        name: sec_serve
     - name: Get SSL Certificates Dir
       become: yes
       become_user: root

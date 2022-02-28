@@ -1,0 +1,12 @@
+[Unit]
+Description=SEC App Server
+
+[Service]
+User=sec
+Group=sec
+WorkingDirectory=/home/sec
+ExecStart=/home/sec/sec serve
+Restart=always
+
+[Install]
+WantedBy=multi-user.target
