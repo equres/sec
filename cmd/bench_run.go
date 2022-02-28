@@ -1,17 +1,17 @@
 package cmd
 
 import (
+	"bytes"
 	"fmt"
+	"io"
+	"io/ioutil"
+	"net/http"
 	"os"
 	"strings"
 	"time"
-	"net/http"
-	"io/ioutil"
-	"io"
-	"bytes"
 
-	"github.com/spf13/cobra"
 	log "github.com/sirupsen/logrus"
+	"github.com/spf13/cobra"
 )
 
 // runCmd represents the run command
@@ -60,9 +60,7 @@ var runCmd = &cobra.Command{
 
 		endTime := time.Now()
 
-		if S.Verbose {
-			log.Info(fmt.Sprintf("It took %v seconds to download %v files", endTime.Sub(startTime).Seconds(), len(fileURLs)))
-		}
+		S.Log(fmt.Sprintf("It took %v seconds to download %v files", endTime.Sub(startTime).Seconds(), len(fileURLs)))
 
 		return nil
 	},
@@ -88,9 +86,7 @@ func fetchFiles(fileURLs []string, rateLimit time.Duration) error {
 	var currentDownloadCount int
 
 	for _, fileURL := range fileURLs {
-		if S.Verbose {
-			log.Info("Downloading file: ", fileURL)
-		}
+		S.Log(fmt.Sprintf("Downloading file: %v", fileURL))
 
 		if fileURL == "" {
 			continue
@@ -118,9 +114,7 @@ func fetchFiles(fileURLs []string, rateLimit time.Duration) error {
 			return err
 		}
 
-		if S.Verbose {
-			log.Info("File size: ", size)
-		}
+		S.Log(fmt.Sprintf("File size: %v", size))
 		currentDownloadCount++
 
 		log.Info(fmt.Sprintf("File progress [%d/%d] status_code_%d", currentDownloadCount, len(fileURLs), resp.StatusCode))

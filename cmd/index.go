@@ -57,36 +57,27 @@ var indexCmd = &cobra.Command{
 			return err
 		}
 
-		if S.Verbose {
-			log.Info("Inserting SIC Code List...")
-		}
+		S.Log("Inserting SIC Code List...")
 		err = secindex.IndexSICCodes(S, DB)
 		if err != nil {
 			return err
 		}
 
-		if S.Verbose {
-			log.Info("Inserting CIK From Txt File...")
-		}
+		S.Log("Inserting CIK From Txt File...")
 		err = seccik.GetCIKsFromTxtFile(S, DB)
 		if err != nil {
 			return err
 		}
 
 		if S.Config.IndexMode.FinancialStatementDataSets == "enabled" || S.Config.IndexMode.FinancialStatementDataSets == "true" || GlobalWillIndexSECData {
-			if S.Verbose {
-				log.Info("Indexing Financial Statement Data Sets...")
-			}
+			S.Log("Indexing Financial Statement Data Sets...")
 			secData := secdata.NewSECData(secdata.NewSECDataOpsFSDS())
 			err = secData.IndexData(S, DB)
 			if err != nil {
 				return err
 			}
 
-			if S.Verbose {
-				log.Info("Indexing Mutual Fund Data...")
-			}
-
+			S.Log("Indexing Mutual Fund Data...")
 			secData = secdata.NewSECData(secdata.NewSECDataOpsMFD())
 			err = secData.IndexData(S, DB)
 			if err != nil {

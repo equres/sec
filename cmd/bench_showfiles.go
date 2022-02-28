@@ -7,7 +7,6 @@ import (
 	"time"
 
 	"github.com/equres/sec/pkg/secutil"
-	log "github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 )
 
@@ -26,9 +25,7 @@ var showfilesCmd = &cobra.Command{
 			return err
 		}
 
-		if S.Verbose {
-			log.Info("Getting a random index file to fetch XBRLFiles...")
-		}
+		S.Log("Getting a random index file to fetch XBRLFiles...")
 
 		rssFiles, err := secutil.GetAllRSSFiles(S, DB)
 		if err != nil {

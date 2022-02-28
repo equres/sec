@@ -37,9 +37,7 @@ func DownloadTickerFile(db *sqlx.DB, s *sec.SEC, path string) error {
 
 	fullURL := baseURL.ResolveReference(pathURL).String()
 
-	if s.Verbose {
-		log.Info(fmt.Sprintf("Checking for file %v: ", filepath.Base(pathURL.Path)))
-	}
+	s.Log(fmt.Sprintf("Checking for file %v: ", filepath.Base(pathURL.Path)))
 
 	etag, err := downloader.GetFileETag(fullURL)
 	if err != nil {
@@ -56,21 +54,17 @@ func DownloadTickerFile(db *sqlx.DB, s *sec.SEC, path string) error {
 		return err
 	}
 
-	if s.Verbose && isFileCorrect {
-		log.Info("\u2713")
+	if isFileCorrect {
+		s.Log("\u2713")
 	}
 	if !isFileCorrect {
-		if s.Verbose {
-			log.Info("Downloading file...: ")
-		}
+		s.Log("Downloading file...: ")
 		err = downloader.DownloadFile(db, fullURL)
 		if err != nil {
 			return err
 		}
 
-		if s.Verbose {
-			log.Info(time.Now().Format("2006-01-02 03:04:05"))
-		}
+		s.Log(time.Now().Format("2006-01-02 03:04:05"))
 		time.Sleep(rateLimit)
 	}
 	return nil
@@ -100,9 +94,7 @@ func DownloadIndex(db *sqlx.DB, s *sec.SEC) error {
 			return err
 		}
 
-		if s.Verbose {
-			log.Info(fmt.Sprintf("Checking file '%v' in disk: ", filepath.Base(fileURL)))
-		}
+		s.Log(fmt.Sprintf("Checking file '%v' in disk: ", filepath.Base(fileURL)))
 
 		etag, err := downloader.GetFileETag(fileURL)
 		if err != nil {
@@ -113,22 +105,19 @@ func DownloadIndex(db *sqlx.DB, s *sec.SEC) error {
 		if err != nil {
 			return err
 		}
-		if s.Verbose && isFileCorrect {
-			log.Info("\u2713")
+		if isFileCorrect {
+			s.Log("\u2713")
 		}
 
 		if !isFileCorrect {
-			if s.Verbose {
-				log.Info("Downloading file...: ")
-			}
+			s.Log("Downloading file...: ")
 
 			err = downloader.DownloadFile(db, fileURL)
 			if err != nil {
 				return err
 			}
-			if s.Verbose {
-				log.Info(time.Now().Format("2006-01-02 03:04:05"))
-			}
+
+			s.Log(time.Now().Format("2006-01-02 03:04:05"))
 			time.Sleep(rateLimit)
 		}
 
@@ -174,9 +163,7 @@ func DownloadXbrlFileContent(db *sqlx.DB, s *sec.SEC, files []sec.XbrlFile, conf
 			log.Info(fmt.Sprintf("\r[%d/%d/%f%% files already downloaded]. Will download %d remaining files. Pass --verbose to see progress report", *currentCount, totalCount, downloader.GetDownloadPercentage(), (totalCount - *currentCount)))
 		}
 
-		if s.Verbose {
-			log.Info(fmt.Sprintf("[%d/%d/%f%%] %s downloaded...\n", *currentCount, totalCount, downloader.GetDownloadPercentage(), time.Now().Format("2006-01-02 03:04:05")))
-		}
+		s.Log(fmt.Sprintf("[%d/%d/%f%%] %s downloaded...\n", *currentCount, totalCount, downloader.GetDownloadPercentage(), time.Now().Format("2006-01-02 03:04:05")))
 		time.Sleep(rateLimit)
 	}
 
@@ -184,17 +171,14 @@ func DownloadXbrlFileContent(db *sqlx.DB, s *sec.SEC, files []sec.XbrlFile, conf
 }
 
 func DownloadAllItemFiles(db *sqlx.DB, s *sec.SEC, rssFile sec.RSSFile, worklist []secworklist.Worklist) error {
-	if s.Verbose {
-		log.Info("Calculating number of XBRL Files in the index files: ")
-	}
+	s.Log("Calculating number of XBRL Files in the index files: ")
 
 	totalCount, err := secutil.TotalXbrlFileCountGet(worklist, s, s.Config.Main.CacheDir)
 	if err != nil {
 		return err
 	}
-	if s.Verbose {
-		log.Info(totalCount)
-	}
+
+	s.Log(fmt.Sprint(totalCount))
 
 	currentCount := 0
 	for _, v1 := range rssFile.Channel.Item {
@@ -272,9 +256,7 @@ func DownloadZIPFiles(db *sqlx.DB, s *sec.SEC) error {
 				log.Info(fmt.Sprintf("\r[%d/%d/%f%% files already downloaded]. Will download %d remaining files. Pass --verbose to see progress report", currentCount, totalCount, downloader.GetDownloadPercentage(), (totalCount - currentCount)))
 			}
 
-			if s.Verbose {
-				log.Info(fmt.Sprintf("[%d/%d/%f%%] %s downloaded...\n", currentCount, totalCount, downloader.GetDownloadPercentage(), time.Now().Format("2006-01-02 03:04:05")))
-			}
+			s.Log(fmt.Sprintf("[%d/%d/%f%%] %s downloaded...\n", currentCount, totalCount, downloader.GetDownloadPercentage(), time.Now().Format("2006-01-02 03:04:05")))
 		}
 
 	}
@@ -282,9 +264,7 @@ func DownloadZIPFiles(db *sqlx.DB, s *sec.SEC) error {
 }
 
 func DownloadRawFiles(s *sec.SEC, db *sqlx.DB, filesToDownload []string) error {
-	if s.Verbose {
-		log.Info("Number of files to be downloaded: ", len(filesToDownload))
-	}
+	s.Log(fmt.Sprint("Number of files to be downloaded: ", len(filesToDownload)))
 
 	downloader := download.NewDownloader(s.Config)
 	downloader.IsEtag = true
@@ -299,9 +279,7 @@ func DownloadRawFiles(s *sec.SEC, db *sqlx.DB, filesToDownload []string) error {
 	}
 
 	for _, v := range filesToDownload {
-		if s.Verbose {
-			log.Info(fmt.Sprintf("Download progress [%d/%d/%f%%]", downloader.CurrentDownloadCount, downloader.TotalDownloadsCount, downloader.GetDownloadPercentage()))
-		}
+		s.Log(fmt.Sprintf("Download progress [%d/%d/%f%%]", downloader.CurrentDownloadCount, downloader.TotalDownloadsCount, downloader.GetDownloadPercentage()))
 
 		err = downloader.DownloadFile(db, v)
 		if err != nil {
