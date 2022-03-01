@@ -24,10 +24,7 @@ to quickly create a Cobra application.`,
 		return database.CheckMigration(RootConfig)
 	},
 	RunE: func(cmd *cobra.Command, args []string) error {
-
-		if S.Verbose {
-			log.Info("Checking/Downloading index files...")
-		}
+		S.Log("Checking/Downloading index files...")
 
 		err := secdow.DownloadIndex(DB, S)
 		if err != nil {

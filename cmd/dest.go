@@ -31,9 +31,7 @@ var destCmd = &cobra.Command{
 		downloader := download.NewDownloader(RootConfig)
 		downloader.IsEtag = true
 
-		if S.Verbose {
-			log.Info("File Name - Uncompressed Sized - ZIP Sizes")
-		}
+		S.Log("File Name - Uncompressed Sized - ZIP Sizes")
 
 		var totalSize float64
 		var totalSizeZIP int
@@ -76,9 +74,7 @@ var destCmd = &cobra.Command{
 				return err
 			}
 
-			if S.Verbose {
-				log.Info(fmt.Sprintf("fn %v %v %v", filepath.Base(filePath), parseSize(fileSize), parseSize(float64(fileSizeZIP))))
-			}
+			S.Log(fmt.Sprintf("fn %v %v %v", filepath.Base(filePath), parseSize(fileSize), parseSize(float64(fileSizeZIP))))
 
 			if _, ok := totalSizeForYear[downloadable.Year]; !ok {
 				totalSizeForYear[downloadable.Year] = 0
@@ -92,9 +88,7 @@ var destCmd = &cobra.Command{
 			totalSizeZIP += fileSizeZIP
 
 			if downloadable.Month == 12 || len(worklist)-1 == index {
-				if S.Verbose {
-					log.Info(fmt.Sprintf("Year %v - %v - %v", downloadable.Year, parseSize(totalSizeForYear[downloadable.Year]), parseSize(float64(totalSizeZIPForYear[downloadable.Year]))))
-				}
+				S.Log(fmt.Sprintf("Year %v - %v - %v", downloadable.Year, parseSize(totalSizeForYear[downloadable.Year]), parseSize(float64(totalSizeZIPForYear[downloadable.Year]))))
 			}
 		}
 

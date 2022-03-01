@@ -9,7 +9,6 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
-	"sort"
 	"strconv"
 	"strings"
 	"time"
@@ -21,8 +20,8 @@ import (
 	"github.com/equres/sec/pkg/config"
 	"github.com/equres/sec/pkg/sec"
 	"github.com/equres/sec/pkg/seccik"
+	"github.com/equres/sec/pkg/secevent"
 	"github.com/equres/sec/pkg/secsic"
-	"github.com/equres/sec/pkg/secutil"
 	"github.com/equres/sec/pkg/secworklist"
 	"github.com/gorilla/mux"
 	"github.com/gosimple/slug"
@@ -50,6 +49,7 @@ func (s Server) GenerateRouter() (*mux.Router, error) {
 	router.HandleFunc("/sic", s.HandlerSICListPage).Methods("GET")
 	router.HandleFunc("/sic/{sic}", s.HandlerSICCompaniesPage).Methods("GET")
 	router.HandleFunc("/stats", s.HandlerStatsPage).Methods("GET")
+	router.HandleFunc("/download/stats", s.HandlerDownloadStatsPage).Methods("GET")
 	router.HandleFunc("/api/v1/uptime", s.HandlerUptime).Methods("GET")
 	router.HandleFunc("/robots.txt", s.HanderRobots).Methods("GET")
 	router.PathPrefix("/").HandlerFunc(s.HandlerFiles)
@@ -163,13 +163,22 @@ func (s Server) HandlerMonthsPage(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	content := make(map[string]interface{})
-	content["Year"] = year
-	content["Months"], err = secworklist.MonthsInYear(s.DB, year)
+	monthsJSON, err := s.Cache.MustGet(fmt.Sprintf("%v_%v", cache.SECMonthsInYear, year))
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
+
+	var months []int
+	err = json.Unmarshal([]byte(monthsJSON), &months)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+
+	content := make(map[string]interface{})
+	content["Year"] = year
+	content["Months"] = months
 
 	err = s.RenderTemplate(w, "months.page.gohtml", content)
 	if err != nil {
@@ -191,7 +200,14 @@ func (s Server) HandlerDaysPage(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	days, err := secutil.GetFilingDaysFromMonthYear(s.DB, year, month)
+	daysJSON, err := s.Cache.MustGet(fmt.Sprintf("%v_%v_%v", cache.SECDaysInMonth, year, month))
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+
+	var days []int
+	err = json.Unmarshal([]byte(daysJSON), &days)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
@@ -242,7 +258,14 @@ func (s Server) HandlerCompaniesPage(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	companies, err := secutil.GetFilingCompaniesFromYearMonthDay(s.DB, year, month, day)
+	companiesJSON, err := s.Cache.MustGet(fmt.Sprintf("%v_%v_%v_%v", cache.SECCompaniesInDay, year, month, day))
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+
+	var companies []sec.SECItemFile
+	err = json.Unmarshal([]byte(companiesJSON), &companies)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
@@ -291,7 +314,14 @@ func (s Server) HandlerFilingsPage(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	filings, err := secutil.SearchFilingsByYearMonthDayCIK(s.DB, year, month, day, cik)
+	filingsJSON, err := s.Cache.MustGet(fmt.Sprintf("%v_%v_%v_%v_%v", cache.SECFilingsInDay, year, month, day, cik))
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+
+	var filings []sec.SECItemFile
+	err = json.Unmarshal([]byte(filingsJSON), &filings)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
@@ -325,14 +355,22 @@ func (s Server) HandlerFilingsPage(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s Server) HandlerCompaniesListPage(w http.ResponseWriter, r *http.Request) {
-	companies, err := sec.GetAllCompanies(s.DB)
+
+	companiesJSON, err := s.Cache.MustGet(cache.SECCompanySlugs)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+
+	companies := make(map[string]sec.Company)
+	err = json.Unmarshal([]byte(companiesJSON), &companies)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
 
 	content := make(map[string]interface{})
-	content["Companies"] = GetCompanySlugs(companies)
+	content["Companies"] = companies
 
 	err = s.RenderTemplate(w, "companieslist.page.gohtml", content)
 	if err != nil {
@@ -357,7 +395,26 @@ func (s Server) HandlerCompanyFilingsPage(w http.ResponseWriter, r *http.Request
 		return
 	}
 
-	filings, err := sec.GetCompanyFilingsFromCIK(s.DB, cik)
+	type FormattedFiling struct {
+		CompanyName string
+		FillingDate string
+		FormType    string
+		FilingsURL  string
+	}
+
+	type YearFilings struct {
+		Year    string
+		Filings []FormattedFiling
+	}
+
+	filingsJSON, err := s.Cache.MustGet(fmt.Sprintf("%v_%v", cache.SECCompanyFilings, cik))
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+
+	var filings []YearFilings
+	err = json.Unmarshal([]byte(filingsJSON), &filings)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
@@ -369,47 +426,8 @@ func (s Server) HandlerCompanyFilingsPage(w http.ResponseWriter, r *http.Request
 		return
 	}
 
-	type FormattedFiling struct {
-		CompanyName string
-		FillingDate string
-		FormType    string
-		FilingsURL  string
-	}
-
-	formattedFilings := make(map[string][]FormattedFiling)
-
-	for year, secItemFiles := range filings {
-		for _, item := range secItemFiles {
-			filingsURL := fmt.Sprintf("/filings/%v/%v/%v/%v", item.FillingDate.Year(), int(item.FillingDate.Month()), item.FillingDate.Day(), item.CIKNumber)
-			formType := secutil.GetFullFormType(item.FormType)
-			formattedFilings[year] = append(formattedFilings[year], FormattedFiling{
-				CompanyName: item.CompanyName,
-				FillingDate: item.FillingDate.Format("2006-01-02"),
-				FormType:    formType,
-				FilingsURL:  filingsURL,
-			})
-		}
-	}
-
-	type YearFilings struct {
-		Year    string
-		Filings []FormattedFiling
-	}
-
-	var allYearsFilings []YearFilings
-	for year, filings := range formattedFilings {
-		allYearsFilings = append(allYearsFilings, YearFilings{
-			Year:    year,
-			Filings: filings,
-		})
-	}
-
-	sort.Slice(allYearsFilings, func(i, j int) bool {
-		return allYearsFilings[i].Year > allYearsFilings[j].Year
-	})
-
 	content := make(map[string]interface{})
-	content["Filings"] = allYearsFilings
+	content["Filings"] = filings
 	content["CompanyName"] = companyName
 
 	err = s.RenderTemplate(w, "companyfilings.page.gohtml", content)
@@ -420,7 +438,14 @@ func (s Server) HandlerCompanyFilingsPage(w http.ResponseWriter, r *http.Request
 }
 
 func (s Server) HandlerSICListPage(w http.ResponseWriter, r *http.Request) {
-	sics, err := secsic.GetAllSICCodes(s.DB)
+	sicJSON, err := s.Cache.MustGet(cache.SECSICs)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+
+	var sics []sec.SIC
+	err = json.Unmarshal([]byte(sicJSON), &sics)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
@@ -440,7 +465,20 @@ func (s Server) HandlerSICCompaniesPage(w http.ResponseWriter, r *http.Request) 
 	vars := mux.Vars(r)
 	sic := vars["sic"]
 
-	companies, err := secsic.GetAllCompaniesWithSIC(s.DB, sic)
+	companiesJSON, err := s.Cache.MustGet(fmt.Sprintf("%v_%v", cache.SECCompaniesWithSIC, sic))
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+
+	var companies []sec.Company
+	err = json.Unmarshal([]byte(companiesJSON), &companies)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+
+	categoryName, err := secsic.GetCategoryNameFromSIC(s.DB, sic)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
@@ -448,6 +486,7 @@ func (s Server) HandlerSICCompaniesPage(w http.ResponseWriter, r *http.Request) 
 
 	content := make(map[string]interface{})
 	content["Companies"] = GetCompanySlugs(companies)
+	content["CategoryName"] = categoryName
 
 	err = s.RenderTemplate(w, "companieslist.page.gohtml", content)
 	if err != nil {
@@ -471,12 +510,45 @@ func (s Server) HandlerStatsPage(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
+func (s Server) HandlerDownloadStatsPage(w http.ResponseWriter, r *http.Request) {
+	hourlyDownloadStats, err := s.GetHourlyDownloadStatsFromRedis(s.Config.Redis)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+
+	dates, err := s.GetDownloadDatesFromRedis(s.Config.Redis)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+
+	hours, err := s.GetHoursFromRedis(s.Config.Redis)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+
+	content := make(map[string]interface{})
+	content["DownloadStats"] = hourlyDownloadStats
+	content["Dates"] = dates
+	content["Hours"] = hours
+
+	err = s.RenderTemplate(w, "downloadstats.page.gohtml", content)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+	}
+}
+
 func (s Server) HandlerUptime(w http.ResponseWriter, r *http.Request) {
 	fmt.Fprint(w, "OK: ", GlobalUptime)
 }
 
 func (s Server) HanderRobots(w http.ResponseWriter, r *http.Request) {
 	fmt.Fprint(w, `User-agent: MJ12bot
+Disallow: /
+
+User-agent: BLEXBot
 Disallow: /
 
 User-agent: *
@@ -496,6 +568,18 @@ func (s Server) RenderTemplate(w http.ResponseWriter, tmplName string, data inte
 		},
 		"AppVersion": func() string {
 			return fmt.Sprintf("%s %s", s.SHA1Ver, s.BuildTime)
+		},
+		"Increment": func(i int) int {
+			return i + 1
+		},
+		"StatsCSSColor": func(i int) string {
+			if i == 0 {
+				return "red"
+			}
+			if i < 100 {
+				return "orange"
+			}
+			return "green"
 		},
 	}
 
@@ -556,4 +640,52 @@ func (s Server) GetStatsFromRedis(redisConfig config.RedisConfig) (map[string]in
 	}
 
 	return allStats, nil
+}
+
+func (s Server) GetHourlyDownloadStatsFromRedis(redisConfig config.RedisConfig) (map[string][]secevent.DownloadEventStatsByHour, error) {
+	hourlyDownloadStatsJSON, err := s.Cache.Get(cache.SECHourlyDownloadStats)
+	if err != nil {
+		return nil, err
+	}
+
+	hourlyDownloadStats := make(map[string][]secevent.DownloadEventStatsByHour)
+
+	err = json.Unmarshal([]byte(hourlyDownloadStatsJSON), &hourlyDownloadStats)
+	if err != nil {
+		return nil, err
+	}
+
+	return hourlyDownloadStats, nil
+}
+
+func (s Server) GetDownloadDatesFromRedis(redisConfig config.RedisConfig) (map[string]string, error) {
+	downloadDatesJSON, err := s.Cache.Get(cache.SECDownloadDates)
+	if err != nil {
+		return nil, err
+	}
+
+	downloadDates := make(map[string]string)
+
+	err = json.Unmarshal([]byte(downloadDatesJSON), &downloadDates)
+	if err != nil {
+		return nil, err
+	}
+
+	return downloadDates, nil
+}
+
+func (s Server) GetHoursFromRedis(redisConfig config.RedisConfig) ([]int, error) {
+	hoursJSON, err := s.Cache.Get(cache.SECHours)
+	if err != nil {
+		return nil, err
+	}
+
+	var hours []int
+
+	err = json.Unmarshal([]byte(hoursJSON), &hours)
+	if err != nil {
+		return nil, err
+	}
+
+	return hours, nil
 }

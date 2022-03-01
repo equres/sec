@@ -27,3 +27,5 @@ config.yml
 
 infra/.env
 infra/.vault_password.txt
+fileURLs.txt
+experiments/experiments

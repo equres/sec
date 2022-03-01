@@ -8,6 +8,8 @@ import (
 	"strconv"
 	"time"
 
+	log "github.com/sirupsen/logrus"
+
 	"github.com/equres/sec/pkg/cache"
 	"github.com/equres/sec/pkg/config"
 	"github.com/jmoiron/sqlx"
@@ -161,6 +163,12 @@ func NewSEC(config config.Config) (*SEC, error) {
 		Config:  config,
 		Cache:   redisCache,
 	}, nil
+}
+
+func (s *SEC) Log(msg string) {
+	if s.Verbose {
+		log.Info(msg)
+	}
 }
 
 func GetAllCompanies(db *sqlx.DB) ([]Company, error) {

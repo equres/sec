@@ -2,6 +2,7 @@ package server
 
 import (
 	"embed"
+	"fmt"
 	"net/http"
 	"time"
 
@@ -42,7 +43,7 @@ func NewServer(db *sqlx.DB, config config.Config, templates embed.FS) (Server, e
 	return s, nil
 }
 
-func (s Server) StartServer() error {
+func (s Server) StartServer(port string) error {
 	router, err := s.GenerateRouter()
 	if err != nil {
 		return err
@@ -50,10 +51,18 @@ func (s Server) StartServer() error {
 
 	GlobalUptime = time.Now()
 
+	if port != "" {
+		port = fmt.Sprintf(":%s", port)
+	}
+
+	if port == "" {
+		port = s.Config.Main.ServerPort
+	}
+
 	log.Info(s.SHA1Ver)
 	log.Info(s.BuildTime)
-	log.Info("Listening on port", s.Config.Main.ServerPort)
-	err = http.ListenAndServe(s.Config.Main.ServerPort, router)
+	log.Info("Listening on port ", port)
+	err = http.ListenAndServe(port, router)
 	if err != nil {
 		return err
 	}

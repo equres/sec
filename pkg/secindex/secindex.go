@@ -77,7 +77,7 @@ func SecItemFileUpsert(db *sqlx.DB, s *sec.SEC, item sec.Item, worklist map[stri
 			totalCountFloat := float64(totalCount)
 			percentage := (currentCountFloat / totalCountFloat) * 100
 
-			log.Info(fmt.Sprintf("[%d/%d/%f%%] %s inserting file %v", *currentCount, totalCount, percentage, time.Now().Format("2006-01-02 03:04:05"), v.URL))
+			s.Log(fmt.Sprintf("[%d/%d/%f%%] %s inserting file %v", *currentCount, totalCount, percentage, time.Now().Format("2006-01-02 03:04:05"), v.URL))
 		}
 
 		var xbrlInline bool
@@ -320,9 +320,7 @@ func IndexZIPFileContent(db *sqlx.DB, s *sec.SEC, rssFile sec.RSSFile, worklist 
 		reader.Close()
 		currentCount++
 
-		if s.Verbose {
-			log.Info(fmt.Sprintf("[%d/%d] %s inserted for current file...\n", currentCount, totalCount, time.Now().Format("2006-01-02 03:04:05")))
-		}
+		s.Log(fmt.Sprintf("[%d/%d] %s inserted for file %v...\n", currentCount, totalCount, time.Now().Format("2006-01-02 03:04:05"), zipCachePath))
 	}
 	return nil
 }

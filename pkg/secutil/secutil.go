@@ -358,9 +358,7 @@ func ForEachWorklist(s *sec.SEC, db *sqlx.DB, implementFunc func(*sqlx.DB, *sec.
 			return err
 		}
 
-		if s.Verbose {
-			log.Info(verboseMessage)
-		}
+		s.Log(verboseMessage)
 
 		err = implementFunc(db, s, rssFile, worklist)
 		if err != nil {
@@ -438,9 +436,7 @@ func UnzipFiles(db *sqlx.DB, s *sec.SEC) error {
 			reader.Close()
 
 			currentCount++
-			if s.Verbose {
-				log.Info(fmt.Sprintf("[%d/%d] %s unpacked...\n", currentCount, totalCount, time.Now().Format("2006-01-02 03:04:05")))
-			}
+			s.Log(fmt.Sprintf("[%d/%d] %s unpacked...\n", currentCount, totalCount, time.Now().Format("2006-01-02 03:04:05")))
 		}
 	}
 	return nil
@@ -505,9 +501,7 @@ func GetSuccessfulDownloadEventCount(db *sqlx.DB) (int, error) {
 }
 
 func GetTotalZIPFilesToBeDownloaded(db *sqlx.DB, s *sec.SEC, worklist []secworklist.Worklist) (int, error) {
-	if s.Verbose {
-		log.Info("Getting Number of ZIP Files To Be Downloaded...")
-	}
+	s.Log("Getting Number of ZIP Files To Be Downloaded...")
 
 	var totalZIPFilesToBeDownloaded int
 	for _, v := range worklist {
@@ -529,9 +523,7 @@ func GetTotalZIPFilesToBeDownloaded(db *sqlx.DB, s *sec.SEC, worklist []secworkl
 		totalZIPFilesToBeDownloaded += len(rssFile.Channel.Item)
 	}
 
-	if s.Verbose {
-		log.Info("There is a total of ", totalZIPFilesToBeDownloaded, " ZIP files to be downloaded.")
-	}
+	s.Log(fmt.Sprintf("There is a total of %v ZIP files to be downloaded.", totalZIPFilesToBeDownloaded))
 	return totalZIPFilesToBeDownloaded, nil
 }
 
@@ -572,16 +564,12 @@ func CompareUnzippedFiles(s *sec.SEC, db *sqlx.DB, rssFiles []sec.RSSFile, total
 
 				_, err = os.Stat(filePath)
 				if err != nil {
-					if s.Verbose {
-						log.Info(fmt.Sprintf("fn %v does_not_exist", filePath))
-					}
+					s.Log(fmt.Sprintf("fn %v does_not_exist", filePath))
 					continue
 				}
 
 				correctCount++
-				if s.Verbose {
-					log.Info(fmt.Sprintf("[%d/%d] files found...\n", correctCount, totalCount))
-				}
+				s.Log(fmt.Sprintf("[%d/%d] files found...\n", correctCount, totalCount))
 			}
 		}
 	}
@@ -604,16 +592,12 @@ func CompareZipFiles(s *sec.SEC, db *sqlx.DB, rssFiles []sec.RSSFile, totalCount
 
 			_, err = os.Stat(filePath)
 			if err != nil {
-				if s.Verbose {
-					log.Info(fmt.Sprintf("fn %v does_not_exist", filePath))
-				}
+				s.Log(fmt.Sprintf("fn %v does_not_exist", filePath))
 				continue
 			}
 
 			correctCount++
-			if s.Verbose {
-				log.Info(fmt.Sprintf("[%d/%d] files found...\n", correctCount, totalCount))
-			}
+			s.Log(fmt.Sprintf("[%d/%d] files found...\n", correctCount, totalCount))
 		}
 	}
 
@@ -636,16 +620,12 @@ func CompareRawFiles(s *sec.SEC, db *sqlx.DB, rssFiles []sec.RSSFile, totalCount
 
 				_, err = os.Stat(filePath)
 				if err != nil {
-					if s.Verbose {
-						log.Info(fmt.Sprintf("fn %v does_not_exist", filePath))
-					}
+					s.Log(fmt.Sprintf("fn %v does_not_exist", filePath))
 					continue
 				}
 
 				correctCount++
-				if s.Verbose {
-					log.Info(fmt.Sprintf("[%d/%d] files found...\n", correctCount, totalCount))
-				}
+				s.Log(fmt.Sprintf("[%d/%d] files found...\n", correctCount, totalCount))
 			}
 		}
 	}

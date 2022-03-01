@@ -2,9 +2,15 @@
 
 {{ define "head"}}
     <title>Equres > Companies</title>
+    <meta name="description" content="All the companies with filings submitted to the Security and Exchange Commission">
+    <meta name="keywords" content="sec, cik, security and exchange commission, companies">
 {{ end }}
 
 {{ define "content"}}
+    {{ if .CategoryName }}
+        <h3>Financial Filings For {{ .CategoryName }} Category</h3>
+    {{ end }}
+
     <table class="table">
         <thead>
             <tr>
