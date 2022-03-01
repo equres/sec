@@ -132,6 +132,7 @@ type SECItemFile struct {
 type Company struct {
 	CompanyName string
 	CIKNumber   string
+	Slug        string
 }
 
 type SIC struct {
