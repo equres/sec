@@ -9,18 +9,18 @@
     <table class="table">
         <thead>
             <tr>
-                <th>Date\Time</th>
+                <th style="font-size: 0.9em;">Date\Time</th>
                 {{ range $Hour := .Hours }}
-                    <th>{{ $Hour }}</th>
+                    <th style="font-size: 0.9em;">{{ $Hour }}</th>
                 {{ end }}
             </tr>
         </thead>
         <tbody>
             {{ range $Date, $Stats := .DownloadStats }}
                 <tr>
-                    <td>{{ $Date }}</td>
+                    <td style="font-size: 0.9em;">{{ $Date }}</td>
                     {{ range $DateStats := $Stats }}
-                        <td style="color: {{ StatsCSSColor $DateStats.FilesDownloaded }};">{{ $DateStats.FilesDownloaded }}</td>
+                        <td style="color: {{ StatsCSSColor $DateStats.FilesDownloaded }}; font-size: 0.9em;">{{ $DateStats.FilesDownloaded }}</td>
                     {{ end }}
                 </tr>
             {{ end }}
