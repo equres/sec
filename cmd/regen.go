@@ -31,57 +31,43 @@ var regenCmd = &cobra.Command{
 		sc := seccache.NewSECCache(DB, S)
 		switch args[0] {
 		case "sitemap":
-			if S.Verbose {
-				log.Info("Generating a sitemap.xml file...")
-			}
+			S.Log("Generating a sitemap.xml file...")
 			err := GenerateSitemap(sc)
 			if err != nil {
 				return err
 			}
 		case "stats":
-			if S.Verbose {
-				log.Info("Generating & caching stats in redis...")
-			}
-
+			S.Log("Generating & caching stats in redis...")
 			err := sc.GenerateStatsCache()
 			if err != nil {
 				return err
 			}
 		case "pages":
-			if S.Verbose {
-				log.Info("Generating & caching pages in redis...")
-			}
+			S.Log("Generating & caching pages in redis...")
 			err := sc.GenerateHomePageDataCache()
 			if err != nil {
 				return err
 			}
-			if S.Verbose {
-				log.Info("Generating & caching Months in Year page in redis...")
-			}
+
+			S.Log("Generating & caching Months in Year page in redis...")
 			err = sc.GenerateMonthDayCIKDataCache()
 			if err != nil {
 				return err
 			}
 
-			if S.Verbose {
-				log.Info("Generating & caching Companies page in redis...")
-			}
+			S.Log("Generating & caching Companies page in redis...")
 			err = sc.GenerateCompanySlugsDataCache()
 			if err != nil {
 				return err
 			}
 
-			if S.Verbose {
-				log.Info("Generating & caching SIC page in redis...")
-			}
+			S.Log("Generating & caching SIC page in redis...")
 			err = sc.GenerateSICPageDataCache()
 			if err != nil {
 				return err
 			}
 
-			if S.Verbose {
-				log.Info("Generating & caching Download Stats page in redis...")
-			}
+			S.Log("Generating & caching Download Stats page in redis...")
 			err = sc.GenerateHourlyDownloadStatsPageDataCache()
 			if err != nil {
 				return err

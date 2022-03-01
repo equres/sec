@@ -4,7 +4,6 @@ package cmd
 import (
 	"github.com/equres/sec/pkg/secdata"
 	"github.com/equres/sec/pkg/secdow"
-	log "github.com/sirupsen/logrus"
 
 	"github.com/spf13/cobra"
 )
@@ -27,9 +26,7 @@ var dowIndexCmd = &cobra.Command{
 			return err
 		}
 
-		if S.Verbose {
-			log.Info("Checking/Downloading index files...")
-		}
+		S.Log("Checking/Downloading index files...")
 
 		err = secdow.DownloadIndex(DB, S)
 		if err != nil {
@@ -37,9 +34,7 @@ var dowIndexCmd = &cobra.Command{
 		}
 
 		if GlobalWillDownloadSECData {
-			if S.Verbose {
-				log.Info("Downloading financial statement data sets...:")
-			}
+			S.Log("Downloading financial statement data sets...:")
 
 			secData := secdata.NewSECData(secdata.NewSECDataOpsFSDS())
 			err = secData.DownloadSECData(DB, S)
@@ -47,9 +42,7 @@ var dowIndexCmd = &cobra.Command{
 				return err
 			}
 
-			if S.Verbose {
-				log.Info("Downloading mutual fund data...:")
-			}
+			S.Log("Downloading mutual fund data...:")
 
 			secData = secdata.NewSECData(secdata.NewSECDataOpsMFD())
 			err = secData.DownloadSECData(DB, S)

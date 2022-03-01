@@ -11,7 +11,6 @@ import (
 	"github.com/equres/sec/pkg/seccik"
 	"github.com/equres/sec/pkg/secevent"
 	"github.com/jmoiron/sqlx"
-	log "github.com/sirupsen/logrus"
 )
 
 // Ticker Struct Based on JSON
@@ -87,9 +86,7 @@ func NoExchangeFileGet(s *sec.SEC, db *sqlx.DB) error {
 		return err
 	}
 
-	if s.Verbose {
-		log.Info("Indexing file company_tickers.json: ")
-	}
+	s.Log("Indexing file company_tickers.json: ")
 
 	for _, v := range allCompanyTickers {
 		err = seccik.SaveCIK(db, v.Cik)
@@ -113,9 +110,7 @@ func NoExchangeFileGet(s *sec.SEC, db *sqlx.DB) error {
 		}
 	}
 
-	if s.Verbose {
-		log.Info("\u2713")
-	}
+	s.Log("\u2713")
 	secevent.CreateIndexEvent(db, "company_tickers.json", "success", "")
 
 	return nil
@@ -141,9 +136,7 @@ func ExchangeFileGet(s *sec.SEC, db *sqlx.DB) error {
 		return err
 	}
 
-	if s.Verbose {
-		log.Info("Indexing file company_tickers_exchange.json: ")
-	}
+	s.Log("Indexing file company_tickers_exchange.json: ")
 
 	for _, v := range fileExchange.Data {
 		err = seccik.SaveCIK(db, int(v[0].(float64)))
@@ -187,9 +180,8 @@ func ExchangeFileGet(s *sec.SEC, db *sqlx.DB) error {
 			return err
 		}
 	}
-	if s.Verbose {
-		log.Info("\u2713")
-	}
+
+	s.Log("\u2713")
 	secevent.CreateIndexEvent(db, "company_tickers_exchange.json", "success", "")
 	return nil
 }

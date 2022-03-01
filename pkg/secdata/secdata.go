@@ -17,7 +17,6 @@ import (
 	"github.com/equres/sec/pkg/secworklist"
 	"github.com/gocarina/gocsv"
 	"github.com/jmoiron/sqlx"
-	log "github.com/sirupsen/logrus"
 )
 
 type SECDataOps interface {
@@ -75,28 +74,22 @@ func (sd *SECData) DownloadSECData(db *sqlx.DB, s *sec.SEC) error {
 			return err
 		}
 
-		if s.Verbose {
-			log.Info(fmt.Sprintf("Checking file '%v' in disk: ", filepath.Base(fileURL)))
-		}
+		s.Log(fmt.Sprintf("Checking file '%v' in disk: ", filepath.Base(fileURL)))
 		isFileCorrect, err := downloader.FileCorrect(db, fileURL, 0, "")
 		if err != nil {
 			return err
 		}
-		if s.Verbose && isFileCorrect {
-			log.Info("\u2713")
+		if isFileCorrect {
+			s.Log("\u2713")
 		}
 
 		if !isFileCorrect {
-			if s.Verbose {
-				log.Info("Downloading file...: ")
-			}
+			s.Log("Downloading file...: ")
 			err = downloader.DownloadFile(db, fileURL)
 			if err != nil {
 				return err
 			}
-			if s.Verbose {
-				log.Info(time.Now().Format("2006-01-02 03:04:05"))
-			}
+			s.Log(time.Now().Format("2006-01-02 03:04:05"))
 			time.Sleep(rateLimit)
 		}
 
@@ -112,9 +105,7 @@ func (sd *SECData) IndexData(s *sec.SEC, db *sqlx.DB) error {
 		return err
 	}
 	for _, v := range files {
-		if s.Verbose {
-			log.Info(fmt.Sprintf("Indexing file %v: ", v.Name()))
-		}
+		s.Log(fmt.Sprintf("Indexing file %v: ", v.Name()))
 		reader, err := zip.OpenReader(filepath.Join(filesPath, v.Name()))
 		if err != nil {
 			return err
@@ -128,9 +119,7 @@ func (sd *SECData) IndexData(s *sec.SEC, db *sqlx.DB) error {
 
 		reader.Close()
 
-		if s.Verbose {
-			log.Info("\u2713")
-		}
+		s.Log("\u2713")
 		secevent.CreateIndexEvent(db, filesPath, "success", "")
 	}
 	return nil
@@ -149,9 +138,7 @@ func (sd *SECData) ZIPFileUpsert(s *sec.SEC, db *sqlx.DB, pathname string, files
 			return fmt.Errorf("could_not_identify_file_type_func %v", fileName)
 		}
 
-		if s.Verbose {
-			log.Info(fmt.Sprintf("Indexing file %v\n", fileName))
-		}
+		s.Log(fmt.Sprintf("Indexing file %v\n", fileName))
 
 		reader, err := file.Open()
 		if err != nil {
