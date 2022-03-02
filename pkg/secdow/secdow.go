@@ -263,30 +263,37 @@ func DownloadZIPFiles(db *sqlx.DB, s *sec.SEC) error {
 	return nil
 }
 
-func DownloadRawFiles(s *sec.SEC, db *sqlx.DB, filesToDownload []string) error {
-	s.Log(fmt.Sprint("Number of files to be downloaded: ", len(filesToDownload)))
+func DownloadRawFiles(s *sec.SEC, db *sqlx.DB, filesToDownload []string, totalDownloadsCount int, currentDownloadCount int) error {
+	s.Log(fmt.Sprint("Number of files to be downloaded: ", totalDownloadsCount))
 
 	downloader := download.NewDownloader(s.Config)
 	downloader.IsEtag = true
 	downloader.Verbose = s.Verbose
 	downloader.Debug = s.Debug
-	downloader.TotalDownloadsCount = len(filesToDownload)
-	downloader.CurrentDownloadCount = 1
+	downloader.TotalDownloadsCount = totalDownloadsCount
+	downloader.CurrentDownloadCount = currentDownloadCount
 
 	rateLimit, err := time.ParseDuration(fmt.Sprintf("%vms", s.Config.Main.RateLimitMs))
 	if err != nil {
 		return err
 	}
 
-	for _, v := range filesToDownload {
-		s.Log(fmt.Sprintf("Download progress [%d/%d/%f%%]", downloader.CurrentDownloadCount, downloader.TotalDownloadsCount, downloader.GetDownloadPercentage()))
+	startTime := time.Now()
+	averageDownloadTime := time.Duration(0)
+	for k, v := range filesToDownload {
+		s.Log(fmt.Sprintf("Download progress [%d/%d/%f%%] Time To Complete All Downloads: %v", downloader.CurrentDownloadCount, downloader.TotalDownloadsCount, downloader.GetDownloadPercentage(), averageDownloadTime))
 
 		err = downloader.DownloadFile(db, v)
 		if err != nil {
 			return err
 		}
 		time.Sleep(rateLimit)
-
+		if k != 0 && k%1000 == 0 {
+			s.Log(fmt.Sprint("The past 1000 files took around ", time.Since(startTime), " to download, this means each file took ", time.Since(startTime)/1000, " to download"))
+			filesRemaining := (downloader.TotalDownloadsCount - downloader.CurrentDownloadCount)
+			averageDownloadTime = time.Duration((time.Since(startTime) / 1000).Nanoseconds() * int64(filesRemaining))
+			startTime = time.Now()
+		}
 		downloader.CurrentDownloadCount += 1
 	}
 

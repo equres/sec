@@ -57,7 +57,7 @@ to quickly create a Cobra application.`,
 		}
 
 		log.Info("Downloading files...")
-		err = secdow.DownloadRawFiles(S, DB, filesToDownload)
+		err = secdow.DownloadRawFiles(S, DB, filesToDownload, len(worklistMap), len(filesOnDisk))
 		if err != nil {
 			return err
 		}
