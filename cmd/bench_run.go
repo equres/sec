@@ -60,7 +60,7 @@ var runCmd = &cobra.Command{
 
 		endTime := time.Now()
 
-		S.Log(fmt.Sprintf("It took %v seconds to download %v files", endTime.Sub(startTime).Seconds(), len(fileURLs)))
+		log.Info(fmt.Sprintf("It took %v seconds to download %v files", endTime.Sub(startTime).Seconds(), len(fileURLs)))
 
 		return nil
 	},
@@ -86,8 +86,6 @@ func fetchFiles(fileURLs []string, rateLimit time.Duration) error {
 	var currentDownloadCount int
 
 	for _, fileURL := range fileURLs {
-		S.Log(fmt.Sprintf("Downloading file: %v", fileURL))
-
 		if fileURL == "" {
 			continue
 		}
@@ -113,11 +111,9 @@ func fetchFiles(fileURLs []string, rateLimit time.Duration) error {
 		if err != nil {
 			return err
 		}
-
-		S.Log(fmt.Sprintf("File size: %v", size))
 		currentDownloadCount++
 
-		log.Info(fmt.Sprintf("File progress [%d/%d] status_code_%d", currentDownloadCount, len(fileURLs), resp.StatusCode))
+		log.Info(fmt.Sprintf("File %v progress [%d/%d] status_code_%d %v", fileURL, currentDownloadCount, len(fileURLs), resp.StatusCode, size))
 
 		time.Sleep(rateLimit)
 	}
