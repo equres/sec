@@ -309,7 +309,15 @@ func (sc *SECCache) GenerateCompanySlugsDataCache() error {
 
 	companySlugs := server.GetCompanySlugs(companies)
 
-	companySlugsJSON, err := json.Marshal(companySlugs)
+	var allCompanies []sec.Company
+	for slug, company := range companySlugs {
+		allCompanies = append(allCompanies, sec.Company{
+			CompanyName: company.CompanyName,
+			Slug:        slug,
+		})
+	}
+
+	companySlugsJSON, err := json.Marshal(allCompanies)
 	if err != nil {
 		return err
 	}

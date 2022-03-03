@@ -355,14 +355,13 @@ func (s Server) HandlerFilingsPage(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s Server) HandlerCompaniesListPage(w http.ResponseWriter, r *http.Request) {
-
 	companiesJSON, err := s.Cache.MustGet(cache.SECCompanySlugs)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
 
-	companies := make(map[string]sec.Company)
+	var companies []sec.Company
 	err = json.Unmarshal([]byte(companiesJSON), &companies)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
@@ -484,8 +483,17 @@ func (s Server) HandlerSICCompaniesPage(w http.ResponseWriter, r *http.Request) 
 		return
 	}
 
+	companySlugs := GetCompanySlugs(companies)
+	var allCompanies []sec.Company
+	for slug, companyName := range companySlugs {
+		allCompanies = append(allCompanies, sec.Company{
+			CompanyName: companyName.CompanyName,
+			Slug:        slug,
+		})
+	}
+
 	content := make(map[string]interface{})
-	content["Companies"] = GetCompanySlugs(companies)
+	content["Companies"] = allCompanies
 	content["CategoryName"] = categoryName
 
 	err = s.RenderTemplate(w, "companieslist.page.gohtml", content)
