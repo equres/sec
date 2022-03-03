@@ -9,6 +9,7 @@ import (
 
 	"github.com/equres/sec/pkg/sec"
 	"github.com/equres/sec/pkg/seccache"
+	"github.com/equres/sec/pkg/secsic"
 	"github.com/equres/sec/pkg/server"
 	"github.com/jmoiron/sqlx"
 	log "github.com/sirupsen/logrus"
@@ -110,28 +111,78 @@ func GenerateCompanyPageURLs(db *sqlx.DB, baseURL string) ([]string, error) {
 	return urls, nil
 }
 
-func GenerateSitemap(sc *seccache.SECCache) error {
-	sm := sitemap.New()
+func GenerateSICPageURLs(db *sqlx.DB, baseURL string) ([]string, error) {
+	sics, err := secsic.GetAllSICCodes(db)
+	if err != nil {
+		return nil, err
+	}
+	var urls []string
+	for _, sic := range sics {
+		urls = append(urls, fmt.Sprintf("%vsic/%v", baseURL, sic.SIC))
 
-	var allURLs []string
-	allURLs = append(allURLs, S.Config.Main.WebsiteURL)
-	allURLs = append(allURLs, fmt.Sprintf("%vabout", S.Config.Main.WebsiteURL))
-	allURLs = append(allURLs, fmt.Sprintf("%vcompany", S.Config.Main.WebsiteURL))
+	}
+
+	return urls, nil
+}
+
+func GenerateSitemap(sc *seccache.SECCache) error {
+	// Generating sitemap.xml
+	var mainURLs []string
+	mainURLs = append(mainURLs, S.Config.Main.WebsiteURL)
+	mainURLs = append(mainURLs, fmt.Sprintf("%vabout", S.Config.Main.WebsiteURL))
+	mainURLs = append(mainURLs, fmt.Sprintf("%vcompany", S.Config.Main.WebsiteURL))
 
 	yearMonthDayCIKURLs, err := sc.GenerateYearMonthDayCIKURLs(DB, S.Config.Main.WebsiteURL)
 	if err != nil {
 		return err
 	}
-	allURLs = append(allURLs, yearMonthDayCIKURLs...)
+	mainURLs = append(mainURLs, yearMonthDayCIKURLs...)
 
+	err = createAndSaveSitemapFile("sitemap.xml", mainURLs)
+	if err != nil {
+		return err
+	}
+
+	// Generating companies-sitemap.xml
+	var companyURLs []string
 	companyPageURLs, err := GenerateCompanyPageURLs(DB, S.Config.Main.WebsiteURL)
 	if err != nil {
 		return err
 	}
-	allURLs = append(allURLs, companyPageURLs...)
+	companyURLs = append(companyURLs, companyPageURLs...)
+
+	err = createAndSaveSitemapFile("companies-sitemap.xml", companyURLs)
+	if err != nil {
+		return err
+	}
+
+	// Generating sic-sitemap.xml
+	var sicURLs []string
+	sicPagesURLs, err := GenerateSICPageURLs(DB, S.Config.Main.WebsiteURL)
+	if err != nil {
+		return err
+	}
+	sicURLs = append(sicURLs, sicPagesURLs...)
+
+	err = createAndSaveSitemapFile("sic-sitemap.xml", sicURLs)
+	if err != nil {
+		return err
+	}
+
+	// Ping to Google Search Engine
+	_, err = http.Get("https://www.google.com/ping?sitemap=https://equres.com/sitemap.xml")
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func createAndSaveSitemapFile(filename string, urls []string) error {
+	sm := sitemap.New()
 
 	currentTime := time.Now().UTC()
-	for _, URL := range allURLs {
+	for _, URL := range urls {
 		sm.Add(&sitemap.URL{
 			Loc:        URL,
 			LastMod:    &currentTime,
@@ -139,19 +190,13 @@ func GenerateSitemap(sc *seccache.SECCache) error {
 		})
 	}
 
-	sitemap, err := os.Create(filepath.Join(S.Config.Main.CacheDir, "sitemap.xml"))
+	sitemap, err := os.Create(filepath.Join(S.Config.Main.CacheDir, filename))
 	if err != nil {
 		return err
 	}
 	defer sitemap.Close()
 
 	_, err = sm.WriteTo(sitemap)
-	if err != nil {
-		return err
-	}
-
-	// Ping to Google Search Engine
-	_, err = http.Get("https://www.google.com/ping?sitemap=https://equres.com/_cache/sitemap.xml")
 	if err != nil {
 		return err
 	}

@@ -565,7 +565,8 @@ Disallow: /signup
 User-agent: *
 Allow: /
 
-Sitemap: https://equres.com/_cache/sitemap.xml
+Sitemap: https://equres.com/sitemap.xml
+Sitemap: https://equres.com/companies-sitemap.xml
 	`)
 }
 
