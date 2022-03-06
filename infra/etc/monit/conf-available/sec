@@ -1,8 +1,8 @@
 CHECK PROCESS sec_app MATCHING "sec serve"
 	start program = "/bin/sh -c 'systemctl start sec_serve'"
-		as uid "sec" and gid "sec" WITH TIMEOUT 5 SECONDS
+		as uid "root" and gid "root" WITH TIMEOUT 5 SECONDS
 	stop program = "/bin/sh -c 'systemctl stop sec_serve'"
-		as uid "sec" and gid "sec" WITH TIMEOUT 5 SECONDS
+		as uid "root" and gid "root" WITH TIMEOUT 5 SECONDS
 
         if failed
 		port 8000 protocol http
@@ -15,6 +15,7 @@ CHECK PROCESS sec_app MATCHING "sec serve"
 
 CHECK FILE sec_bin WITH PATH /home/sec/sec
 	if changed timestamp then exec "/bin/sh -c 'systemctl restart sec_serve'"
+	as uid "root" and gid "root" WITH TIMEOUT 5 SECONDS
 
 CHECK DIRECTORY sec_dir WITH PATH /home/sec
 	if changed timestamp then exec "/bin/echo meh"

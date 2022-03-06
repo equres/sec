@@ -349,7 +349,7 @@
         src: ./etc/monit/conf-available/sec
         dest: /etc/monit/conf-available/sec
         owner: root
-        mode: '0700'
+        mode: '0755'
     - name: Create Symbolic link 
       become: yes
       become_user: root
