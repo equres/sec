@@ -1,5 +1,38 @@
 # How To Migrate To A New Server
 
+# Introduction
+
+The purpose of the migration is to get more disk space, and to prove we are
+doing the backups correctly.
+The idea is that there should be nothing copied from machine to machine.
+The purpose here is to only take stuff from the backup storage, and if there's
+anything missing, we need to start storing it on the backup storage.
+For example: if it proves that the recovery of the DB isn't possible, because
+we are missing some configuration file of the DB, we should ensure we're backing
+this file up.
+
+## Machines
+
+Old machine `secprod` (let's call it `OLD`)
+
+	Expiry date
+	12 Mar 2022 Renew
+	Datacentre
+	BHS2 - Rack: T02C41 - Server ID: 240157
+	OS
+	Ubuntu Server 20.04 "Focal Fossa" (64bits)
+	Boot
+	Boot from hard drive (no netboot)
+	Main IP
+	192.99.161.20
+	Commercial name
+	E3-SAT-1-16 Server - Xeon E3-1225v2 (4c/4th) - 16GB DDR3 1333 MHz - SoftRaid 3x2To SATA
+	Reverse
+	ns505854.ip-192-99-161.net
+	Backup Storage
+	0 / 100 GB
+
+
 ### Step 1
 Ensure that we have all the necessary data, such as the backups. 
 
