@@ -16,7 +16,7 @@ if [ "$SERVER" = "dev" ]; then
 	USER="vagrant"
 	ssh-add .vagrant/machines/default/virtualbox/private_key
 elif [ "$SERVER" = "prod" ]; then
-	HOST="192.99.161.20"
+	HOST="158.69.54.118"
 	USER="ubuntu"
 else
 	echo "no valid deployment option specified"
