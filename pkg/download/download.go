@@ -155,6 +155,8 @@ func (d Downloader) FileConsistent(db *sqlx.DB, file fs.FileInfo, fullurl string
 }
 
 func (d Downloader) DownloadFile(db *sqlx.DB, fullurl string) error {
+	fileDowStartTime := time.Now()
+
 	isSkippedFile, err := database.IsSkippedFile(db, fullurl)
 	if err != nil {
 		return err
@@ -243,6 +245,13 @@ func (d Downloader) DownloadFile(db *sqlx.DB, fullurl string) error {
 		if err != nil {
 			return err
 		}
+	}
+
+	timeTaken := time.Since(fileDowStartTime)
+	timeToWait := rateLimit - timeTaken
+
+	if timeToWait.Milliseconds() > 0 {
+		time.Sleep(time.Duration(timeToWait.Milliseconds()))
 	}
 
 	return nil

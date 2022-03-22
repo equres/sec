@@ -49,26 +49,14 @@ func DownloadTickerFile(db *sqlx.DB, s *sec.SEC, path string) error {
 		return err
 	}
 
-	rateLimit, err := time.ParseDuration(fmt.Sprintf("%vms", s.Config.Main.RateLimitMs))
-	if err != nil {
-		return err
-	}
-
 	if isFileCorrect {
 		s.Log("\u2713")
 	}
 	if !isFileCorrect {
 		s.Log("Downloading file...: ")
-		fileDowStartTime := time.Now()
 		err = downloader.DownloadFile(db, fullURL)
 		if err != nil {
 			return err
-		}
-		timeTaken := time.Since(fileDowStartTime)
-		timeToWait := rateLimit - timeTaken
-
-		if timeToWait.Milliseconds() > 0 {
-			time.Sleep(time.Duration(timeToWait.Milliseconds()))
 		}
 
 		s.Log(time.Now().Format("2006-01-02 03:04:05"))
@@ -88,11 +76,6 @@ func DownloadIndex(db *sqlx.DB, s *sec.SEC) error {
 	downloader.Debug = s.Debug
 	downloader.CurrentDownloadCount = 0
 	downloader.TotalDownloadsCount = len(worklist)
-
-	rateLimit, err := time.ParseDuration(fmt.Sprintf("%vms", s.Config.Main.RateLimitMs))
-	if err != nil {
-		return err
-	}
 
 	for _, v := range worklist {
 		fileURL, err := secutil.FormatFilePathDate(s.BaseURL, v.Year, v.Month)
@@ -117,17 +100,9 @@ func DownloadIndex(db *sqlx.DB, s *sec.SEC) error {
 
 		if !isFileCorrect {
 			s.Log("Downloading file...: ")
-
-			fileDowStartTime := time.Now()
 			err = downloader.DownloadFile(db, fileURL)
 			if err != nil {
 				return err
-			}
-			timeTaken := time.Since(fileDowStartTime)
-			timeToWait := rateLimit - timeTaken
-
-			if timeToWait.Milliseconds() > 0 {
-				time.Sleep(time.Duration(timeToWait.Milliseconds()))
 			}
 
 			s.Log(time.Now().Format("2006-01-02 03:04:05"))
@@ -146,11 +121,6 @@ func DownloadXbrlFileContent(db *sqlx.DB, s *sec.SEC, files []sec.XbrlFile, conf
 	downloader.CurrentDownloadCount = *currentCount
 	downloader.TotalDownloadsCount = totalCount
 
-	rateLimit, err := time.ParseDuration(fmt.Sprintf("%vms", s.Config.Main.RateLimitMs))
-	if err != nil {
-		return err
-	}
-
 	for _, v := range files {
 		size, err := strconv.Atoi(v.Size)
 		if err != nil {
@@ -162,16 +132,9 @@ func DownloadXbrlFileContent(db *sqlx.DB, s *sec.SEC, files []sec.XbrlFile, conf
 		}
 
 		if !isFileCorrect {
-			fileDowStartTime := time.Now()
 			err = downloader.DownloadFile(db, v.URL)
 			if err != nil {
 				return err
-			}
-			timeTaken := time.Since(fileDowStartTime)
-			timeToWait := rateLimit - timeTaken
-
-			if timeToWait.Milliseconds() > 0 {
-				time.Sleep(time.Duration(timeToWait.Milliseconds()))
 			}
 		}
 
@@ -182,7 +145,6 @@ func DownloadXbrlFileContent(db *sqlx.DB, s *sec.SEC, files []sec.XbrlFile, conf
 		}
 
 		s.Log(fmt.Sprintf("[%d/%d/%f%%] %s downloaded...\n", *currentCount, totalCount, downloader.GetDownloadPercentage(), time.Now().Format("2006-01-02 03:04:05")))
-		time.Sleep(rateLimit)
 	}
 
 	return nil
@@ -213,11 +175,6 @@ func DownloadZIPFiles(db *sqlx.DB, s *sec.SEC) error {
 	downloader.IsContentLength = true
 	downloader.Verbose = s.Verbose
 	downloader.Debug = s.Debug
-
-	rateLimit, err := time.ParseDuration(fmt.Sprintf("%vms", s.Config.Main.RateLimitMs))
-	if err != nil {
-		return err
-	}
 
 	worklist, err := secworklist.WillDownloadGet(db, true)
 	if err != nil {
@@ -261,16 +218,9 @@ func DownloadZIPFiles(db *sqlx.DB, s *sec.SEC) error {
 				}
 
 				if !isFileCorrect {
-					fileDowStartTime := time.Now()
 					err = downloader.DownloadFile(db, v1.Enclosure.URL)
 					if err != nil {
 						return err
-					}
-					timeTaken := time.Since(fileDowStartTime)
-					timeToWait := rateLimit - timeTaken
-
-					if timeToWait.Milliseconds() > 0 {
-						time.Sleep(time.Duration(timeToWait.Milliseconds()))
 					}
 				}
 			}
@@ -297,26 +247,14 @@ func DownloadRawFiles(s *sec.SEC, db *sqlx.DB, filesToDownload []string, totalDo
 	downloader.TotalDownloadsCount = totalDownloadsCount
 	downloader.CurrentDownloadCount = currentDownloadCount
 
-	rateLimit, err := time.ParseDuration(fmt.Sprintf("%vms", s.Config.Main.RateLimitMs))
-	if err != nil {
-		return err
-	}
-
 	startTime := time.Now()
 	averageDownloadTime := time.Duration(0)
 	for k, v := range filesToDownload {
 		s.Log(fmt.Sprintf("Download progress [%d/%d/%f%%] Time To Complete All Downloads: %v", downloader.CurrentDownloadCount, downloader.TotalDownloadsCount, downloader.GetDownloadPercentage(), averageDownloadTime))
 
-		fileDowStartTime := time.Now()
-		err = downloader.DownloadFile(db, v)
+		err := downloader.DownloadFile(db, v)
 		if err != nil {
 			return err
-		}
-		timeTaken := time.Since(fileDowStartTime)
-		timeToWait := rateLimit - timeTaken
-
-		if timeToWait.Milliseconds() > 0 {
-			time.Sleep(time.Duration(timeToWait.Milliseconds()))
 		}
 		if k != 0 && k%1000 == 0 {
 			s.Log(fmt.Sprint("The past 1000 files took around ", time.Since(startTime), " to download, this means each file took ", time.Since(startTime)/1000, " to download"))
