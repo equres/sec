@@ -210,7 +210,7 @@
         src: ./etc/systemd/system/sec_serve.service
         dest: /etc/systemd/system
         owner: root
-        mode: '0755'
+        mode: '0644'
     - name: Start SEC Service
       become: yes
       become_user: root
