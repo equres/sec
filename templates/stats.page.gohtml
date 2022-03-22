@@ -5,6 +5,25 @@
 {{ end }}
 
 {{ define "content"}}
+    <div>
+        <table class="table table-sm">
+            <thead>
+                <tr>
+                    <th>Value</th>
+                    <th>Description</th>
+                </tr>
+            </thead>
+            <tbody>
+                {{ range $Legend := .Legend }}
+                    <tr>
+                        <td>{{ $Legend.Number }}</td>
+                        <td>{{ $Legend.Description }}</td>
+                    </tr>
+                {{ end }}
+            </tbody>
+        </table>
+    </div>
+
     <div id="calendar_basic" style="width: 1000px; height: 350px;"></div>
     <script type="text/javascript" src="https://www.gstatic.com/charts/loader.js"></script>
     <script type="text/javascript">

@@ -73,13 +73,69 @@ func (sc *SECCache) GenerateStatsJSON() (string, error) {
 	}
 	allStats := make(map[string]int)
 	for _, event := range eventStatsArr {
-		statValue := 2
-		if event.FilesBroken > 0 {
-			statValue--
+		statValue := 7
+
+		if event.FilesBroken > 0 && event.FilesIndexed == 0 && event.FilesDownloaded == 0 {
+			statValue = 0
 		}
 
-		if event.FilesIndexed == 0 || event.FilesDownloaded == 0 {
-			statValue--
+		if event.FilesBroken > 0 && event.FilesIndexed == 0 && event.FilesDownloaded > 0 {
+			statValue = 1
+		}
+
+		if event.FilesBroken > 0 && event.FilesIndexed > 0 && event.FilesDownloaded == 0 {
+			statValue = 2
+		}
+
+		if event.FilesBroken > 0 && event.FilesIndexed > 0 && event.FilesDownloaded > 0 {
+			statValue = 3
+		}
+
+		if event.FilesBroken == 0 && event.FilesIndexed == 0 && event.FilesDownloaded == 0 {
+			statValue = 4
+		}
+
+		if event.FilesBroken == 0 && event.FilesIndexed == 0 && event.FilesDownloaded > 0 {
+			statValue = 5
+		}
+
+		if event.FilesBroken == 0 && event.FilesIndexed > 0 && event.FilesDownloaded == 0 {
+			statValue = 6
+		}
+
+		if event.FilesBroken == 0 && event.FilesIndexed > 0 && event.FilesDownloaded > 0 {
+			statValue = 7
+		}
+
+		allStats[event.Date] = statValue
+	}
+
+	allStatsJSON, err := json.Marshal(allStats)
+	if err != nil {
+		return "", err
+	}
+
+	return string(allStatsJSON), nil
+}
+
+func (sc *SECCache) GenerateBackupStatsJSON() (string, error) {
+	eventStatsArr, err := secevent.GetBackupEventStats(sc.DB)
+	if err != nil {
+		return "", err
+	}
+	allStats := make(map[string]int)
+	for _, event := range eventStatsArr {
+		statValue := 3
+		if event.SuccessfulDBBackup == 0 && event.SuccessfulFileBackup == 0 {
+			statValue = 0
+		}
+
+		if event.SuccessfulDBBackup == 0 && event.SuccessfulFileBackup >= 1 {
+			statValue = 1
+		}
+
+		if event.SuccessfulDBBackup >= 1 && event.SuccessfulFileBackup == 0 {
+			statValue = 2
 		}
 
 		allStats[event.Date] = statValue
@@ -100,6 +156,20 @@ func (sc *SECCache) GenerateStatsCache() error {
 	}
 
 	err = sc.S.Cache.MustSet(cache.SECCacheStats, statsJSON)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (sc *SECCache) GenerateBackupStatsCache() error {
+	statsJSON, err := sc.GenerateBackupStatsJSON()
+	if err != nil {
+		return err
+	}
+
+	err = sc.S.Cache.MustSet(cache.SECBackupStats, statsJSON)
 	if err != nil {
 		return err
 	}
