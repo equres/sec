@@ -7,8 +7,6 @@
 {{ define "content"}}
     <script src="https://d3js.org/d3.v4.min.js"></script>
     <script>
-    let values = JSON.parse("{{ .StatsDataJSON }}")
-    
     let width = 960,
         height = 136,
         cellSize = 17;
@@ -54,32 +52,36 @@
         .data(function(d) { return d3.timeMonths(new Date(d, 0, 1), new Date(d + 1, 0, 1)); })
         .enter().append("path")
         .attr("d", pathMonth);
-    
-    let data= d3.nest()
-        .key(function(d) {
-            return d.Date; 
-        })
-        .object(values);
 
-    let dataWithRollup = d3.nest()
-        .key(function(d) {
-            return d.Date; 
-        })
-        .rollup(function(d) {
-            return d[0].FilesDownloaded + d[0].FilesIndexed - d[0].FilesBroken;
-        })
-        .object(values);
+    d3.json("/api/v1/stats", function(error, values) {
+        if (error) throw error;
 
-    rect.filter(function(d) { return d in dataWithRollup; })
-        .attr("fill", function(d) { return color(dataWithRollup[d]); })
-        .append("title")
-        .text(function(d) {
-            return d + `
-            Files Downloaded: ${data[d][0].FilesDownloaded}
-            Files Indexed: ${data[d][0].FilesIndexed}
-            Files Broken: ${data[d][0].FilesBroken}
-            `; 
-        });
+        let data = d3.nest()
+            .key(function(d) {
+                return d.Date; 
+            })
+            .object(values);
+
+        let dataWithRollup = d3.nest()
+            .key(function(d) {
+                return d.Date; 
+            })
+            .rollup(function(d) {
+                return d[0].FilesDownloaded + d[0].FilesIndexed - d[0].FilesBroken;
+            })
+            .object(values);
+
+        rect.filter(function(d) { return d in dataWithRollup; })
+            .attr("fill", function(d) { return color(dataWithRollup[d]); })
+            .append("title")
+            .text(function(d) {
+                return d + `
+                Files Downloaded: ${data[d][0].FilesDownloaded}
+                Files Indexed: ${data[d][0].FilesIndexed}
+                Files Broken: ${data[d][0].FilesBroken}
+                `; 
+            });
+    });
 
     function pathMonth(t0) {
         var t1 = new Date(t0.getFullYear(), t0.getMonth() + 1, 0),

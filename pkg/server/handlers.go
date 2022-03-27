@@ -52,6 +52,8 @@ func (s Server) GenerateRouter() (*mux.Router, error) {
 	router.HandleFunc("/backup/stats", s.HandlerBackupStatsPage).Methods("GET")
 	router.HandleFunc("/download/stats", s.HandlerDownloadStatsPage).Methods("GET")
 	router.HandleFunc("/api/v1/uptime", s.HandlerUptime).Methods("GET")
+	router.HandleFunc("/api/v1/stats", s.HandlerStatsAPI).Methods("GET")
+	router.HandleFunc("/api/v1/stats/backup", s.HandlerBackupStatsAPI).Methods("GET")
 	router.HandleFunc("/robots.txt", s.HanderRobots).Methods("GET")
 	router.PathPrefix("/").HandlerFunc(s.HandlerFiles)
 	return router, nil
@@ -505,16 +507,9 @@ func (s Server) HandlerSICCompaniesPage(w http.ResponseWriter, r *http.Request) 
 }
 
 func (s Server) HandlerStatsPage(w http.ResponseWriter, r *http.Request) {
-	allStatsJSON, err := s.Cache.Get(cache.SECCacheStats)
-	if err != nil {
-		http.Error(w, err.Error(), http.StatusBadRequest)
-		return
-	}
-
 	content := make(map[string]interface{})
-	content["StatsDataJSON"] = allStatsJSON
 
-	err = s.RenderTemplate(w, "stats.page.gohtml", content)
+	err := s.RenderTemplate(w, "stats.page.gohtml", content)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 	}
@@ -586,6 +581,26 @@ Allow: /
 Sitemap: https://equres.com/sitemap.xml
 Sitemap: https://equres.com/companies-sitemap.xml
 	`)
+}
+
+func (s Server) HandlerStatsAPI(w http.ResponseWriter, r *http.Request) {
+	statsJSON, err := s.Cache.Get(cache.SECCacheStats)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+
+	fmt.Fprint(w, statsJSON)
+}
+
+func (s Server) HandlerBackupStatsAPI(w http.ResponseWriter, r *http.Request) {
+	statsJSON, err := s.Cache.Get(cache.SECBackupStats)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+
+	fmt.Fprint(w, statsJSON)
 }
 
 func (s Server) RenderTemplate(w http.ResponseWriter, tmplName string, data interface{}) error {
