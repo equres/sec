@@ -26,4 +26,4 @@ fi
 $sec event --event cron --job db_backup --status $status --config /home/sec/.config/sec
 
 # Delete uncompleted files that are older than 2 days
-find /home/backups -name "*--doing.tar.xz" -type f -mtime +2 -delete
+find /home/backups -name "*--doing.tar.xz" -type f -mtime +5 -delete
