@@ -14,7 +14,7 @@
         cellSize = 17;
 
     let color = d3.scaleQuantize()
-        .domain([-1000, 20000])
+        .domain([0, 2])
         .range(["#a50026", "#d73027", "#f46d43", "#fdae61", "#fee08b", "#ffffbf", "#d9ef8b", "#a6d96a", "#66bd63", "#1a9850", "#006837"]);
 
     let svg = d3.select("body")
@@ -66,7 +66,7 @@
             return d.Date; 
         })
         .rollup(function(d) {
-            return d[0].FilesDownloaded + d[0].FilesIndexed - d[0].FilesBroken;
+            return d[0].SuccessfulFileBackup + d[0].SuccessfulDBBackup;
         })
         .object(values);
 
@@ -75,9 +75,10 @@
         .append("title")
         .text(function(d) {
             return d + `
-            Files Downloaded: ${data[d][0].FilesDownloaded}
-            Files Indexed: ${data[d][0].FilesIndexed}
-            Files Broken: ${data[d][0].FilesBroken}
+            Successful File Backup: ${data[d][0].SuccessfulFileBackup}
+            Failed File Backup: ${data[d][0].FailedFileBackup}
+            Successful Database Backup: ${data[d][0].SuccessfulDBBackup}
+            Failed Database Backup: ${data[d][0].FailedDBBackup}
             `; 
         });
 

@@ -505,30 +505,14 @@ func (s Server) HandlerSICCompaniesPage(w http.ResponseWriter, r *http.Request) 
 }
 
 func (s Server) HandlerStatsPage(w http.ResponseWriter, r *http.Request) {
-	allStats, err := s.GetStatsFromRedis(s.Config.Redis)
+	allStatsJSON, err := s.Cache.Get(cache.SECCacheStats)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
-	}
-
-	type Legend struct {
-		Number      int
-		Description string
-	}
-
-	legends := []Legend{
-		{Number: 0, Description: "Multiple Broken Files - 0 Files Indexed - 0 Files Downloaded"},
-		{Number: 1, Description: "Multiple Broken Files - 0 Files Indexed - Files Downloaded"},
-		{Number: 2, Description: "Multiple Broken Files - Files Indexed - 0 Files Downloaded"},
-		{Number: 3, Description: "Multiple Broken Files - Files Indexed - Files Downloaded"},
-		{Number: 4, Description: "No Broken File - 0 Files Indexed - 0 Files Downloaded"},
-		{Number: 5, Description: "No Broken File - 0 Files Indexed - Files Downloaded"},
-		{Number: 6, Description: "No Broken File - Files Indexed - 0 Files Downloaded"},
-		{Number: 7, Description: "No Broken File - Files Indexed - Files Downloaded"},
+		return
 	}
 
 	content := make(map[string]interface{})
-	content["EventStats"] = allStats
-	content["Legend"] = legends
+	content["StatsDataJSON"] = allStatsJSON
 
 	err = s.RenderTemplate(w, "stats.page.gohtml", content)
 	if err != nil {
@@ -537,28 +521,16 @@ func (s Server) HandlerStatsPage(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s Server) HandlerBackupStatsPage(w http.ResponseWriter, r *http.Request) {
-	allStats, err := s.GetBackupStatsFromRedis(s.Config.Redis)
+	allStatsJSON, err := s.Cache.Get(cache.SECBackupStats)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
-	}
-
-	type Legend struct {
-		Number      int
-		Description string
-	}
-
-	legends := []Legend{
-		{Number: 0, Description: "No Successful Backups"},
-		{Number: 1, Description: "File Backup Successful - No DB Backup"},
-		{Number: 2, Description: "File Backup Failed - DB Backup Successful"},
-		{Number: 3, Description: "File Backup Successful - DB Backup Successful"},
+		return
 	}
 
 	content := make(map[string]interface{})
-	content["EventStats"] = allStats
-	content["Legend"] = legends
+	content["StatsDataJSON"] = allStatsJSON
 
-	err = s.RenderTemplate(w, "stats.page.gohtml", content)
+	err = s.RenderTemplate(w, "backupstats.page.gohtml", content)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 	}
@@ -679,38 +651,6 @@ func GetCompanyFromSlug(companies []sec.Company, companySlug string) sec.Company
 		return company
 	}
 	return sec.Company{}
-}
-
-func (s Server) GetStatsFromRedis(redisConfig config.RedisConfig) (map[string]int, error) {
-	allStatsJSON, err := s.Cache.Get(cache.SECCacheStats)
-	if err != nil {
-		return nil, err
-	}
-
-	allStats := make(map[string]int)
-
-	err = json.Unmarshal([]byte(allStatsJSON), &allStats)
-	if err != nil {
-		return nil, err
-	}
-
-	return allStats, nil
-}
-
-func (s Server) GetBackupStatsFromRedis(redisConfig config.RedisConfig) (map[string]int, error) {
-	allStatsJSON, err := s.Cache.Get(cache.SECBackupStats)
-	if err != nil {
-		return nil, err
-	}
-
-	allStats := make(map[string]int)
-
-	err = json.Unmarshal([]byte(allStatsJSON), &allStats)
-	if err != nil {
-		return nil, err
-	}
-
-	return allStats, nil
 }
 
 func (s Server) GetHourlyDownloadStatsFromRedis(redisConfig config.RedisConfig) (map[string][]secevent.DownloadEventStatsByHour, error) {

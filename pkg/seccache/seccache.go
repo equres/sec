@@ -71,46 +71,14 @@ func (sc *SECCache) GenerateStatsJSON() (string, error) {
 	if err != nil {
 		return "", err
 	}
-	allStats := make(map[string]int)
-	for _, event := range eventStatsArr {
-		statValue := 7
 
-		if event.FilesBroken > 0 && event.FilesIndexed == 0 && event.FilesDownloaded == 0 {
-			statValue = 0
-		}
-
-		if event.FilesBroken > 0 && event.FilesIndexed == 0 && event.FilesDownloaded > 0 {
-			statValue = 1
-		}
-
-		if event.FilesBroken > 0 && event.FilesIndexed > 0 && event.FilesDownloaded == 0 {
-			statValue = 2
-		}
-
-		if event.FilesBroken > 0 && event.FilesIndexed > 0 && event.FilesDownloaded > 0 {
-			statValue = 3
-		}
-
-		if event.FilesBroken == 0 && event.FilesIndexed == 0 && event.FilesDownloaded == 0 {
-			statValue = 4
-		}
-
-		if event.FilesBroken == 0 && event.FilesIndexed == 0 && event.FilesDownloaded > 0 {
-			statValue = 5
-		}
-
-		if event.FilesBroken == 0 && event.FilesIndexed > 0 && event.FilesDownloaded == 0 {
-			statValue = 6
-		}
-
-		if event.FilesBroken == 0 && event.FilesIndexed > 0 && event.FilesDownloaded > 0 {
-			statValue = 7
-		}
-
-		allStats[event.Date] = statValue
+	var eventStatsArrFormattedDates []secevent.EventStat
+	for _, eventStat := range eventStatsArr {
+		eventStat.Date = eventStat.DateTime.Format("2006-01-02")
+		eventStatsArrFormattedDates = append(eventStatsArrFormattedDates, eventStat)
 	}
 
-	allStatsJSON, err := json.Marshal(allStats)
+	allStatsJSON, err := json.Marshal(eventStatsArrFormattedDates)
 	if err != nil {
 		return "", err
 	}
@@ -123,25 +91,14 @@ func (sc *SECCache) GenerateBackupStatsJSON() (string, error) {
 	if err != nil {
 		return "", err
 	}
-	allStats := make(map[string]int)
-	for _, event := range eventStatsArr {
-		statValue := 3
-		if event.SuccessfulDBBackup == 0 && event.SuccessfulFileBackup == 0 {
-			statValue = 0
-		}
 
-		if event.SuccessfulDBBackup == 0 && event.SuccessfulFileBackup >= 1 {
-			statValue = 1
-		}
-
-		if event.SuccessfulDBBackup >= 1 && event.SuccessfulFileBackup == 0 {
-			statValue = 2
-		}
-
-		allStats[event.Date] = statValue
+	var eventStatsArrFormattedDates []secevent.BackupEventStat
+	for _, eventStat := range eventStatsArr {
+		eventStat.Date = eventStat.DateTime.Format("2006-01-02")
+		eventStatsArrFormattedDates = append(eventStatsArrFormattedDates, eventStat)
 	}
 
-	allStatsJSON, err := json.Marshal(allStats)
+	allStatsJSON, err := json.Marshal(eventStatsArrFormattedDates)
 	if err != nil {
 		return "", err
 	}

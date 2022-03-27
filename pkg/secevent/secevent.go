@@ -2,6 +2,7 @@ package secevent
 
 import (
 	"encoding/json"
+	"time"
 
 	"github.com/jmoiron/sqlx"
 )
@@ -35,16 +36,20 @@ type OtherEvent struct {
 }
 
 type EventStat struct {
-	Date            string `db:"events_date"`
-	FilesDownloaded int    `db:"files_downloaded"`
-	FilesBroken     int    `db:"files_broken"`
-	FilesIndexed    int    `db:"files_indexed"`
+	DateTime        time.Time `db:"events_date"`
+	Date            string    `db:"date"`
+	FilesDownloaded int       `db:"files_downloaded"`
+	FilesBroken     int       `db:"files_broken"`
+	FilesIndexed    int       `db:"files_indexed"`
 }
 
 type BackupEventStat struct {
-	Date                 string `db:"events_date"`
-	SuccessfulFileBackup int    `db:"successful_file_backup"`
-	SuccessfulDBBackup   int    `db:"successful_db_backup"`
+	DateTime             time.Time `db:"events_date"`
+	Date                 string    `db:"date"`
+	SuccessfulFileBackup int       `db:"successful_file_backup"`
+	FailedFileBackup     int       `db:"failed_file_backup"`
+	SuccessfulDBBackup   int       `db:"successful_db_backup"`
+	FailedDBBackup       int       `db:"failed_db_backup"`
 }
 
 type DownloadEventStatsByHour struct {
@@ -144,7 +149,9 @@ func GetBackupEventStats(db *sqlx.DB) ([]BackupEventStat, error) {
 	SELECT 
 		created_at::date as events_date, 
 		COUNT(case when ev->>'job' = 'cache_compressed' AND ev->>'status' = 'success' then 1 end) as successful_file_backup,
-		COUNT(case when ev->>'job' = 'db_backup' AND ev->>'status' = 'success' then 1 end) as successful_db_backup
+		COUNT(case when ev->>'job' = 'cache_compressed' AND ev->>'status' = 'failed' then 1 end) as failed_file_backup,
+		COUNT(case when ev->>'job' = 'db_backup' AND ev->>'status' = 'success' then 1 end) as successful_db_backup,
+		COUNT(case when ev->>'job' = 'db_backup' AND ev->>'status' = 'failed' then 1 end) as failed_db_backup
 	FROM sec.events GROUP BY created_at::date;
 	`)
 	if err != nil {
