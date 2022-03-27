@@ -74,6 +74,12 @@ var regenCmd = &cobra.Command{
 				return err
 			}
 
+			S.Log("Generating & caching Companies Data in redis...")
+			err = sc.GenerateCompaniesDataCache()
+			if err != nil {
+				return err
+			}
+
 		default:
 			return fmt.Errorf("please type 'sitemap' to generate the sitemap and 'stats' to generate the stats (e.g. sec regen sitemap)")
 		}

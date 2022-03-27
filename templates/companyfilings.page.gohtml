@@ -9,13 +9,6 @@
 {{ define "content"}}
     <h3>All Financial Filings For {{ .CompanyName }}</h3>
     <ul>
-        {{ range .Filings }}
-            <li>{{ .Year }}</li>
-            <ul>
-                {{ range .Filings }}
-                    <li><a href="{{ .FilingsURL }}">{{ .CompanyName }} {{ $.Year }} {{ .FormType }} (filled: {{ .FillingDate }})</a></li>
-                {{ end }}
-            </ul>
-        {{ end }}
+        {{ .FilingsHTML }}
     </ul>
 {{ end }}

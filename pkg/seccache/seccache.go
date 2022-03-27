@@ -317,12 +317,16 @@ func (sc *SECCache) GenerateCompanySlugsDataCache() error {
 		})
 	}
 
-	companySlugsJSON, err := json.Marshal(allCompanies)
-	if err != nil {
-		return err
+	var companiesHTML string
+	for index, company := range allCompanies {
+		companiesHTML += fmt.Sprintf(`
+		<tr>
+			<td>%v</td>
+			<td><a href="/company/%v">%v</a></td>
+		</tr>`, index+1, company.Slug, company.CompanyName)
 	}
 
-	err = sc.S.Cache.MustSet(cache.SECCompanySlugs, string(companySlugsJSON))
+	err = sc.S.Cache.MustSet(cache.SECCompanySlugsHTML, string(companiesHTML))
 	if err != nil {
 		return err
 	}
@@ -375,12 +379,19 @@ func (sc *SECCache) GenerateCompanyFilingsPageDataCache(cik int) error {
 		return allYearsFilings[i].Year > allYearsFilings[j].Year
 	})
 
-	filingsJSON, err := json.Marshal(allYearsFilings)
-	if err != nil {
-		return err
+	var HTMLList string
+	for _, yearFilings := range allYearsFilings {
+		HTMLList += fmt.Sprintf("<li>%v</li>", yearFilings.Year)
+		for _, filing := range yearFilings.Filings {
+			HTMLList += fmt.Sprintf(`
+			<ul>
+				<li><a href="%v">%v %v %v (filled: %v)</a></li>
+			</ul>
+		`, filing.FilingsURL, filing.CompanyName, yearFilings.Year, filing.FormType, filing.FillingDate)
+		}
 	}
 
-	err = sc.S.Cache.MustSet(fmt.Sprintf("%v_%v", cache.SECCompanyFilings, cik), string(filingsJSON))
+	err = sc.S.Cache.MustSet(fmt.Sprintf("%v_%v", cache.SECCompanyFilingsHTML, cik), HTMLList)
 	if err != nil {
 		return err
 	}
@@ -500,6 +511,25 @@ func (sc *SECCache) GenerateHourlyDownloadStatsPageDataCache() error {
 	}
 
 	err = sc.S.Cache.MustSet(cache.SECHours, string(hoursJSON))
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (sc *SECCache) GenerateCompaniesDataCache() error {
+	companies, err := sec.GetAllCompanies(sc.DB)
+	if err != nil {
+		return err
+	}
+
+	companyJSON, err := json.Marshal(companies)
+	if err != nil {
+		return err
+	}
+
+	err = sc.S.Cache.MustSet(fmt.Sprintf("%v", cache.SECCompanies), string(companyJSON))
 	if err != nil {
 		return err
 	}

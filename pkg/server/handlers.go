@@ -355,7 +355,26 @@ func (s Server) HandlerFilingsPage(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s Server) HandlerCompaniesListPage(w http.ResponseWriter, r *http.Request) {
-	companiesJSON, err := s.Cache.MustGet(cache.SECCompanySlugs)
+	companiesHTML, err := s.Cache.MustGet(cache.SECCompanySlugsHTML)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+
+	companiesGeneratedHTML := template.HTML(companiesHTML)
+
+	content := make(map[string]interface{})
+	content["CompaniesHTML"] = companiesGeneratedHTML
+
+	err = s.RenderTemplate(w, "companieslist.page.gohtml", content)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+}
+
+func (s Server) HandlerCompanyFilingsPage(w http.ResponseWriter, r *http.Request) {
+	companiesJSON, err := s.Cache.MustGet(fmt.Sprintf("%v", cache.SECCompanies))
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
@@ -368,22 +387,6 @@ func (s Server) HandlerCompaniesListPage(w http.ResponseWriter, r *http.Request)
 		return
 	}
 
-	content := make(map[string]interface{})
-	content["Companies"] = companies
-
-	err = s.RenderTemplate(w, "companieslist.page.gohtml", content)
-	if err != nil {
-		http.Error(w, err.Error(), http.StatusBadRequest)
-		return
-	}
-}
-
-func (s Server) HandlerCompanyFilingsPage(w http.ResponseWriter, r *http.Request) {
-	companies, err := sec.GetAllCompanies(s.DB)
-	if err != nil {
-		http.Error(w, err.Error(), http.StatusBadRequest)
-		return
-	}
 	vars := mux.Vars(r)
 	companySlug := vars["companySlug"]
 	company := GetCompanyFromSlug(companies, companySlug)
@@ -394,30 +397,13 @@ func (s Server) HandlerCompanyFilingsPage(w http.ResponseWriter, r *http.Request
 		return
 	}
 
-	type FormattedFiling struct {
-		CompanyName string
-		FillingDate string
-		FormType    string
-		FilingsURL  string
-	}
-
-	type YearFilings struct {
-		Year    string
-		Filings []FormattedFiling
-	}
-
-	filingsJSON, err := s.Cache.MustGet(fmt.Sprintf("%v_%v", cache.SECCompanyFilings, cik))
+	filingsHTML, err := s.Cache.MustGet(fmt.Sprintf("%v_%v", cache.SECCompanyFilingsHTML, cik))
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
 
-	var filings []YearFilings
-	err = json.Unmarshal([]byte(filingsJSON), &filings)
-	if err != nil {
-		http.Error(w, err.Error(), http.StatusBadRequest)
-		return
-	}
+	filingsGeneratedHTML := template.HTML(filingsHTML)
 
 	companyName, err := seccik.GetCompanyNameFromCIK(s.DB, cik)
 	if err != nil {
@@ -426,7 +412,7 @@ func (s Server) HandlerCompanyFilingsPage(w http.ResponseWriter, r *http.Request
 	}
 
 	content := make(map[string]interface{})
-	content["Filings"] = filings
+	content["FilingsHTML"] = filingsGeneratedHTML
 	content["CompanyName"] = companyName
 
 	err = s.RenderTemplate(w, "companyfilings.page.gohtml", content)
@@ -496,7 +482,7 @@ func (s Server) HandlerSICCompaniesPage(w http.ResponseWriter, r *http.Request) 
 	content["Companies"] = allCompanies
 	content["CategoryName"] = categoryName
 
-	err = s.RenderTemplate(w, "companieslist.page.gohtml", content)
+	err = s.RenderTemplate(w, "companieslistsic.page.gohtml", content)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
