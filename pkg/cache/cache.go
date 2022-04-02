@@ -31,6 +31,7 @@ const (
 	SECHours                string = "cache.SECHours"
 	SECDownloadDates        string = "cache.SECDownloadDates"
 	SECCompanies            string = "cache.SECCompanies"
+	SECBackupStats          string = "cache.SECBackupStats"
 )
 
 func NewCache(cfg *config.Config) Cache {
