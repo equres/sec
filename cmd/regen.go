@@ -43,6 +43,11 @@ var regenCmd = &cobra.Command{
 			if err != nil {
 				return err
 			}
+
+			err = sc.GenerateBackupStatsCache()
+			if err != nil {
+				return err
+			}
 		case "pages":
 			S.Log("Generating & caching pages in redis...")
 			err := sc.GenerateHomePageDataCache()

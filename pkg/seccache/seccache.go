@@ -71,21 +71,34 @@ func (sc *SECCache) GenerateStatsJSON() (string, error) {
 	if err != nil {
 		return "", err
 	}
-	allStats := make(map[string]int)
-	for _, event := range eventStatsArr {
-		statValue := 2
-		if event.FilesBroken > 0 {
-			statValue--
-		}
 
-		if event.FilesIndexed == 0 || event.FilesDownloaded == 0 {
-			statValue--
-		}
-
-		allStats[event.Date] = statValue
+	var eventStatsArrFormattedDates []secevent.EventStat
+	for _, eventStat := range eventStatsArr {
+		eventStat.Date = eventStat.DateTime.Format("2006-01-02")
+		eventStatsArrFormattedDates = append(eventStatsArrFormattedDates, eventStat)
 	}
 
-	allStatsJSON, err := json.Marshal(allStats)
+	allStatsJSON, err := json.Marshal(eventStatsArrFormattedDates)
+	if err != nil {
+		return "", err
+	}
+
+	return string(allStatsJSON), nil
+}
+
+func (sc *SECCache) GenerateBackupStatsJSON() (string, error) {
+	eventStatsArr, err := secevent.GetBackupEventStats(sc.DB)
+	if err != nil {
+		return "", err
+	}
+
+	var eventStatsArrFormattedDates []secevent.BackupEventStat
+	for _, eventStat := range eventStatsArr {
+		eventStat.Date = eventStat.DateTime.Format("2006-01-02")
+		eventStatsArrFormattedDates = append(eventStatsArrFormattedDates, eventStat)
+	}
+
+	allStatsJSON, err := json.Marshal(eventStatsArrFormattedDates)
 	if err != nil {
 		return "", err
 	}
@@ -100,6 +113,20 @@ func (sc *SECCache) GenerateStatsCache() error {
 	}
 
 	err = sc.S.Cache.MustSet(cache.SECCacheStats, statsJSON)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (sc *SECCache) GenerateBackupStatsCache() error {
+	statsJSON, err := sc.GenerateBackupStatsJSON()
+	if err != nil {
+		return err
+	}
+
+	err = sc.S.Cache.MustSet(cache.SECBackupStats, statsJSON)
 	if err != nil {
 		return err
 	}
