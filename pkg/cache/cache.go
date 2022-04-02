@@ -22,12 +22,15 @@ const (
 	SECCompaniesInDay       string = "cache.SECCompaniesInDay"
 	SECFilingsInDay         string = "cache.SECFilingsInDay"
 	SECCompanySlugs         string = "cache.SECCompanySlugs"
+	SECCompanySlugsHTML     string = "cache.SECCompanySlugsHTML"
 	SECCompanyFilings       string = "cache.SECCompanyFilings"
+	SECCompanyFilingsHTML   string = "cache.SECCompanyFilingsHTML"
 	SECSICs                 string = "cache.SECSICs"
 	SECCompaniesWithSIC     string = "cache.SECCompaniesWithSIC"
 	SECHourlyDownloadStats  string = "cache.SECHourlyDownloadStats"
 	SECHours                string = "cache.SECHours"
 	SECDownloadDates        string = "cache.SECDownloadDates"
+	SECCompanies            string = "cache.SECCompanies"
 	SECBackupStats          string = "cache.SECBackupStats"
 )
 

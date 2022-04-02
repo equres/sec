@@ -7,6 +7,10 @@
 {{ end }}
 
 {{ define "content"}}
+    {{ if .CategoryName }}
+        <h3>Financial Filings For {{ .CategoryName }} Category</h3>
+    {{ end }}
+
     <table class="table">
         <thead>
             <tr>
@@ -15,7 +19,12 @@
             </tr>
         </thead>
         <tbody>
-            {{ .CompaniesHTML }}
+            {{  range $Index, $Company := .Companies }}
+                <tr>
+                    <td>{{ Increment $Index }}</td>
+                    <td><a href="/company/{{ $Company.Slug }}">{{ $Company.CompanyName }}</a></td>
+                </tr>
+            {{ end }}
         </tbody>
     </table>
 {{ end }}
