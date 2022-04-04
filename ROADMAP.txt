@@ -1,0 +1,32 @@
+# SEC
+
+## Filing by:
+  - company [a,b,c,d,e,f,g,h,i.j.j,l,m,n,o,p]
+  - date [2021,2020,2019,2018,2017,2016,2015, older...]
+  - state
+  - annual / quarterly
+  - IPOs
+
+## Features
+
+- [ ] Fix all the backups. Ensure we can survive serious crash and recorver within 1 day
+- [ ] SEO optimizations
+  - [ ] sitemap??
+  - [ ] robots??
+  - [ ] fix all the titles in pages [GitHub issue is there]
+  - [ ] make Equres.com more findable - better domain?
+  - [ ] make sure we stack well against competition. Right now you can't find us by searching for SEC / finanancial
+- [ ] Download 2022 first
+- [ ] USA companies - fundamental data 
+  - [ ] Are we already indexing the "other" data so that we could make plots/graphs of companies by state?
+- [ ] Start downloading years <= 2016
+- [ ] Full text search
+- [ ] Income generation / Monetizing:
+  - [ ] We should consider having a job portal for accountants or bookkeepers somehow (CPAs / CFAs)
+- [ ] Screener
+  - [ ] Identify high-tech companies
+- [ ] login?
+- [ ] search with SQL
+
+- [ ] full text search
+- [ ] maps of companies by state
