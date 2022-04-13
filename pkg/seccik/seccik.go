@@ -28,13 +28,20 @@ func SaveCIK(db *sqlx.DB, cik int) error {
 
 func GetCompanyNameFromCIK(db *sqlx.DB, cik int) (string, error) {
 	var companyNames []string
-	err := db.Select(&companyNames, "SELECT title FROM sec.tickers WHERE cik = $1", cik)
+	err := db.Select(&companyNames, "SELECT title FROM sec.tickers WHERE cik = $1 AND title IS NOT NULL", cik)
 	if err != nil {
 		return "", err
 	}
 
 	if len(companyNames) < 1 {
-		return "", nil
+		err = db.Select(&companyNames, "SELECT companyname FROM sec.secitemfile WHERE ciknumber = $1 AND companyname IS NOT NULL;", cik)
+		if err != nil {
+			return "", err
+		}
+
+		if len(companyNames) < 1 {
+			return "", nil
+		}
 	}
 
 	return companyNames[0], nil
