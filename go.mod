@@ -6,6 +6,7 @@ require (
 	github.com/PuerkitoBio/goquery v1.8.0
 	github.com/adrg/xdg v0.4.0
 	github.com/dustin/go-humanize v1.0.0
+	github.com/fogleman/gg v1.3.0 // indirect
 	github.com/go-redis/redis/v8 v8.11.4
 	github.com/gocarina/gocsv v0.0.0-20211203214250-4735fba0c1d9
 	github.com/golang-migrate/migrate/v4 v4.15.1
