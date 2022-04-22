@@ -52,6 +52,15 @@ There are 4 disks, each being 2 TB of storage.
 2. Second two were added together and mounted on `/mnt/sec` for the SEC files and Database
 3. Third one was mounted on `/mnt/backups` so that it keeps the files as backup
 
+Before we can setup the file system, we need to make sure that the disks do not have partitions, we can run the below command for each disk we need to setup:
+
+```
+dd if=/dev/zero bs=1m count=1 of=/dev/sdb
+```
+
+To make sure it worked fine, run the command `fdisk -l` and make sure that the disk you ran the `dd` command on does not have any partitions. Once all that is done, we can start setting up the file system.
+
+
 To setup the `/mnt/sec` directory:
 ```
     pvcreate /dev/sdb
