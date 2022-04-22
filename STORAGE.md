@@ -41,3 +41,17 @@ We would divide our data into three parts:
 - Backups
 
 And inside the backups, we would have snapshots of the ZFS file system that we can use to restore the data. We can also download and set up a package called `zfs-auto-snapshot` to automate that for us.
+
+## Implementation
+
+The below has been implemented on `ca2` server:
+
+There are 4 disks, each being 2 TB of storage.
+
+1. First one (`/dev/sda`) was kept as it is for the system data (mounted at `/`)
+2. Second two were added together and mounted on `/mnt/sec` for the SEC files and Database
+3. Third one was mounted on `/mnt/backups` so that it keeps the files as backup
+
+The idea of the last disk is that we will first manually run the backing up, in this case archiving, (after all initial downloading is done) in order to get the full files for 2017-2021. Then, we can start running the archiving every month after the new data has been downloaded. 
+
+Along with that, we will also be using `rsync` to sync the files daily to another server as another source of backup. Therefore we have both ways in order to guarantee having the latest data and in two different locations.
