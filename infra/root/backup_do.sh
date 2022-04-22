@@ -7,13 +7,10 @@ sec=/home/sec/sec
 
 date=$(date +%Y%m%d)
 
-# Create Cache Backup
-tar -cJf /home/backups/cache_$date--doing.tar.xz /mnt/sec/cache
-mv /home/backups/cache_$date--doing.tar.xz /home/backups/cache_$date.tar.xz
+# Transfer backup files to backup server
 status=failed
-FILE=/home/backups/db_backup/db_$date.tar.xz
-if [ -f "$FILE" ]; then
-	status=success
+if rsync -av --dry-run /mnt/sec/cache /home/backups; then
+    status=success
 fi
 $sec event --event cron --job cache_compressed --status $status --config /home/sec/.config/sec
 
