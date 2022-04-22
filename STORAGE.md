@@ -52,6 +52,46 @@ There are 4 disks, each being 2 TB of storage.
 2. Second two were added together and mounted on `/mnt/sec` for the SEC files and Database
 3. Third one was mounted on `/mnt/backups` so that it keeps the files as backup
 
+To setup the `/mnt/sec` directory:
+```
+    pvcreate /dev/sdb
+	pvcreate /dev/sdc
+	vgcreate sec  /dev/sdb /dev/sdc
+	vgdisplay
+	lvcreate -n data -l 100%FREE sec
+	mke2fs /dev/sec/data
+	mkdir /mnt/sec
+	mount /dev/sec/data /mnt/sec
+```
+
+To mount the `/mnt/backups` directory:
+```
+    mkdir /mnt/backups
+    mount /dev/sdd /mnt/backups
+```
+
+This should be the end result:
+```
+ubuntu@ca2:~$ sudo lsblk -l
+NAME     MAJ:MIN RM  SIZE RO TYPE MOUNTPOINT
+loop0      7:0    0 61.9M  1 loop /snap/core20/1376
+loop1      7:1    0 61.9M  1 loop /snap/core20/1405
+loop2      7:2    0 67.9M  1 loop /snap/lxd/22526
+loop3      7:3    0 67.8M  1 loop /snap/lxd/22753
+loop4      7:4    0 43.6M  1 loop /snap/snapd/15177
+loop5      7:5    0 44.7M  1 loop /snap/snapd/15534
+sda        8:0    0  1.8T  0 disk 
+sda1       8:1    0  511M  0 part /boot/efi
+sda2       8:2    0  1.8T  0 part /
+sda3       8:3    0  512M  0 part [SWAP]
+sda4       8:4    0    2M  0 part 
+sdb        8:16   0  1.8T  0 disk 
+sdc        8:32   0  1.8T  0 disk 
+sdd        8:48   0  1.8T  0 disk /mnt/backups
+sec-data 253:0    0  3.7T  0 lvm  /mnt/sec
+```
+
+
 The idea of the last disk is that we will first manually run the backing up, in this case archiving, (after all initial downloading is done) in order to get the full files for 2017-2021. Then, we can start running the archiving every month after the new data has been downloaded. 
 
 Along with that, we will also be using `rsync` to sync the files daily to another server as another source of backup. Therefore we have both ways in order to guarantee having the latest data and in two different locations.
