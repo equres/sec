@@ -479,28 +479,20 @@
       ansible.builtin.cron:
         name: "Update SSL Certificate"
         minute: "0"
-        hour: "12"
+        hour: "1"
+        day: "*/5"
         job: '/root/certbot_renew.sh'
-    - name: Run Backup Script Everyday at 3 AM
+    - name: Run Backup Script Everyday
       become: yes
       become_user: root
       become_method: sudo
       ansible.builtin.cron:
         name: "Backup ZIP & XML"
         minute: "0"
-        hour: "3"
+        hour: "8"
+        day: "*/3"
         user: backups
         job: "/root/backup_do.sh"
-    - name: Generate AWStats HTML File Everyday at 11:55 PM
-      become: yes
-      become_user: root
-      become_method: sudo
-      ansible.builtin.cron:
-        name: "Generate AWStats HTML File"
-        minute: "55"
-        hour: "23"
-        user: sec
-        job: "/root/stats.cron.daily.sh"
     - name: Run Download Script Everyday at 4 AM
       become: yes
       become_user: root
@@ -508,27 +500,29 @@
       ansible.builtin.cron:
         name: "Download Index & ZIP Files"
         minute: "0"
-        hour: "4"
+        hour: "2"
+        day: "*/3"
         user: sec
         job: "/root/sec.cron.daily.sh"
-    - name: Run Stats Caching Script Three Times a Day
+    - name: Run Stats Caching Script Two Times a Day
       become: yes
       become_user: root
       become_method: sudo
       ansible.builtin.cron:
         name: "Generating & Caching Stats"
         minute: "0"
-        hour: "*/8"
+        hour: "18"
         user: sec
         job: "/root/stats_caching.sh"
-    - name: Run Sitemap Generating Script Every Day
+    - name: Run Sitemap Generating Script Every Two Days
       become: yes
       become_user: root
       become_method: sudo
       ansible.builtin.cron:
         name: "Generating Sitemap.xml File"
         minute: "0"
-        hour: "2"
+        hour: "11"
+        day: "*/3"
         user: sec
         job: "/root/sitemap.cron.daily.sh"
     - name: Run Generating Pages Data Script Every Day
@@ -538,7 +532,7 @@
       ansible.builtin.cron:
         name: "Generating Pages Data & Caching"
         minute: "0"
-        hour: "7"
+        hour: "*/12"
         user: sec
         job: "/root/pages.cron.daily.sh"
     - name: Send Report To Emails Every Day
