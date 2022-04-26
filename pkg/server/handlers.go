@@ -408,6 +408,12 @@ func (s Server) HandlerCompanyFilingsPage(w http.ResponseWriter, r *http.Request
 
 	filingsGeneratedHTML := template.HTML(filingsHTML)
 
+	companyTicker, err := seccik.GetCompanyTickerFromCIK(s.DB, cik)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+
 	companyName, err := seccik.GetCompanyNameFromCIK(s.DB, cik)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
@@ -416,6 +422,7 @@ func (s Server) HandlerCompanyFilingsPage(w http.ResponseWriter, r *http.Request
 
 	content := make(map[string]interface{})
 	content["FilingsHTML"] = filingsGeneratedHTML
+	content["CompanyTicker"] = companyTicker
 	content["CompanyName"] = companyName
 
 	err = s.RenderTemplate(w, "companyfilings.page.gohtml", content)

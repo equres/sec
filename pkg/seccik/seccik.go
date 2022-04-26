@@ -47,6 +47,20 @@ func GetCompanyNameFromCIK(db *sqlx.DB, cik int) (string, error) {
 	return companyNames[0], nil
 }
 
+func GetCompanyTickerFromCIK(db *sqlx.DB, cik int) (string, error) {
+	var companyTickers []string
+	err := db.Select(&companyTickers, "SELECT ticker FROM sec.tickers WHERE cik = $1", cik)
+	if err != nil {
+		return "", err
+	}
+
+	if len(companyTickers) < 1 {
+		return "", nil
+	}
+
+	return companyTickers[0], nil
+}
+
 func GetUniqueCIKCount(db *sqlx.DB) (string, error) {
 	var cikCount []string
 

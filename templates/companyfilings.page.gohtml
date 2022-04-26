@@ -1,13 +1,13 @@
 {{ template "base" .}}
 
 {{ define "head"}}
-    <title>Equres > Companies > {{ .CompanyName }}</title>
+    <title>{{ .CompanyTicker }} - SEC FILINGS - EQURES.com</title>
     <meta name="description" content="All the company filings submitted to the Security and Exchange Commission in all years">
     <meta name="keywords" content="{{.CompanyName}}, sec, cik, security and exchange commission">
 {{ end }}
 
 {{ define "content"}}
-    <h3>All Financial Filings For {{ .CompanyName }}</h3>
+    <h3>All SEC Financial Filings For {{ .CompanyTicker }} ({{ .CompanyName }})</h3>
     <ul>
         {{ .FilingsHTML }}
     </ul>
