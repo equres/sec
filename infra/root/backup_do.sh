@@ -9,7 +9,7 @@ date=$(date +%Y%m%d)
 
 # Transfer backup files to backup server
 status=failed
-if rsync -av --dry-run /mnt/sec/cache /home/backups; then
+if rsync -av /mnt/sec/cache ubuntu@158.69.54.122:/mnt/backups; then
     status=success
 fi
 $sec event --event cron --job cache_compressed --status $status --config /home/sec/.config/sec
