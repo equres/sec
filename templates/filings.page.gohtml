@@ -1,7 +1,7 @@
 {{ template "base" .}}
 
 {{ define "head"}}
-    <title>Equres > {{ .CompanyName }} Filings for {{ .DayString }} {{ .MonthString }} {{ .DayOrdinal }}, {{ .Year }} Filings</title>
+    <title>{{ .CompanyName }} Filings for {{ .DayString }} {{ .MonthString }} {{ .DayOrdinal }}, {{ .Year }} - SEC FILINGS - EQURES.com</title>
     <meta name="description" content="{{.CompanyName }} Filings for the date {{ .DayString }} {{ .MonthString }} {{ .DayOrdinal }}, {{ .Year }}">
     <meta name="keywords" content="{{.CompanyName}}, filings, sec, cik, security and exchange commission, companies, {{ .DayOrdinal }}, {{ .MonthString }}, {{ .Year }}">
 {{ end }}
