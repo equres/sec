@@ -18,7 +18,9 @@ pg_basebackup -D /home/backups/db_backup/db_$date -z -X fetch -F tar
 status=failed
 FILE=/home/backups/db_backup/db_$date.tar.xz
 if [ -f "$FILE" ]; then
-	status=success
+	if scp /home/backups/db_backup/db_$date.tar.xz ubuntu@158.69.54.122:/mnt/backups; then
+        status=success
+    fi
 fi
 $sec event --event cron --job db_backup --status $status --config /home/sec/.config/sec
 
