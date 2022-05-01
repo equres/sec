@@ -7,12 +7,19 @@ sec=/home/sec/sec
 
 date=$(date +%Y%m%d)
 
-# Transfer backup files to backup server
+# Transfer backup files to ca2 server
 status=failed
 if rsync -av /mnt/sec/cache ubuntu@158.69.54.122:/mnt/backups; then
     status=success
 fi
-$sec event --event cron --job cache_compressed --status $status --config /home/sec/.config/sec
+$sec event --event cron --job ca2_rsync --status $status --config /home/sec/.config/sec
+
+# Transfer backup files to waw1 server
+status=failed
+if rsync -av /mnt/sec/cache ubuntu@79.137.68.227:/mnt/backups; then
+    status=success
+fi
+$sec event --event cron --job waw1_rsync --status $status --config /home/sec/.config/sec
 
 pg_basebackup -D /home/backups/db_backup/db_$date -z -X fetch -F tar
 status=failed
