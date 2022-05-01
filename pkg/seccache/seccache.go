@@ -563,3 +563,33 @@ func (sc *SECCache) GenerateCompaniesDataCache() error {
 
 	return nil
 }
+
+func (sc *SECCache) AddToFilingsNotificationQueue(filing sec.SECItemFile) error {
+	filingJSON, err := json.Marshal(filing)
+	if err != nil {
+		return err
+	}
+
+	err = sc.S.Cache.QueuePush(cache.SECFilingNotification, string(filingJSON))
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+// Take out of the FilingsNotificationQueue
+func (sc *SECCache) GetFromFilingsNotificationQueue() (sec.SECItemFile, error) {
+	filingJSON, err := sc.S.Cache.QueuePop(cache.SECFilingNotification)
+	if err != nil {
+		return sec.SECItemFile{}, err
+	}
+
+	var filing sec.SECItemFile
+	err = json.Unmarshal([]byte(filingJSON), &filing)
+	if err != nil {
+		return sec.SECItemFile{}, err
+	}
+
+	return filing, nil
+}

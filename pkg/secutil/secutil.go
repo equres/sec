@@ -813,3 +813,13 @@ func GetSICCodes(s *sec.SEC, db *sqlx.DB) ([]sec.SIC, error) {
 
 	return sics, err
 }
+
+func GetMostRecentFilings(s *sec.SEC, db *sqlx.DB, number int) ([]sec.SECItemFile, error) {
+	var filings []sec.SECItemFile
+	err := db.Select(&filings, "SELECT id, title, companyname, ciknumber, formtype, fillingdate, xbrlurl FROM sec.secItemFile ORDER BY fillingdate DESC LIMIT $1;", number)
+	if err != nil {
+		return nil, err
+	}
+
+	return filings, err
+}

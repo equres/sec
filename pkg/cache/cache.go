@@ -32,6 +32,7 @@ const (
 	SECDownloadDates        string = "cache.SECDownloadDates"
 	SECCompanies            string = "cache.SECCompanies"
 	SECBackupStats          string = "cache.SECBackupStats"
+	SECFilingNotification   string = "cache.SECFilingNotification"
 )
 
 func NewCache(cfg *config.Config) Cache {
@@ -75,6 +76,24 @@ func (c *Cache) MustSet(k, v string) error {
 
 func (c *Cache) MustGet(k string) (string, error) {
 	v, err := c.Redis.Get(context.Background(), k).Result()
+	if err != nil {
+		return "", err
+	}
+
+	return v, err
+}
+
+func (c *Cache) QueuePush(k string, v string) error {
+	err := c.Redis.RPush(context.Background(), k, v).Err()
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (c *Cache) QueuePop(k string) (string, error) {
+	v, err := c.Redis.RPop(context.Background(), k).Result()
 	if err != nil {
 		return "", err
 	}
