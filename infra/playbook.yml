@@ -329,6 +329,7 @@
         - { src: 'sitemap.cron.daily.sh' }
         - { src: 'pages.cron.daily.sh' }
         - { src: 'report.cron.daily.sh' }
+        - { src: 'newmonth.cron.monthly.sh' }
         - { src: 'certbot_renew.sh' }
         - { src: 'stats_caching.sh' }
         - { src: '.creds' }
@@ -541,6 +542,17 @@
         hour: "7"
         user: sec
         job: "/root/pages.cron.daily.sh"
+    - name: Enable Previous Month Download Every Month
+      become: yes
+      become_user: root
+      become_method: sudo
+      ansible.builtin.cron:
+        name: "Enable Previous Month Download"
+        minute: "0"
+        hour: "12"
+        day: "1"
+        user: sec
+        job: "/root/newmonth.cron.monthly.sh"
     - name: Send Report To Emails Every Day
       become: yes
       become_user: root
