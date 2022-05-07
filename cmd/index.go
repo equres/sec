@@ -21,7 +21,6 @@ import (
 )
 
 var GlobalWillIndexSECData bool
-var WillRunHook bool
 
 // indexCmd represents the index command
 var indexCmd = &cobra.Command{
@@ -128,23 +127,14 @@ var indexCmd = &cobra.Command{
 			return err
 		}
 
-		if WillRunHook {
-			PrintData()
-		}
-
 		return nil
 	},
-}
-
-func PrintData() {
-	fmt.Println("Running Hook...")
 }
 
 func init() {
 	rootCmd.AddCommand(indexCmd)
 
 	indexCmd.Flags().BoolVarP(&GlobalWillIndexSECData, "secdata", "a", false, "Index SEC data (e.g. financial statement data sets, mutual fund data...)")
-	indexCmd.Flags().BoolVar(&WillRunHook, "hook", false, "Run Hook")
 	// Here you will define your flags and configuration settings.
 
 	// Cobra supports Persistent Flags which will work for this command
