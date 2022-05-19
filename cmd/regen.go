@@ -142,12 +142,34 @@ func GenerateSitemap(sc *seccache.SECCache) error {
 	mainURLs = append(mainURLs, S.Config.Main.WebsiteURL)
 	mainURLs = append(mainURLs, fmt.Sprintf("%vabout", S.Config.Main.WebsiteURL))
 	mainURLs = append(mainURLs, fmt.Sprintf("%vcompany", S.Config.Main.WebsiteURL))
+	mainURLs = append(mainURLs, fmt.Sprintf("%vcompanies-sitemap.xml", S.Config.Main.WebsiteURL))
+	mainURLs = append(mainURLs, fmt.Sprintf("%vsic-sitemap.xml", S.Config.Main.WebsiteURL))
 
 	yearMonthDayCIKURLs, err := sc.GenerateYearMonthDayCIKURLs(DB, S.Config.Main.WebsiteURL)
 	if err != nil {
 		return err
 	}
-	mainURLs = append(mainURLs, yearMonthDayCIKURLs...)
+
+	URLsLeft := yearMonthDayCIKURLs
+	for i := 1; ; i++ {
+		mainURLs = append(mainURLs, fmt.Sprintf("%vfilings-sitemap-%d.xml", S.Config.Main.WebsiteURL, i))
+
+		if len(URLsLeft) < 25000 && len(URLsLeft) > 0 {
+			err = createAndSaveSitemapFile(fmt.Sprintf("filings-sitemap-%d.xml", i), URLsLeft)
+			if err != nil {
+				return err
+			}
+			break
+		}
+
+		splitURLs := URLsLeft[:25000]
+		URLsLeft = URLsLeft[25000:]
+
+		err = createAndSaveSitemapFile(fmt.Sprintf("filings-sitemap-%d.xml", i), splitURLs)
+		if err != nil {
+			return err
+		}
+	}
 
 	err = createAndSaveSitemapFile("sitemap.xml", mainURLs)
 	if err != nil {
