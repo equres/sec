@@ -414,6 +414,10 @@ func (s Server) HandlerCompanyFilingsPage(w http.ResponseWriter, r *http.Request
 		return
 	}
 
+	if companyTicker != "" {
+		companyTicker = fmt.Sprintf("(%v)", companyTicker)
+	}
+
 	companyName, err := seccik.GetCompanyNameFromCIK(s.DB, cik)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
