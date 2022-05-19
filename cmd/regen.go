@@ -142,17 +142,16 @@ func GenerateSitemap(sc *seccache.SECCache) error {
 	mainURLs = append(mainURLs, S.Config.Main.WebsiteURL)
 	mainURLs = append(mainURLs, fmt.Sprintf("%vabout", S.Config.Main.WebsiteURL))
 	mainURLs = append(mainURLs, fmt.Sprintf("%vcompany", S.Config.Main.WebsiteURL))
-	mainURLs = append(mainURLs, fmt.Sprintf("%vcompanies-sitemap.xml", S.Config.Main.WebsiteURL))
-	mainURLs = append(mainURLs, fmt.Sprintf("%vsic-sitemap.xml", S.Config.Main.WebsiteURL))
 
 	yearMonthDayCIKURLs, err := sc.GenerateYearMonthDayCIKURLs(DB, S.Config.Main.WebsiteURL)
 	if err != nil {
 		return err
 	}
 
+	var filingSitemapURLs []string
 	URLsLeft := yearMonthDayCIKURLs
 	for i := 1; ; i++ {
-		mainURLs = append(mainURLs, fmt.Sprintf("%vfilings-sitemap-%d.xml", S.Config.Main.WebsiteURL, i))
+		filingSitemapURLs = append(filingSitemapURLs, fmt.Sprintf("%vfilings-sitemap-%d.xml", S.Config.Main.WebsiteURL, i))
 
 		if len(URLsLeft) < 25000 && len(URLsLeft) > 0 {
 			err = createAndSaveSitemapFile(fmt.Sprintf("filings-sitemap-%d.xml", i), URLsLeft)
@@ -169,6 +168,11 @@ func GenerateSitemap(sc *seccache.SECCache) error {
 		if err != nil {
 			return err
 		}
+	}
+
+	err = GenerateRobotsTXT(filingSitemapURLs)
+	if err != nil {
+		return err
 	}
 
 	err = createAndSaveSitemapFile("sitemap.xml", mainURLs)
@@ -204,6 +208,35 @@ func GenerateSitemap(sc *seccache.SECCache) error {
 
 	// Ping to Google Search Engine
 	_, err = http.Get("https://www.google.com/ping?sitemap=https://equres.com/sitemap.xml")
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func GenerateRobotsTXT(filingsSitemaps []string) error {
+	robotsString := `User-agent: MJ12bot
+Disallow: /
+
+User-agent: BLEXBot
+Disallow: /
+
+User-agent: *
+Disallow: /signup
+
+User-agent: *
+Allow: /
+
+Sitemap: https://equres.com/sitemap.xml
+Sitemap: https://equres.com/companies-sitemap.xml
+Sitemap: https://equres.com/sic-sitemap.xml`
+
+	for _, sitemap := range filingsSitemaps {
+		robotsString += fmt.Sprintf("\nSitemap: %v", sitemap)
+	}
+
+	err := os.WriteFile(filepath.Join(S.Config.Main.CacheDir, "robots.txt"), []byte(robotsString), 0777)
 	if err != nil {
 		return err
 	}

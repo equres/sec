@@ -54,7 +54,6 @@ func (s Server) GenerateRouter() (*mux.Router, error) {
 	router.HandleFunc("/api/v1/uptime", s.HandlerUptime).Methods("GET")
 	router.HandleFunc("/api/v1/stats", s.HandlerStatsAPI).Methods("GET")
 	router.HandleFunc("/api/v1/stats/backup", s.HandlerBackupStatsAPI).Methods("GET")
-	router.HandleFunc("/robots.txt", s.HanderRobots).Methods("GET")
 	router.PathPrefix("/").HandlerFunc(s.HandlerFiles)
 	return router, nil
 }
@@ -560,25 +559,6 @@ func (s Server) HandlerDownloadStatsPage(w http.ResponseWriter, r *http.Request)
 
 func (s Server) HandlerUptime(w http.ResponseWriter, r *http.Request) {
 	fmt.Fprint(w, "OK: ", GlobalUptime)
-}
-
-func (s Server) HanderRobots(w http.ResponseWriter, r *http.Request) {
-	fmt.Fprint(w, `User-agent: MJ12bot
-Disallow: /
-
-User-agent: BLEXBot
-Disallow: /
-
-User-agent: *
-Disallow: /signup
-
-User-agent: *
-Allow: /
-
-Sitemap: https://equres.com/sitemap.xml
-Sitemap: https://equres.com/companies-sitemap.xml
-Sitemap: https://equres.com/sic-sitemap.xml
-	`)
 }
 
 func (s Server) HandlerStatsAPI(w http.ResponseWriter, r *http.Request) {
