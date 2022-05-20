@@ -6,21 +6,23 @@ import (
 	"github.com/spf13/cobra"
 )
 
-var Destination string
-var Count uint
-
 // notifCmd represents the notif command
 var notifCmd = &cobra.Command{
 	Use:   "notif",
 	Short: "Sends a notification to a chosen Social Media account",
 	Long:  `Sends a notification to a chosen Social Media account`,
 	RunE: func(cmd *cobra.Command, args []string) error {
-		switch Destination {
+		destination, err := cmd.Flags().GetString("dest")
+		if err != nil {
+			return err
+		}
+
+		switch destination {
 		case "twitter":
 			// Send a Tweet
 
 		default:
-			return fmt.Errorf("Invalid destination: %s", Destination)
+			return fmt.Errorf("Invalid destination: %s", destination)
 		}
 
 		return nil
@@ -30,8 +32,8 @@ var notifCmd = &cobra.Command{
 func init() {
 	rootCmd.AddCommand(notifCmd)
 
-	notifCmd.PersistentFlags().StringVarP(&Destination, "dest", "d", "", "Social Media to send notification to (e.g. twitter)")
-	notifCmd.PersistentFlags().UintVarP(&Count, "count", "c", 5, "Number of filings to include in the notification (e.g. 5)")
+	notifCmd.Flags().StringP("dest", "d", "", "Social Media to send notification to (e.g. twitter)")
+	notifCmd.Flags().UintP("count", "c", 5, "Number of filings to include in the notification (e.g. 5)")
 
 	// Here you will define your flags and configuration settings.
 

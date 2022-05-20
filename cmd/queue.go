@@ -1,6 +1,7 @@
 package cmd
 
 import (
+	"fmt"
 	"net/url"
 
 	"github.com/equres/sec/pkg/seccache"
@@ -8,20 +9,28 @@ import (
 	"github.com/spf13/cobra"
 )
 
-var NumberToAdd int
-
 // queueCmd represents the queue command
 var queueCmd = &cobra.Command{
 	Use:   "queue",
 	Short: "Add stock information to the queue",
 	Long:  `Add stock information to the queue`,
 	RunE: func(cmd *cobra.Command, args []string) error {
-		filings, err := secutil.GetMostRecentFilings(S, DB, NumberToAdd)
+		numberToAdd, err := cmd.Flags().GetInt("number")
+		if err != nil {
+			return err
+		}
+
+		filings, err := secutil.GetMostRecentFilings(S, DB, numberToAdd)
 		if err != nil {
 			return err
 		}
 
 		S.Log("Adding filings to the queue...")
+
+		websiteURL, err := url.Parse(S.Config.Main.WebsiteURL)
+		if err != nil {
+			return err
+		}
 
 		sc := seccache.NewSECCache(DB, S)
 		for _, filing := range filings {
@@ -30,8 +39,10 @@ var queueCmd = &cobra.Command{
 				return err
 			}
 
-			xbrlurl.Host = "equres.com"
+			xbrlurl.Host = websiteURL.Host
 			filing.XbrlURL = xbrlurl.String()
+
+			fmt.Println(filing.XbrlURL)
 
 			err = sc.AddToFilingsNotificationQueue(filing)
 			if err != nil {
@@ -46,8 +57,7 @@ var queueCmd = &cobra.Command{
 func init() {
 	rootCmd.AddCommand(queueCmd)
 
-	queueCmd.PersistentFlags().IntVarP(&NumberToAdd, "number", "n", 25, "Number of stocks to add to the queue (e.g. 25)")
-
+	queueCmd.Flags().IntP("number", "n", 25, "Number of stocks to add to the queue (e.g. 25)")
 	// Here you will define your flags and configuration settings.
 
 	// Cobra supports Persistent Flags which will work for this command
