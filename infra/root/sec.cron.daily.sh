@@ -5,6 +5,8 @@ set -e
 
 sec=/home/sec/sec
 
+$sec de $(date +%Y) --verbose --syslog
+
 $sec dow index --verbose --syslog
 status=failed
 if [ $# -eq 0 ]; then
