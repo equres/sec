@@ -1,0 +1,80 @@
+{{ template "base" .}}
+
+{{ define "head" }}
+
+<script src="/_assets/js/dashboard.js"></script>
+
+{{ end }}
+
+{{ define "content"}}
+
+<h1>Dashboard</h1>
+<div class="container">
+    <div class="row">
+        <div class="col">
+            <canvas id="downloadStats" width="200" height="100"></canvas>
+        </div>
+        <div class="col">
+            <canvas id="indexStats" width="200" height="100"></canvas>
+        </div>
+    </div>
+    <div class="row text-center">
+        <div class="col">
+            <div class="card">
+                <div class="card-body">
+                    <h5 class="card-title">Last Successful Backup To Ca2</h5>
+                    <p class="card-text fw-bolder">
+                        {{ IfDateEmpty .LastSuccessfulBackupToCa2 }}
+                    </p>
+                </div>
+            </div>
+        </div>
+
+        <div class="col">
+            <div class="card">
+                <div class="card-body">
+                    <h5 class="card-title">Last Successful Backup To Waw1</h5>
+                    <p class="card-text fw-bolder">
+                        {{ IfDateEmpty .LastSuccessfulBackupToWaw1 }}
+                    </p>
+                </div>
+            </div>
+        </div>
+
+        <div class="col">
+            <div class="card">
+                <div class="card-body">
+                    <h5 class="card-title">Last Successful Database Backup</h5>
+                    <p class="card-text fw-bolder">
+                        {{ IfDateEmpty .LastSuccessfulDBBackup }}
+                    </p>
+                </div>
+            </div>
+        </div>
+
+        <div class="col">
+            <div class="card">
+                <div class="card-body">
+                    <h5 class="card-title">Last Successful Database Backup To Ca2</h5>
+                    <p class="card-text fw-bolder">
+                        {{ IfDateEmpty .LastSuccessfulDBBackupToCa2 }}
+                    </p>
+                </div>
+            </div>
+        </div>
+
+        <div class="col">
+            <div class="card">
+                <div class="card-body">
+                    <h5 class="card-title">Last Successful Database Backup To Waw1</h5>
+                    <p class="card-text fw-bolder">
+                        {{ IfDateEmpty .LastSuccessfulDBBackupToWaw1 }}
+                    </p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+
+{{ end }}

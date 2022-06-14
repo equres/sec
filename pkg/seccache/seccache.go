@@ -563,3 +563,129 @@ func (sc *SECCache) GenerateCompaniesDataCache() error {
 
 	return nil
 }
+
+func (sc *SECCache) GenerateSECLastSevenDaysDownloadsCount() (string, error) {
+	downloads, err := secevent.GetLastSevenDaysDownloads(sc.DB)
+	if err != nil {
+		return "", err
+	}
+
+	downloadsJSON, err := json.Marshal(downloads)
+	if err != nil {
+		return "", err
+	}
+
+	return string(downloadsJSON), nil
+}
+
+func (sc *SECCache) GenerateSECLastSevenDaysDownloadsCountCache() error {
+	statsJSON, err := sc.GenerateSECLastSevenDaysDownloadsCount()
+	if err != nil {
+		return err
+	}
+
+	err = sc.S.Cache.MustSet(cache.SECLastSevenDaysDownloadsCount, statsJSON)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (sc *SECCache) GenerateSECLastSevenDaysIndexesCount() (string, error) {
+	downloads, err := secevent.GetLastSevenDaysIndexes(sc.DB)
+	if err != nil {
+		return "", err
+	}
+
+	downloadsJSON, err := json.Marshal(downloads)
+	if err != nil {
+		return "", err
+	}
+
+	return string(downloadsJSON), nil
+}
+
+func (sc *SECCache) GenerateSECLastSevenDaysIndexesCountCache() error {
+	statsJSON, err := sc.GenerateSECLastSevenDaysIndexesCount()
+	if err != nil {
+		return err
+	}
+
+	err = sc.S.Cache.MustSet(cache.SECLastSevenDaysIndexesCount, statsJSON)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (sc *SECCache) GenerateLastSuccessfulBackupToCa2Cache() error {
+	lastBackup, err := secevent.GetLastSuccessfulBackUpToCa2(sc.DB)
+	if err != nil {
+		return err
+	}
+
+	err = sc.S.Cache.MustSet(cache.SECLastSuccessfulBackupToCa2, lastBackup)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (sc *SECCache) GenerateLastSuccessfulBackupToWaw1Cache() error {
+	lastBackup, err := secevent.GetLastSuccessfulBackUpToWaw1(sc.DB)
+	if err != nil {
+		return err
+	}
+
+	err = sc.S.Cache.MustSet(cache.SECLastSuccessfulBackupToWaw1, lastBackup)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (sc *SECCache) GenerateLastSuccessfulDBBackupCache() error {
+	lastBackup, err := secevent.GetLastSuccessfulDBBackup(sc.DB)
+	if err != nil {
+		return err
+	}
+
+	err = sc.S.Cache.MustSet(cache.SECLastSuccessfulDBBackup, lastBackup)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (sc *SECCache) GenerateLastSuccessfulDBBackupToCa2Cache() error {
+	lastBackup, err := secevent.GetLastSuccessfulDBBackupToCa2(sc.DB)
+	if err != nil {
+		return err
+	}
+
+	err = sc.S.Cache.MustSet(cache.SECLastSuccessfulDBBackupToCa2, lastBackup)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (sc *SECCache) GenerateLastSuccessfulDBBackupToWaw1Cache() error {
+	lastBackup, err := secevent.GetLastSuccessfulDBBackupToWaw1(sc.DB)
+	if err != nil {
+		return err
+	}
+
+	err = sc.S.Cache.MustSet(cache.SECLastSuccessfulDBBackupToWaw1, lastBackup)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}

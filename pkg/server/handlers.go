@@ -51,9 +51,12 @@ func (s Server) GenerateRouter() (*mux.Router, error) {
 	router.HandleFunc("/stats", s.HandlerStatsPage).Methods("GET")
 	router.HandleFunc("/backup/stats", s.HandlerBackupStatsPage).Methods("GET")
 	router.HandleFunc("/download/stats", s.HandlerDownloadStatsPage).Methods("GET")
+	router.HandleFunc("/dashboard", s.HandlerDashboard).Methods("GET")
 	router.HandleFunc("/api/v1/uptime", s.HandlerUptime).Methods("GET")
 	router.HandleFunc("/api/v1/stats", s.HandlerStatsAPI).Methods("GET")
 	router.HandleFunc("/api/v1/stats/backup", s.HandlerBackupStatsAPI).Methods("GET")
+	router.HandleFunc("/api/v1/stats/downloads/past-week", s.HandlerDownloadStatsAPI).Methods("GET")
+	router.HandleFunc("/api/v1/stats/indexes/past-week", s.HandlerIndexStatsAPI).Methods("GET")
 	router.PathPrefix("/").HandlerFunc(s.HandlerFiles)
 	return router, nil
 }
@@ -557,6 +560,51 @@ func (s Server) HandlerDownloadStatsPage(w http.ResponseWriter, r *http.Request)
 	}
 }
 
+func (s Server) HandlerDashboard(w http.ResponseWriter, r *http.Request) {
+	content := make(map[string]interface{})
+
+	lastSuccessfulBackupToCa2, err := s.Cache.Get(cache.SECLastSuccessfulBackupToCa2)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+
+	lastSuccessfulBackupToWaw1, err := s.Cache.Get(cache.SECLastSuccessfulBackupToWaw1)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+
+	lastSuccessfulDBBackup, err := s.Cache.Get(cache.SECLastSuccessfulDBBackup)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+
+	lastSuccessfulDBBackupToCa2, err := s.Cache.Get(cache.SECLastSuccessfulDBBackupToCa2)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+
+	lastSuccessfulDBBackupToWaw1, err := s.Cache.Get(cache.SECLastSuccessfulDBBackupToWaw1)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+
+	content["LastSuccessfulBackupToCa2"] = lastSuccessfulBackupToCa2
+	content["LastSuccessfulBackupToWaw1"] = lastSuccessfulBackupToWaw1
+	content["LastSuccessfulDBBackup"] = lastSuccessfulDBBackup
+	content["LastSuccessfulDBBackupToCa2"] = lastSuccessfulDBBackupToCa2
+	content["LastSuccessfulDBBackupToWaw1"] = lastSuccessfulDBBackupToWaw1
+
+	err = s.RenderTemplate(w, "dashboard.page.gohtml", content)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+	}
+}
+
 func (s Server) HandlerUptime(w http.ResponseWriter, r *http.Request) {
 	fmt.Fprint(w, "OK: ", GlobalUptime)
 }
@@ -573,6 +621,26 @@ func (s Server) HandlerStatsAPI(w http.ResponseWriter, r *http.Request) {
 
 func (s Server) HandlerBackupStatsAPI(w http.ResponseWriter, r *http.Request) {
 	statsJSON, err := s.Cache.Get(cache.SECBackupStats)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+
+	fmt.Fprint(w, statsJSON)
+}
+
+func (s Server) HandlerDownloadStatsAPI(w http.ResponseWriter, r *http.Request) {
+	statsJSON, err := s.Cache.Get(cache.SECLastSevenDaysDownloadsCount)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+
+	fmt.Fprint(w, statsJSON)
+}
+
+func (s Server) HandlerIndexStatsAPI(w http.ResponseWriter, r *http.Request) {
+	statsJSON, err := s.Cache.Get(cache.SECLastSevenDaysIndexesCount)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
@@ -600,6 +668,13 @@ func (s Server) RenderTemplate(w http.ResponseWriter, tmplName string, data inte
 				return "orange"
 			}
 			return "green"
+		},
+		// Make a function to return "Never" if the value is empty
+		"IfDateEmpty": func(value string) string {
+			if value == "" {
+				return "Never"
+			}
+			return value
 		},
 	}
 
