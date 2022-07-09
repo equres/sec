@@ -198,8 +198,8 @@ func (d Downloader) DownloadFile(db *sqlx.DB, fullurl string) error {
 			if insertErr != nil {
 				return insertErr
 			}
-			return nil
 		}
+		return nil
 	}
 
 	if d.Debug {
