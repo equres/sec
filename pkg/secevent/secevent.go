@@ -35,6 +35,16 @@ type OtherEvent struct {
 	Status string `json:"status"`
 }
 
+type DownloadDayStat struct {
+	Date  string `json:"date"`
+	Count int    `json:"count"`
+}
+
+type IndexDayStat struct {
+	Date  string `json:"date"`
+	Count int    `json:"count"`
+}
+
 type EventStat struct {
 	DateTime        time.Time `db:"events_date"`
 	Date            string    `db:"date"`
@@ -179,4 +189,182 @@ func GetDownloadEventStatsByHour(db *sqlx.DB) ([]DownloadEventStatsByHour, error
 	}
 
 	return allDownloadEventStats, nil
+}
+
+func GetLastSevenDaysDownloads(db *sqlx.DB) ([]DownloadDayStat, error) {
+	var lastSevenDaysDownloadsCount []DownloadDayStat
+	err := db.Select(&lastSevenDaysDownloadsCount, `
+	SELECT
+		COUNT(*) as count,
+		created_at::date as date
+	FROM sec.events
+	WHERE
+		ev->>'event' = 'download'
+		AND ev->>'status' = 'success'
+		AND created_at::date >= (current_date - 7)
+	GROUP BY
+		created_at::date
+	ORDER BY
+		created_at::date DESC
+	LIMIT 7;
+	`)
+	if err != nil {
+		return nil, err
+	}
+
+	return lastSevenDaysDownloadsCount, nil
+}
+
+func GetLastSevenDaysIndexes(db *sqlx.DB) ([]IndexDayStat, error) {
+	var lastSevenDaysIndexesCount []IndexDayStat
+	err := db.Select(&lastSevenDaysIndexesCount, `
+	SELECT
+		COUNT(*) as count,
+		created_at::date as date
+	FROM sec.events
+	WHERE
+		ev->>'event' = 'index'
+		AND ev->>'status' = 'success'
+		AND created_at::date >= (current_date - 7)
+	GROUP BY
+		created_at::date
+	ORDER BY
+		created_at::date DESC
+	LIMIT 7;
+	`)
+	if err != nil {
+		return nil, err
+	}
+
+	return lastSevenDaysIndexesCount, nil
+}
+
+func GetLastSuccessfulBackUpToCa2(db *sqlx.DB) (string, error) {
+	var lastSuccessfulBackUpToCa2 []string
+	err := db.Select(&lastSuccessfulBackUpToCa2, `
+	SELECT
+		created_at::date as date
+	FROM sec.events
+	WHERE
+		ev->>'job' = 'ca2_rsync'
+		AND ev->>'status' = 'success'
+	GROUP BY
+		created_at::date
+	ORDER BY
+		created_at::date DESC
+	LIMIT 1;
+	`)
+	if err != nil {
+		return "", err
+	}
+
+	if len(lastSuccessfulBackUpToCa2) == 0 {
+		return "", nil
+	}
+
+	return lastSuccessfulBackUpToCa2[0], nil
+}
+
+func GetLastSuccessfulBackUpToWaw1(db *sqlx.DB) (string, error) {
+	var lastSuccessfulBackUpToWaw1 []string
+	err := db.Select(&lastSuccessfulBackUpToWaw1, `
+	SELECT
+		created_at::date as date
+	FROM sec.events
+	WHERE
+		ev->>'job' = 'waw1_rsync'
+		AND ev->>'status' = 'success'
+	GROUP BY
+		created_at::date
+	ORDER BY
+		created_at::date DESC
+	LIMIT 1;
+	`)
+	if err != nil {
+		return "", err
+	}
+
+	if len(lastSuccessfulBackUpToWaw1) == 0 {
+		return "", nil
+	}
+
+	return lastSuccessfulBackUpToWaw1[0], nil
+}
+
+func GetLastSuccessfulDBBackup(db *sqlx.DB) (string, error) {
+	var lastSuccessfulDBBackup []string
+	err := db.Select(&lastSuccessfulDBBackup, `
+	SELECT
+		created_at::date as date
+	FROM sec.events
+	WHERE
+		ev->>'job' = 'db_backup'
+		AND ev->>'status' = 'success'
+	GROUP BY
+		created_at::date
+	ORDER BY
+		created_at::date DESC
+	LIMIT 1;
+	`)
+	if err != nil {
+		return "", err
+	}
+
+	if len(lastSuccessfulDBBackup) == 0 {
+		return "", nil
+	}
+
+	return lastSuccessfulDBBackup[0], nil
+}
+
+func GetLastSuccessfulDBBackupToCa2(db *sqlx.DB) (string, error) {
+	var lastSuccessfulDBBackupToCa2 []string
+	err := db.Select(&lastSuccessfulDBBackupToCa2, `
+	SELECT
+		created_at::date as date
+	FROM sec.events
+	WHERE
+		ev->>'job' = 'ca2_db_scp'
+		AND ev->>'status' = 'success'
+	GROUP BY
+		created_at::date
+	ORDER BY
+		created_at::date DESC
+	LIMIT 1;
+	`)
+	if err != nil {
+		return "", err
+	}
+
+	if len(lastSuccessfulDBBackupToCa2) == 0 {
+		return "", nil
+	}
+
+	return lastSuccessfulDBBackupToCa2[0], nil
+}
+
+func GetLastSuccessfulDBBackupToWaw1(db *sqlx.DB) (string, error) {
+	var lastSuccessfulDBBackupToWaw1 []string
+	err := db.Select(&lastSuccessfulDBBackupToWaw1, `
+	SELECT
+		created_at::date as date
+	FROM sec.events
+	WHERE
+		ev->>'job' = 'waw1_db_scp'
+		AND ev->>'status' = 'success'
+	GROUP BY
+		created_at::date
+	ORDER BY
+		created_at::date DESC
+	LIMIT 1;
+	`)
+	if err != nil {
+		return "", err
+	}
+
+	if len(lastSuccessfulDBBackupToWaw1) == 0 {
+		return "", nil
+	}
+
+	return lastSuccessfulDBBackupToWaw1[0], nil
 }

@@ -48,6 +48,41 @@ var regenCmd = &cobra.Command{
 			if err != nil {
 				return err
 			}
+
+			err = sc.GenerateSECLastSevenDaysDownloadsCountCache()
+			if err != nil {
+				return err
+			}
+
+			err = sc.GenerateSECLastSevenDaysIndexesCountCache()
+			if err != nil {
+				return err
+			}
+
+			err = sc.GenerateLastSuccessfulBackupToCa2Cache()
+			if err != nil {
+				return err
+			}
+
+			err = sc.GenerateLastSuccessfulBackupToWaw1Cache()
+			if err != nil {
+				return err
+			}
+
+			err = sc.GenerateLastSuccessfulDBBackupCache()
+			if err != nil {
+				return err
+			}
+
+			err = sc.GenerateLastSuccessfulDBBackupToCa2Cache()
+			if err != nil {
+				return err
+			}
+
+			err = sc.GenerateLastSuccessfulDBBackupToWaw1Cache()
+			if err != nil {
+				return err
+			}
 		case "pages":
 			S.Log("Generating & caching pages in redis...")
 			err := sc.GenerateHomePageDataCache()
