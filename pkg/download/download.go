@@ -91,7 +91,7 @@ func (d Downloader) FileInCache(path string) (fs.FileInfo, error) {
 	return filestat, nil
 }
 
-func (d Downloader) GetFileETag(fullURL string) (string, error) {
+func (d Downloader) GetFileETag(db *sqlx.DB, fullURL string) (string, error) {
 	req := secreq.NewSECReqHEAD(d.Config)
 	req.IsEtag = true
 	req.IsContentLength = false
@@ -108,7 +108,11 @@ func (d Downloader) GetFileETag(fullURL string) (string, error) {
 
 	resp, err := req.SendRequest(retryLimit, time.Duration(rateLimit), fullURL)
 	if err != nil {
-		return "", err
+		err := database.SkipFileInsert(db, fullURL)
+		if err != nil {
+			return "", err
+		}
+		return "", nil
 	}
 
 	etag := resp.Header.Get("eTag")
@@ -193,7 +197,7 @@ func (d Downloader) DownloadFile(db *sqlx.DB, fullurl string) error {
 	if err != nil {
 		secevent.CreateDownloadEvent(db, cachePath, fullurl, "failed", err.Error())
 
-		if err.Error() == errors.New("404").Error() {
+		if err.Error() == errors.New("404").Error() || err.Error() == errors.New("retries_failed").Error() {
 			insertErr := database.SkipFileInsert(db, fullurl)
 			if insertErr != nil {
 				return insertErr

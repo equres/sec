@@ -39,9 +39,13 @@ func DownloadTickerFile(db *sqlx.DB, s *sec.SEC, path string) error {
 
 	s.Log(fmt.Sprintf("Checking for file %v: ", filepath.Base(pathURL.Path)))
 
-	etag, err := downloader.GetFileETag(fullURL)
+	etag, err := downloader.GetFileETag(db, fullURL)
 	if err != nil {
 		return err
+	}
+
+	if etag == "" {
+		return nil
 	}
 
 	isFileCorrect, err := downloader.FileCorrect(db, fullURL, 0, etag)
@@ -85,9 +89,13 @@ func DownloadIndex(db *sqlx.DB, s *sec.SEC) error {
 
 		s.Log(fmt.Sprintf("Checking file '%v' in disk: ", filepath.Base(fileURL)))
 
-		etag, err := downloader.GetFileETag(fileURL)
+		etag, err := downloader.GetFileETag(db, fileURL)
 		if err != nil {
 			return err
+		}
+
+		if etag == "" {
+			return nil
 		}
 
 		isFileCorrect, err := downloader.FileCorrect(db, fileURL, 0, etag)
