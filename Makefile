@@ -16,8 +16,9 @@ fmt: lint
 	gofmt -w *.go
 
 lint:
-	go install github.com/golangci/golangci-lint/cmd/golangci-lint@latest
-	golangci-lint run
+	# looks broken
+	#go install github.com/golangci/golangci-lint/cmd/golangci-lint@latest
+	#golangci-lint run
 
 run:
 	./sec $(action)
