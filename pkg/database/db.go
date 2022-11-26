@@ -94,7 +94,17 @@ func CheckMigration(config config.Config) error {
 }
 
 func SkipFileInsert(db *sqlx.DB, fullurl string) error {
-	_, err := db.Exec(`INSERT INTO sec.skipped_files (url) VALUES ($1)`, fullurl)
+	var fileExists []int
+	err := db.Select(&fileExists, `SELECT COUNT(*) FROM sec.skipped_files WHERE url = $1;`, fullurl)
+	if err != nil {
+		return err
+	}
+
+	if fileExists[0] > 0 {
+		return nil
+	}
+
+	_, err = db.Exec(`INSERT INTO sec.skipped_files (url) VALUES ($1)`, fullurl)
 	if err != nil {
 		return err
 	}
