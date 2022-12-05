@@ -62,12 +62,6 @@ var indexCmd = &cobra.Command{
 			return err
 		}
 
-		// S.Log("Inserting CIK From Txt File...")
-		// err = seccik.GetCIKsFromTxtFile(S, DB)
-		// if err != nil {
-		// 	return err
-		// }
-
 		if S.Config.IndexMode.FinancialStatementDataSets == "enabled" || S.Config.IndexMode.FinancialStatementDataSets == "true" || GlobalWillIndexSECData {
 			S.Log("Indexing Financial Statement Data Sets...")
 			secData := secdata.NewSECData(secdata.NewSECDataOpsFSDS())
