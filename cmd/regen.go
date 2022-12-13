@@ -173,6 +173,9 @@ func GenerateSICPageURLs(db *sqlx.DB, baseURL string) ([]string, error) {
 
 func GenerateSitemap(sc *seccache.SECCache) error {
 	// Generating sitemap.xml
+	var sitemapURLs []string
+	sitemapURLs = append(sitemapURLs, "sitemap.xml")
+
 	var mainURLs []string
 	mainURLs = append(mainURLs, S.Config.Main.WebsiteURL)
 	mainURLs = append(mainURLs, fmt.Sprintf("%vabout", S.Config.Main.WebsiteURL))
@@ -203,6 +206,8 @@ func GenerateSitemap(sc *seccache.SECCache) error {
 		if err != nil {
 			return err
 		}
+
+		sitemapURLs = append(sitemapURLs, fmt.Sprintf("filings-sitemap-%d.xml", i))
 	}
 
 	err = GenerateRobotsTXT(filingSitemapURLs)
@@ -223,6 +228,8 @@ func GenerateSitemap(sc *seccache.SECCache) error {
 	}
 	companyURLs = append(companyURLs, companyPageURLs...)
 
+	sitemapURLs = append(sitemapURLs, "companies-sitemap.xml")
+
 	err = createAndSaveSitemapFile("companies-sitemap.xml", companyURLs)
 	if err != nil {
 		return err
@@ -236,15 +243,19 @@ func GenerateSitemap(sc *seccache.SECCache) error {
 	}
 	sicURLs = append(sicURLs, sicPagesURLs...)
 
+	sitemapURLs = append(sitemapURLs, "sic-sitemap.xml")
+
 	err = createAndSaveSitemapFile("sic-sitemap.xml", sicURLs)
 	if err != nil {
 		return err
 	}
 
 	// Ping to Google Search Engine
-	_, err = http.Get("https://www.google.com/ping?sitemap=https://equres.com/sitemap.xml")
-	if err != nil {
-		return err
+	for _, sitemap := range sitemapURLs {
+		_, err = http.Get(fmt.Sprintf("https://www.google.com/ping?sitemap=https://equres.com/%v", sitemap))
+		if err != nil {
+			return err
+		}
 	}
 
 	return nil
