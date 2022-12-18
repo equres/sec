@@ -2,13 +2,15 @@
 
 {{ define "head"}}
     <title>{{ .CompanyName }} {{ .CompanyTicker }} - SEC FILINGS - EQURES.com</title>
-    <meta name="description" content="All the company filings submitted to the Security and Exchange Commission in all years">
-    <meta name="keywords" content="{{.CompanyName}}, {{ .CompanyTicker }}, sec, cik, security and exchange commission">
+    <meta name="description" content="All the {{ .CompanyName }} filings submitted to the Security and Exchange Commission in all years">
+    <meta name="keywords" content="{{.CompanyName}}, {{ .CompanyTicker }}, sec, sec filings, cik, security and exchange commission">
 {{ end }}
 
 {{ define "content"}}
-    <h1>All SEC Financial Filings For {{ .CompanyName }} {{ .CompanyTicker }}</h1>
-    <ul>
-        {{ .FilingsHTML }}
-    </ul>
+    <div class="content">
+        <h1>All SEC Financial Filings For {{ .CompanyName }} {{ .CompanyTicker }}</h1>
+        <ul>
+            {{ .FilingsHTML }}
+        </ul>
+    </div>
 {{ end }}
