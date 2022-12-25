@@ -57,6 +57,7 @@ func (s Server) GenerateRouter() (*mux.Router, error) {
 	router.HandleFunc("/api/v1/stats/backup", s.HandlerBackupStatsAPI).Methods("GET")
 	router.HandleFunc("/api/v1/stats/downloads/past-week", s.HandlerDownloadStatsAPI).Methods("GET")
 	router.HandleFunc("/api/v1/stats/indexes/past-week", s.HandlerIndexStatsAPI).Methods("GET")
+	router.HandleFunc("/api/v1/stats/save", s.Statistics).Methods("POST")
 	router.PathPrefix("/").HandlerFunc(s.HandlerFiles)
 	return router, nil
 }
@@ -676,6 +677,9 @@ func (s Server) RenderTemplate(w http.ResponseWriter, tmplName string, data inte
 			}
 			return value
 		},
+		"WebsiteURL": func() string {
+			return s.Config.Main.WebsiteURL
+		},
 	}
 
 	tmpl, err := template.New("tmpl").Funcs(funcMap).ParseFS(s.TemplatesFS, "templates/"+tmplName, "templates/base.layout.gohtml")
@@ -767,4 +771,29 @@ func (s Server) GetHoursFromRedis(redisConfig config.RedisConfig) ([]int, error)
 	}
 
 	return hours, nil
+}
+
+func (s Server) Statistics(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "text/html")
+
+	if !strings.Contains(s.Config.Main.WebsiteURL, r.Header.Get("Origin")) {
+		http.Error(w, "Origin not allowed", http.StatusForbidden)
+		return
+	}
+
+	var data struct {
+		URL string `json:"url"`
+	}
+
+	err := json.NewDecoder(r.Body).Decode(&data)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+
+	keyPrefix := "stats:"
+
+	s.Cache.Redis.HIncrBy(r.Context(), keyPrefix+data.URL, "count", 1)
+
+	w.WriteHeader(http.StatusOK)
 }
