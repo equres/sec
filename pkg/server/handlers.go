@@ -430,6 +430,7 @@ func (s Server) HandlerCompanyFilingsPage(w http.ResponseWriter, r *http.Request
 	content["FilingsHTML"] = filingsGeneratedHTML
 	content["CompanyTicker"] = companyTicker
 	content["CompanyName"] = companyName
+	content["CompanySlug"] = companySlug
 
 	err = s.RenderTemplate(w, "companyfilings.page.gohtml", content)
 	if err != nil {

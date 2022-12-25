@@ -1,9 +1,40 @@
 {{ template "base" .}}
 
 {{ define "head"}}
-    <title>{{ .CompanyName }} {{ .CompanyTicker }} - SEC FILINGS - EQURES.com</title>
-    <meta name="description" content="All the company filings submitted to the Security and Exchange Commission in all years">
+    <title>{{ .CompanyName }} {{ .CompanyTicker }} - SEC Financial Filings - Equres.com</title>
+    <meta name="description" content="All the company SEC financial filings submitted to the Security and Exchange Commission in all years">
     <meta name="keywords" content="{{.CompanyName}}, {{ .CompanyTicker }}, sec, cik, security and exchange commission">
+
+    <meta property="og:title" content="{{ .CompanyName }} {{ .CompanyTicker }} - SEC Financial Filings - Equres.com" />
+    <meta property="og:description" content="All the company SEC financial filings submitted to the Security and Exchange Commission in all years" />
+    <script type="application/ld+json">
+    {
+        "@context": "https://schema.org",
+        "@type": "NewsArticle",
+        "mainEntityOfPage": {
+            "@type": "WebPage",
+            "@id": "equres.com"
+        },
+        "headline": "{{ .CompanyName }} {{ .CompanyTicker }} - SEC Financial Filings - Equres.com",
+        "description": "All the company SEC financial filings submitted to the Security and Exchange Commission in all years",
+        "image": "",  
+        "author": {
+            "@type": "Organization",
+            "name": "{{ .CompanyName }}",
+            "url": "https://equres.com/company/{{ .CompanySlug }}"
+        },  
+        "publisher": {
+            "@type": "Organization",
+            "name": "Equres.com",
+            "logo": {
+                "@type": "ImageObject",
+                "url": ""
+            }
+        },
+        "isAccessibleForFree": "True",
+        "datePublished": ""
+    }
+    </script>
 {{ end }}
 
 {{ define "content"}}

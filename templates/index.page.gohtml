@@ -1,9 +1,40 @@
 {{ template "base" .}}
 
 {{ define "head"}}
-    <title>Equres Home Page - SEC FILINGS - EQURES.com</title>
-    <meta name="description" content="Most recent filings taken straight from the Security and Exchange Commission">
+    <title>Equres Home Page - SEC Financial Filings - Equres.com</title>
+    <meta name="description" content="Most recent SEC financial filings taken straight from the Security and Exchange Commission">
     <meta name="keywords" content="sec, cik, security and exchange commission, company, companies">
+
+    <meta property="og:title" content="Equres Home Page - SEC Financial Filings - Equres.com" />
+    <meta property="og:description" content="Most recent SEC financial filings taken straight from the Security and Exchange Commission" />
+    <script type="application/ld+json">
+    {
+        "@context": "https://schema.org",
+        "@type": "NewsArticle",
+        "mainEntityOfPage": {
+            "@type": "WebPage",
+            "@id": "equres.com"
+        },
+        "headline": "Equres Home Page - SEC Financial Filings - Equres.com",
+        "description": "Most recent SEC financial filings taken straight from the Security and Exchange Commission",
+        "image": "",  
+        "author": {
+            "@type": "Organization",
+            "name": "Equres",
+            "url": "https://equres.com"
+        },  
+        "publisher": {
+            "@type": "Organization",
+            "name": "Equres.com",
+            "logo": {
+                "@type": "ImageObject",
+                "url": ""
+            }
+        },
+        "isAccessibleForFree": "True",
+        "datePublished": ""
+    }
+    </script>
 {{ end }}
 
 {{ define "content"}}
