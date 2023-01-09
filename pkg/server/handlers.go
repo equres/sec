@@ -51,6 +51,7 @@ func (s Server) GenerateRouter() (*mux.Router, error) {
 	router.HandleFunc("/stats", s.HandlerStatsPage).Methods("GET")
 	router.HandleFunc("/backup/stats", s.HandlerBackupStatsPage).Methods("GET")
 	router.HandleFunc("/download/stats", s.HandlerDownloadStatsPage).Methods("GET")
+	router.HandleFunc("/url/stats", s.GetStatistics).Methods("GET")
 	router.HandleFunc("/dashboard", s.HandlerDashboard).Methods("GET")
 	router.HandleFunc("/api/v1/uptime", s.HandlerUptime).Methods("GET")
 	router.HandleFunc("/api/v1/stats", s.HandlerStatsAPI).Methods("GET")
@@ -797,4 +798,40 @@ func (s Server) Statistics(w http.ResponseWriter, r *http.Request) {
 	s.Cache.Redis.HIncrBy(r.Context(), keyPrefix+data.URL, "count", 1)
 
 	w.WriteHeader(http.StatusOK)
+}
+
+func (s Server) GetStatistics(w http.ResponseWriter, r *http.Request) {
+	keyPrefix := "stats:"
+
+	keys, err := s.Cache.Redis.Keys(r.Context(), keyPrefix+"*").Result()
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+
+	stats := make(map[string]int)
+
+	for _, key := range keys {
+		count, err := s.Cache.Redis.HGet(r.Context(), key, "count").Int()
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusBadRequest)
+			return
+		}
+
+		url := strings.TrimPrefix(key, keyPrefix)
+
+		if url == "" {
+			continue
+		}
+
+		stats[url] = count
+	}
+
+	content := make(map[string]interface{})
+	content["URLStats"] = stats
+
+	err = s.RenderTemplate(w, "url_stats.page.gohtml", content)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+	}
 }

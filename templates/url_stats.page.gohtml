@@ -1,0 +1,24 @@
+{{ template "base" .}}
+
+{{ define "head"}}
+    <title>Equres > URL Stats</title>
+{{ end }}
+
+{{ define "content"}}
+
+<h1>Visits Per URL</h1>
+<div class="container">
+    <div class="row">
+        <table class="table">
+            {{ range $URL, $Count := .URLStats }} 
+            <tr>
+                <td>{{ $URL }}</td>
+                <td>{{ $Count }}</td>
+            </tr>
+            {{ end }}
+        </table>    
+    </div>
+</div>
+
+
+{{ end }}
